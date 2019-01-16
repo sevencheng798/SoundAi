@@ -9,7 +9,10 @@ target_include_directories(PaWrapperTest PUBLIC
 		"${CMAKE_SOURCE_DIR}/AICommon/Utils/include")
 
 target_link_libraries(PaWrapperTest 
-		PortAudioMediaPlayer)
+		PortAudioMediaPlayer
+		asound
+		z
+		bz2)
 
 install(TARGETS PaWrapperTest
       RUNTIME DESTINATION bin
