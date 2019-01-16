@@ -3,7 +3,6 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
- * A copy of the License is located at
  *
  *
  * or in the "license" file accompanying this file. This file is distributed
@@ -20,6 +19,7 @@
 
 struct AVFormatContext;
 
+namespace aisdk {
 namespace mediaPlayer {
 namespace ffmpeg {
 
@@ -92,6 +92,6 @@ inline std::ostream& operator<<(std::ostream& stream, const FFmpegInputControlle
 
 }  // namespace ffmpeg
 }  // namespace mediaPlayer
-
+} //namespace aisdk
 
 #endif  // __FFMPEGINPUTCONTROLLERINTERFACE_H_

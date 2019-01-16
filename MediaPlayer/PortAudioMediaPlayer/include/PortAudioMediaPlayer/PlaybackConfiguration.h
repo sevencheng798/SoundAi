@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 
+namespace aisdk {
 namespace mediaPlayer {
 namespace ffmpeg {
 
@@ -172,5 +173,5 @@ inline std::ostream& operator<<(std::ostream& stream, const PlaybackConfiguratio
 
 }  // namespace ffmpeg
 }  // namespace mediaPlayer
-
+} // namespace aisdk
 #endif  // __PLAYBACKCONFIGURATION_H_

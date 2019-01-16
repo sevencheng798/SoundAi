@@ -15,7 +15,7 @@
 #include <memory>
 #include <iostream>
 #include <fstream>
-
+#include <string>
 #include <dirent.h>
 #include <unistd.h>
 #include <cstdio>
@@ -26,21 +26,44 @@
 #include "Utils/MediaPlayer/MediaPlayerObserverInterface.h"
 #include "PortAudioMediaPlayer/PaWrapper.h"
 
-using namespace mediaPlayer::ffmpeg;
+using namespace aisdk::mediaPlayer::ffmpeg;
 
 namespace util {
 int kbhit();
 }
 
-class AudioPlayerTest : public utils::mediaPlayer::MediaPlayerObserverInterface
-		, public std::enable_shared_from_this<AudioPlayerTest>{
+int util::kbhit()
+{
+    struct timeval tv;
+    fd_set rdfs;
+
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+
+    FD_ZERO(&rdfs);
+    FD_SET(STDIN_FILENO, &rdfs);
+
+    select(STDIN_FILENO + 1, &rdfs, NULL, NULL, &tv);
+
+    return FD_ISSET(STDIN_FILENO, &rdfs);
+}
+
+class AudioPlayerTest 
+	: public aisdk::utils::mediaPlayer::MediaPlayerObserverInterface
+	, public std::enable_shared_from_this<AudioPlayerTest> {
 public:
 	/// Constructor
 	AudioPlayerTest(std::unique_ptr<PaWrapper> paWrapper, PaWrapper::SourceId id);
 
-	void init(std::shared_ptr<std::istream> stream);
+	/// Set Observer
+	void init();
 
-	bool run();
+	bool run(std::shared_ptr<std::istream> stream);
+
+	bool run(std::string &url, std::chrono::milliseconds &offset);
+
+	/// Master process tasks
+	bool play();
 	
 	/// @name MediaPlayerObserverInterface functions
 	/// @{
@@ -48,7 +71,7 @@ public:
 
     void onPlaybackFinished(SourceId id) override;
 
-    void onPlaybackError(SourceId id, const utils::mediaPlayer::ErrorType& type, std::string error) override;
+    void onPlaybackError(SourceId id, const aisdk::utils::mediaPlayer::ErrorType& type, std::string error) override;
 
     void onPlaybackStopped(SourceId id) override;
 
@@ -56,7 +79,7 @@ public:
 
 	void onPlaybackResumed(SourceId id) override;
 
-	///}
+	///@}
 	
 private:
 	std::unique_ptr<PaWrapper> m_paWrapper;
@@ -71,19 +94,37 @@ AudioPlayerTest::AudioPlayerTest(std::unique_ptr<PaWrapper> paWrapper, PaWrapper
 
 }
 
-void AudioPlayerTest::init(std::shared_ptr<std::istream> stream){
+void AudioPlayerTest::init(){
 std::cout << "set init" << std::endl;
 	m_paWrapper->setObserver(shared_from_this());
-	m_stream = stream;
 }
 
-bool AudioPlayerTest::run(){
-	std::cout << "set run" << std::endl;
-	m_sourceID = m_paWrapper->setSource(m_stream, true);
-	if(utils::mediaPlayer::MediaPlayerInterface::ERROR == m_sourceID){
+bool AudioPlayerTest::run(std::shared_ptr<std::istream> stream){
+	
+	m_sourceID = m_paWrapper->setSource(stream, true);
+	if(aisdk::utils::mediaPlayer::MediaPlayerInterface::ERROR == m_sourceID){
 		std::cout << "setSourceFailed" << std::endl;
 		return false;
 	}
+
+	this->play();
+
+	return true;
+}
+
+bool AudioPlayerTest::run(std::string &url, std::chrono::milliseconds &offset){
+	m_sourceID = m_paWrapper->setSource(url, offset);
+	if(aisdk::utils::mediaPlayer::MediaPlayerInterface::ERROR == m_sourceID){
+		std::cout << "setSourceFailed" << std::endl;
+		return false;
+	}
+
+	this->play();
+	
+	return true;
+}
+
+bool AudioPlayerTest::play(){
 
 	std::cout << "Playback with portaudio" << std::endl << std::endl;
 
@@ -152,10 +193,10 @@ void AudioPlayerTest::onPlaybackFinished(SourceId id){
 
 }	
 
-void AudioPlayerTest::onPlaybackError(SourceId id, const utils::mediaPlayer::ErrorType& type, std::string error){
+void AudioPlayerTest::onPlaybackError(SourceId id, const aisdk::utils::mediaPlayer::ErrorType& type, std::string error){
 	if(id == m_sourceID){
 		std::cout << " Error ..." << std::endl;
-		auto errStr = utils::mediaPlayer::errorTypeToString(type);
+		auto errStr = aisdk::utils::mediaPlayer::errorTypeToString(type);
 		std::cout << errStr << std::endl;
 	}else
 		std::cout << " source isnot match currentID: " << m_sourceID << "newId: " << id << std::endl;
@@ -186,52 +227,68 @@ void AudioPlayerTest::onPlaybackResumed(SourceId id){
 
 }
 
-int util::kbhit()
-{
-        struct timeval tv;
-        fd_set rdfs;
-
-        tv.tv_sec = 0;
-        tv.tv_usec = 0;
-
-        FD_ZERO(&rdfs);
-        FD_SET(STDIN_FILENO, &rdfs);
-
-        select(STDIN_FILENO + 1, &rdfs, NULL, NULL, &tv);
-
-        return FD_ISSET(STDIN_FILENO, &rdfs);
+void PaHelp(){
+	printf("Options: PaWrapperTest [options]\n" \
+		"\t -u set play a url resource.\n" \
+		"\t -f Set play a filename stream resource.\n" \
+		"\t -p set url stream start position[uint: sec]\n");
 }
 
-
 int main(int argc, char *argv[]){
-	std::shared_ptr<std::ifstream> input;
+	//std::shared_ptr<std::ifstream> input;
+	std::string url;
+	std::string filename;
+	std::chrono::milliseconds offset = std::chrono::milliseconds::zero();
+		
+	int opt;
 	
-	input = std::make_shared<std::ifstream>();
-	if(argc >= 2){
-
-		input->open(argv[1], std::ifstream::in);
-	}else
-	input->open("/mnt/hgfs/share/test.m4", std::ifstream::in);
-	if(!input->is_open()){
-		std::cout << "Open the file is failed\n" << std::endl;
-		return -1;
+	while((opt = getopt(argc, argv, "hu:p:f:")) != -1) {
+	switch (opt) {
+		case 'u':
+			url = optarg;
+			break;
+		case 'p':
+			offset = std::chrono::milliseconds(atoi(optarg)*1000);
+			break;
+		case 'f':
+			filename = optarg;
+			break;
+		case 'h':
+			PaHelp();
+			exit(EXIT_FAILURE);
+		default:
+			printf("optopt = %c\n", (char)optopt);
+			printf("opterr = %d\n", opterr);
+			fprintf(stderr, "usage: \n");
+			PaHelp();
+		   exit(EXIT_FAILURE);
+	}
 	}
 
-	std::cout << "Start create" << std::endl;
-	
 	/// Create PaWrapper object
 	auto pa = PaWrapper::create();
 	if(!pa){
 		std::cout << "Creat pa failed\n" << std::endl;
-		input->close();
 		return -1;
 	}
-std::cout << "Start create ok" << std::endl;
+
 	auto audioPlayer = std::make_shared<AudioPlayerTest>(std::move(pa), 0);
 
-	audioPlayer->init(input);
-	
-	audioPlayer->run();
+	audioPlayer->init();
+	if(!url.empty()){
+		std::cout << "offset: " << offset.count() << std::endl;
+		audioPlayer->run(url, offset);
+	}else if(!filename.empty()){
+		std::shared_ptr<std::ifstream> input = std::make_shared<std::ifstream>();
+		input->open(filename, std::ifstream::in);
+		if(!input->is_open()){
+			std::cout << "Open the file is failed\n" << std::endl;
+			return -1;
+		}
+		audioPlayer->run(input);
+	}else{
+		pa.reset();
+	}	
 	
 	std::cout << "play finished" << std::endl;
 	return 0;

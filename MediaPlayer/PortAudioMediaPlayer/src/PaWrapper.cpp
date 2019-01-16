@@ -3,8 +3,6 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
  *
  * or in the "license" file accompanying this file. This file is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
@@ -29,6 +27,7 @@ static constexpr size_t DEFAULT_SAMPLE_RATE{48000};
 /// Please don't change it easily if you don't understand it.
 #define FRAMES_PER_BUFFER  (2048)
 
+namespace aisdk {
 namespace mediaPlayer {
 namespace ffmpeg {
 std::unique_ptr<PaWrapper> PaWrapper::create(int sampleFormat, PaBufferQueue::Channels channelCount, const PlaybackConfiguration& config){
@@ -318,4 +317,4 @@ void PaWrapper::paStreamFinished(void* userData)
 
 }// namespace ffmpeg
 } //namespace mediaPlayer
-
+} //namespace aisdk

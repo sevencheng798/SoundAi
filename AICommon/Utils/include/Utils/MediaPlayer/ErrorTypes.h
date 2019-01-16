@@ -3,7 +3,6 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
- * A copy of the License is located at
  *
  * or in the "license" file accompanying this file. This file is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
@@ -16,6 +15,7 @@
 
 #include <ostream>
 
+namespace aisdk {
 namespace utils {
 namespace mediaPlayer {
 
@@ -38,10 +38,10 @@ enum class ErrorType {
 };
 
 /**
- * Convert an @c ErrorType to an AVS-compliant @c std::string.
+ * Convert an @c ErrorType to an pa-compliant @c std::string.
  *
  * @param errorType The @c ErrorType to convert.
- * @return The AVS-compliant string representation of @c errorType.
+ * @return The PA-compliant string representation of @c errorType.
  */
 inline std::string errorTypeToString(ErrorType errorType) {
     switch (errorType) {
@@ -59,6 +59,13 @@ inline std::string errorTypeToString(ErrorType errorType) {
     return "unknown ErrorType";
 }
 
+/*
+ * 为什么不把output运算符设计为一个member function呢？
+ * 因为作为一个member function，其左侧操作数必须是隶属同一个class之下的对象，
+ * 如果output运算符被设计为menber function，那么该类的对象必须被置于output运算符的左侧： 
+ *	object << cout << endl;
+*/
+
 /**
  * Write an @c ErrorType value to an @c ostream.
  *
@@ -72,5 +79,5 @@ inline std::ostream& operator<<(std::ostream& stream, const ErrorType& errorType
 
 }  // namespace mediaPlayer
 }  // namespace utils
-
+} //namespace aisdk
 #endif  // _AICOMMON_UTILS_INCLUDE_MEDIAPLAYER_ERRORTYPES_H_

@@ -35,11 +35,10 @@ include(build/BuildDefaults.cmake)
 include(build/cmake/PrepareInstall.cmake)
 
 # Below is added AI SDK targets.
-message("add_subdirectory(MediaPlayer)")
 add_subdirectory(MediaPlayer)
 add_subdirectory(AICommon)
-
-#add_subdirectory(PulseTest)
+add_subdirectory(SndAi)
+add_subdirectory(KWD)
 
 # Create .pc pkg-config file
 include(build/cmake/GeneratePkgConfig.cmake)

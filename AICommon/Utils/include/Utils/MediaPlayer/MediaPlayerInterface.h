@@ -19,6 +19,7 @@
 #include <future>
 #include <memory>
 
+namespace aisdk {
 namespace utils{
 namespace mediaPlayer {
 
@@ -105,5 +106,5 @@ public:
 };
 }  // namespace mediaPlayer
 }  // namespace utils
-
+} //namespace aisdk
 #endif  // __MEDIAPLAYERINTERFACE_H_
