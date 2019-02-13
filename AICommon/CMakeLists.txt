@@ -5,12 +5,15 @@ project(AICommon)
 
 add_subdirectory("Utils")
 
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/Utils/src/Logging  Logging_SOURCES)
+
 add_library(AICommon SHARED 
 	Utils/src/DeviceInfo.cpp
 	Utils/src/Executor.cpp
 	Utils/src/TaskQueue.cpp
 	Utils/src/TaskThread.cpp
-	Utils/src/SafeShutdown.cpp)
+	Utils/src/SafeShutdown.cpp
+	${Logging_SOURCES})
 
 target_include_directories(AICommon PUBLIC "${AICommon_SOURCE_DIR}/Utils/include")
 
