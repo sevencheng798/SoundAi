@@ -57,9 +57,8 @@ public:
      *
      * @param channelName The name of the Channel to acquire.
      * @param channelObserver The observer that will be acquiring the Channel and be notified of focus changes.
-     * @param interface The name of the AVS interface occupying the Channel. This should be unique and represents the
-     * name of the AVS interface using the Channel.  The name of the AVS interface is used by the ActivityTracker to
-     * send Context to AVS.
+     * @param interface The name of the NLP domain interface occupying the Channel. This should be unique and represents the
+     * name of the NLP domain interface using the Channel.
      *
      * @return Returns @c true if the Channel can be acquired and @c false otherwise.
      */
