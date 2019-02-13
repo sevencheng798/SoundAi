@@ -39,6 +39,7 @@ add_subdirectory(MediaPlayer)
 add_subdirectory(AICommon)
 add_subdirectory(SndAi)
 add_subdirectory(KWD)
+add_subdirectory(ATM)
 
 # Create .pc pkg-config file
 include(build/cmake/GeneratePkgConfig.cmake)
