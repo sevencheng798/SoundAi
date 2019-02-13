@@ -43,6 +43,9 @@ public:
 	/**
      * Set an @c url source to play. The source should be set before making calls to any of the playback control
      * APIs. If any source was set prior to this call, that source will be discarded.
+	 *
+     * @param url The url to set as the source.
+     * @param offset An optional offset parameter to start playing from when a @c play() call is made.
      */
     virtual SourceId setSource(
         const std::string& url,

@@ -83,6 +83,17 @@ public:
     }
 };
 
+/**
+ * Write an @c SoundAiObserverInterface::State value to an @c ostream as a string.
+ *
+ * @param stream The stream to write the value to.
+ * @param state The @c SoundAiObserverInterface::State value to write to the @c ostream as a string.
+ * @return The @c ostream that was passed in and written to.
+ */
+inline std::ostream& operator<<(std::ostream& stream, const SoundAiObserverInterface::State& state) {
+    return stream << SoundAiObserverInterface::stateToString(state);
+}
+
 }	// namespace soundai
 }	// namespace utils
 } // namespace aisdk 
