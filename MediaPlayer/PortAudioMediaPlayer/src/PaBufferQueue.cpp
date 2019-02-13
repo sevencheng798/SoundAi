@@ -88,8 +88,8 @@ int PaBufferQueue::queueCallback(void *outputBuffer, unsigned long framesPerBuff
 		while(!m_inputEof){
 
 			if(!m_unreadRawData.isEmpty()){
-				int unreadBytes = m_unreadRawData.getRemainFrameBytes();
-				//std::cout << "unreadBytes: " << unreadBytes << "remainFrame: " << remainFrame << std::endl;
+				size_t unreadBytes = m_unreadRawData.getRemainFrameBytes();
+				//std::cout << "unreadBytes: " << unreadBytes << " remainFrame: " << remainFrame << std::endl;
 				if(unreadBytes >= remainFrame){
 					std::memcpy(readBuffer+offset, rawData.data() + m_unreadRawData.getOffset(), remainFrame);
 					// Update current unread frame numbers
@@ -141,7 +141,7 @@ int PaBufferQueue::queueCallback(void *outputBuffer, unsigned long framesPerBuff
 	return paComplete;
 }
 
-PaBufferQueue::UnReadRawData::UnReadRawData():m_offset(0), m_frameSizes(0){
+PaBufferQueue::UnReadRawData::UnReadRawData():m_frameSizes(0), m_offset(0){
 }
 
 std::array<PaBufferQueue::Byte, PaBufferQueue::BUFFER_SIZE>& PaBufferQueue::UnReadRawData::getFrame(){

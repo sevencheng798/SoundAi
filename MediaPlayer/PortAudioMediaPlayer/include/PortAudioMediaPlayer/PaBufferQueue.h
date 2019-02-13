@@ -108,10 +108,10 @@ public:
 		std::array<Byte, BUFFER_SIZE> m_buffers;
 
 		/// The current total bytes of the unread data inside the raw data buffers @m_buffers
-		int m_frameSizes;
+		size_t m_frameSizes;
 		
 		/// The current offset of the unread data inside the raw data that already be decode.
-        int m_offset;
+        size_t m_offset;
 	};
 	
 private:

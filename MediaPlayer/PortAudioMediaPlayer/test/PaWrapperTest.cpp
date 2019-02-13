@@ -19,9 +19,6 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <cstdio>
-#include <termios.h>
-#include <sys/types.h>
-#include <sys/time.h>
 
 #include "Utils/MediaPlayer/MediaPlayerObserverInterface.h"
 #include "PortAudioMediaPlayer/PaWrapper.h"
@@ -52,8 +49,15 @@ class AudioPlayerTest
 	: public aisdk::utils::mediaPlayer::MediaPlayerObserverInterface
 	, public std::enable_shared_from_this<AudioPlayerTest> {
 public:
-	/// Constructor
-	AudioPlayerTest(std::unique_ptr<PaWrapper> paWrapper, PaWrapper::SourceId id);
+
+	static std::shared_ptr<AudioPlayerTest> createNew();
+
+	~AudioPlayerTest(){ 
+		std::cout << "AudioPlayerTest destructor..." << std::endl;
+		if(m_paWrapper) 
+			m_paWrapper.reset();
+		
+	}
 
 	/// Set Observer
 	void init();
@@ -82,20 +86,35 @@ public:
 	///@}
 	
 private:
-	std::unique_ptr<PaWrapper> m_paWrapper;
+	std::shared_ptr<PaWrapper> m_paWrapper;
 
 	PaWrapper::SourceId m_sourceID;
 
 	std::shared_ptr<std::istream> m_stream;
 };
 
-AudioPlayerTest::AudioPlayerTest(std::unique_ptr<PaWrapper> paWrapper, PaWrapper::SourceId id)
-	:m_sourceID{0}, m_paWrapper{std::move(paWrapper)}{
+std::shared_ptr<AudioPlayerTest> AudioPlayerTest::createNew() {
+	auto instance = std::shared_ptr<AudioPlayerTest>(new AudioPlayerTest);
+	if(instance){
+		instance->init();
+		std::cout << "set init OK" << std::endl;
+		return instance;
+	}
 
+	return nullptr;
 }
 
 void AudioPlayerTest::init(){
 std::cout << "set init" << std::endl;
+	/// Create PaWrapper object
+	auto pa = PaWrapper::create();
+	
+	if(!pa){
+		std::cout << "Create pa failed\n" << std::endl;
+		return;
+	}
+
+	m_paWrapper = std::move(pa);
 	m_paWrapper->setObserver(shared_from_this());
 }
 
@@ -106,6 +125,7 @@ bool AudioPlayerTest::run(std::shared_ptr<std::istream> stream){
 		std::cout << "setSourceFailed" << std::endl;
 		return false;
 	}
+	std::cout << "SourceId : " << m_sourceID << std::endl;
 
 	this->play();
 
@@ -118,6 +138,7 @@ bool AudioPlayerTest::run(std::string &url, std::chrono::milliseconds &offset){
 		std::cout << "setSourceFailed" << std::endl;
 		return false;
 	}
+	std::cout << "SourceId : " << m_sourceID << std::endl;
 
 	this->play();
 	
@@ -169,7 +190,7 @@ bool AudioPlayerTest::play(){
 		}
 	}
 	
-	m_paWrapper.reset();
+	m_paWrapper->shutdown();
 	
 	if(!m_paWrapper){
 		std::cout << "pa be destory" << std::endl;
@@ -234,6 +255,32 @@ void PaHelp(){
 		"\t -p set url stream start position[uint: sec]\n");
 }
 
+int work(std::string &url, std::string &filename, std::chrono::milliseconds offset){
+	auto audioPlayer = AudioPlayerTest::createNew();
+	std::cout << "user count: " << audioPlayer.use_count() << std::endl;
+
+	if(!url.empty()){
+		std::cout << "offset: " << offset.count() << std::endl;
+		audioPlayer->run(url, offset);
+	}else if(!filename.empty()){
+		std::shared_ptr<std::ifstream> input = std::make_shared<std::ifstream>();
+		input->open(filename, std::ifstream::in);
+		if(!input->is_open()){
+			std::cout << "Open the file is failed\n" << std::endl;
+			return -1;
+		}
+		audioPlayer->run(input);
+	}else{
+		audioPlayer.reset();
+	}	
+	
+	std::cout << "user count: " << audioPlayer.use_count() << std::endl;
+	audioPlayer.reset();
+	std::cout << "play finished" << std::endl;
+
+	return 0;
+}
+
 int main(int argc, char *argv[]){
 	//std::shared_ptr<std::ifstream> input;
 	std::string url;
@@ -265,31 +312,8 @@ int main(int argc, char *argv[]){
 	}
 	}
 
-	/// Create PaWrapper object
-	auto pa = PaWrapper::create();
-	if(!pa){
-		std::cout << "Creat pa failed\n" << std::endl;
-		return -1;
-	}
+	work(url, filename, offset);
 
-	auto audioPlayer = std::make_shared<AudioPlayerTest>(std::move(pa), 0);
-
-	audioPlayer->init();
-	if(!url.empty()){
-		std::cout << "offset: " << offset.count() << std::endl;
-		audioPlayer->run(url, offset);
-	}else if(!filename.empty()){
-		std::shared_ptr<std::ifstream> input = std::make_shared<std::ifstream>();
-		input->open(filename, std::ifstream::in);
-		if(!input->is_open()){
-			std::cout << "Open the file is failed\n" << std::endl;
-			return -1;
-		}
-		audioPlayer->run(input);
-	}else{
-		pa.reset();
-	}	
-	
-	std::cout << "play finished" << std::endl;
-	return 0;
+	std::cout << "play finished exit==========" << std::endl;
 }
+
