@@ -20,6 +20,7 @@
 #include <thread>
 
 #include <Utils/SoundAi/SoundAiObserverInterface.h>
+#include <Utils/Channel/AudioTrackManagerInterface.h>
 
 namespace aisdk {
 namespace kwd {
@@ -32,7 +33,7 @@ public:
 	/**
 	 * Constructs an empty KeywordDetector.
 	 */
-	KeywordDetector();
+	KeywordDetector(std::shared_ptr<utils::channel::AudioTrackManagerInterface> trackManager);
 	
 	/**
 	* Destructor the KeywordDetector.
@@ -58,6 +59,9 @@ private:
 	/// The main function that acquire player priority and keyword timeout detect.
 	void detectionHandler();
 
+	/// AudioTrackManagerInterface instance to acqurie the channel.
+	std::shared_ptr<utils::channel::AudioTrackManagerInterface> m_trackManager;
+	
     /// Internal thread that executor acquire player priority and keyword timeout detect task.
     std::thread m_detectionThread;
 	
@@ -75,6 +79,7 @@ private:
      * variable.
      */
     bool m_stopping;
+
 };
 
 }	// namespace kwd

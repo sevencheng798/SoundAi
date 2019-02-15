@@ -41,7 +41,7 @@ void KeywordDetector::detectionHandler(){
     auto now = std::chrono::steady_clock::now();
 
 	/* To-Do */
-	/// In here acquire player priority
+	/// In here acquire channel player priority
 	// ...
 	// ...
 	
@@ -54,6 +54,9 @@ void KeywordDetector::detectionHandler(){
         return;
     }else{
 		std::cout << "wakeup handler timeout:reason: don't check vad event or network unreachable." << std::endl;
+		// To-Do release channel player
+		// ...
+		// ...
 	}
 
 	/// Close current wakeup event when a timeout happens
@@ -94,7 +97,11 @@ void KeywordDetector::onStateChanged(utils::soundai::SoundAiObserverInterface::S
 	}
 }
 
-KeywordDetector::KeywordDetector():m_running(false), m_stopping(false){
+KeywordDetector::KeywordDetector(
+	std::shared_ptr<utils::channel::AudioTrackManagerInterface> trackManager)
+	: m_trackManager{trackManager}
+	, m_running(false)
+	, m_stopping(false) {
 }
 
 KeywordDetector::~KeywordDetector(){
