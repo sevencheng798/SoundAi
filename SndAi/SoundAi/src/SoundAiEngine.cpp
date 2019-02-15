@@ -15,10 +15,16 @@
 #include <fstream>
 #include <string>
 
+#include <Utils/Logging/Logger.h>
 #include <Utils/SoundAi/SoundAiObserverInterface.h>
 
 #include "SoundAi/SoundAiEngine.h"
 #include "SoundAi/NetEventTypes.h"
+
+/// String to identify log entries originating from this file.
+static const std::string TAG{"SoundAiEngine"};
+
+#define LX(event) aisdk::utils::logging::LogEntry(TAG, event)
 
 namespace aisdk {
 namespace soundai {
@@ -29,21 +35,22 @@ SoundAiEngine* SoundAiEngine::m_soundAiEngine = nullptr;
 
 std::unique_ptr<SoundAiEngine> SoundAiEngine::create(
 		const std::shared_ptr<utils::DeviceInfo>& deviceInfo,
-		std::string &configPath, double threshold){
+		std::shared_ptr<dmInterface::MessageConsumerInterface> messageConsumer,
+		const std::string &configPath, double threshold){
 
 	if(!deviceInfo){
-		std::cout << "Create SounAiEngine failed: reason: deviceinfo is null!" << std::endl;
+		AISDK_ERROR(LX("CreateFailed").d("reason", "deviceInfoIsNull"));
 		return nullptr;
 	}
 
 	if(configPath.empty()){
-		std::cout << "Create SounAiEngine failed: reason: config path is null!" << std::endl;
+		AISDK_ERROR(LX("CreateFailed").d("reason", "soundAiConfigPathIsNull"));
 		return nullptr;
 	}
 
-	std::unique_ptr<SoundAiEngine> instance(new SoundAiEngine(deviceInfo, configPath, threshold));
+	std::unique_ptr<SoundAiEngine> instance(new SoundAiEngine(deviceInfo, messageConsumer, configPath, threshold));
 	if(!instance->init()){
-		std::cout << "SoundAiEngine init failed!" << std::endl;
+		AISDK_ERROR(LX("CreateFailed").d("reason", "initializeFailed"));
 		return nullptr;
 	}
 
@@ -67,7 +74,7 @@ bool SoundAiEngine::stop(){
 
 void SoundAiEngine::addObserver(std::shared_ptr<utils::soundai::SoundAiObserverInterface> observer){
 	if(!observer){
-		std::cout << "addObserverFailed:reason: nullobserver" << std::endl;
+		AISDK_ERROR(LX("addObserverFailed").d("reason", "nullobserver"));
 		return;
 	}
 
@@ -77,7 +84,7 @@ void SoundAiEngine::addObserver(std::shared_ptr<utils::soundai::SoundAiObserverI
 
 void SoundAiEngine::removeObserver(std::shared_ptr<utils::soundai::SoundAiObserverInterface> observer){
 	if(!observer){
-		std::cout << "removeObserverFailed:reason: nullobserver" << std::endl;
+		AISDK_ERROR(LX("removeObserverFailed").d("reason", "nullobserver"));
 		return;
 	}
 
@@ -87,13 +94,18 @@ void SoundAiEngine::removeObserver(std::shared_ptr<utils::soundai::SoundAiObserv
 }
 
 SoundAiEngine::~SoundAiEngine(){
+	AISDK_INFO(LX("Destructor"));
+	
+	stop();
 	terminate_system();
 }
 
 SoundAiEngine::SoundAiEngine(
 	const std::shared_ptr<utils::DeviceInfo>& deviceInfo,
-	std::string &configPath, double threshold)
+	std::shared_ptr<dmInterface::MessageConsumerInterface> messageConsumer,
+	const std::string &configPath, double threshold)
 	:m_deviceInfo{deviceInfo}
+	,m_messageConsumer{messageConsumer}
 	,m_config{configPath}
 	,m_threshold{threshold}
 	,m_voipMode{0}
@@ -122,7 +134,7 @@ bool SoundAiEngine::init(){
 		reinterpret_cast<void *>(this), reinterpret_cast<void *>(this), reinterpret_cast<void *>(this));
 
 	if(ret != 0) {
-		std::cout << "failed sai init system, errcode: " << ret << std::endl;
+		AISDK_ERROR(LX("initializeFailed").d("reason", "init_system:ReturnError"));
 		return false;
 	}
 
@@ -156,17 +168,24 @@ void SoundAiEngine::notifyKeyWordObservers(
 	std::lock_guard<std::mutex> lock{m_observerMutex};
 	for (auto observer : m_observers) {
         if (observer) {
-            observer->onKeyWordDetected(dialogId, keyword, angle);
+            observer->onKeyWordDetected(dialogId, keyword, angle);			
         }
     }
 }
 
 int SoundAiEngine::wakeupCallback(void * usr_data_wk, const char * id, const char * key_word,
 						   float score, int wakeup_result, float angle, int usr_set){
-   std::cout << __func__ << " :Entry" << std::endl;
-   std::cout << "id: " << id << " keyword: " << key_word << ", score"<< score << ", result:" << wakeup_result << ", angle: " << angle << ", usr_set: " << usr_set << std::endl;
-	SoundAiEngine* engine = static_cast<SoundAiEngine*>(usr_data_wk);
 
+   AISDK_INFO(LX("wakeupCallback")
+   				.d("id", id)
+   				.d("key_word", key_word)
+   				.d("score", score)
+   				.d("wakeup_result", wakeup_result)
+   				.d("angle", angle)
+   				.d("usr_set", usr_set));
+   
+	SoundAiEngine* engine = static_cast<SoundAiEngine*>(usr_data_wk);
+	
 	std::string dialogID = id;
 	std::string keyword = key_word;
 
@@ -206,9 +225,12 @@ void SoundAiEngine::wavEnergyCallback(float val){
 }
 
 void SoundAiEngine::netEventCallback(const char * id, int type, int error_code, const char* msg){
-	std::cout << __func__ << " :Entry" << std::endl;
-	std::cout << __func__ << "id: " << id << ": type: " << eventTypeToString(type) << ", code: " << codeInfoToString(error_code) << ", msg: " << msg << std::endl;
-
+	AISDK_INFO(LX("netEventCallback")
+			.d("id", id)
+			.d("type", eventTypeToString(type))
+			.d("code", codeInfoToString(error_code))
+			.d(" msg", msg));
+	
 	if(type == SOUNDAI_VAD) {
 		if(error_code == EVENT_VAD_END || error_code == EVENT_VAD_BEGIN_TIMEOUT) {
 			set_unwakeup_status();
@@ -224,14 +246,13 @@ void SoundAiEngine::netEventCallback(const char * id, int type, int error_code, 
 		// ...
 		// ...
 		// ...
+		m_soundAiEngine->m_messageConsumer->consumeMessage(id, msg);
 	}
-	
 	
 }
 
 void SoundAiEngine::netStatusCallback(networkStatusCode code, const char* msg){
-	std::cout << __func__ << " :Entry" << std::endl;
-	std::cout << __func__ << ": code: " << code << ", msg: " << msg << std::endl;
+	AISDK_INFO(LX("netStatusCallback").d("code", code).d("msg", msg));
 
 }
 

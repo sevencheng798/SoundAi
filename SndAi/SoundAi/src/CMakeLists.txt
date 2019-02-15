@@ -1,14 +1,13 @@
 # Creater By Sven
 add_library(SoundAi SHARED
 			SoundAiEngine.cpp
+			MessageConsumer.cpp
 			)
 
 link_directories("${SoundAi_SOURCE_DIR}/lib")
 
 target_include_directories(SoundAi PUBLIC
-        "${SoundAi_SOURCE_DIR}/include"
-        "${KeywordDetector_SOURCE_DIR}/include"
-		"${CMAKE_SOURCE_DIR}/AICommon/Utils/include/")
+        "${SoundAi_SOURCE_DIR}/include")
 
 target_link_libraries(SoundAi
         sai_sdk

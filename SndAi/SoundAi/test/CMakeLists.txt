@@ -6,10 +6,14 @@ list(APPEND SoundAiEngineTest_SOURCES SoundAiEngineTest.cpp)
 add_executable(SoundAiEngineTest ${SoundAiEngineTest_SOURCES})
 target_include_directories(SoundAiEngineTest PUBLIC
 		"${SoundAi_SOURCE_DIR}/include"
+		"${NLP_SOURCE_DIR}/include"
+		"${AudioTrackManager_SOURCE_DIR}/include"
 		"${CMAKE_SOURCE_DIR}/AICommon/Utils/include")
 
 target_link_libraries(SoundAiEngineTest
 		SoundAi
+		NLP
+		AudioTrackManager
 		asound
 		z)
 

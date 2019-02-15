@@ -3,7 +3,6 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
- * A copy of the License is located at
  *
  *
  * or in the "license" file accompanying this file. This file is distributed
@@ -11,6 +10,7 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+ 
 #ifndef __SOUNDAI_ENGINE_H_
 #define __SOUNDAI_ENGINE_H_
 #include <memory>
@@ -20,8 +20,9 @@
 
 #include <Utils/SoundAi/SoundAiObserverInterface.h>
 #include <Utils/DeviceInfo.h>
+#include <DMInterface/MessageConsumerInterface.h>
 
-#include "sai_sdk.h"
+#include "SoundAi/sai_sdk.h"
 
 namespace aisdk{
 namespace soundai {
@@ -32,7 +33,8 @@ public:
 	using SoundAiObserver = utils::soundai::SoundAiObserverInterface;
 	static std::unique_ptr<SoundAiEngine> create(
 		const std::shared_ptr<utils::DeviceInfo>& deviceInfo,
-		std::string &configPath, double threshold = 0.45);
+		std::shared_ptr<dmInterface::MessageConsumerInterface> messageConsumer,
+		const std::string &configPath, double threshold = 0.45);
 
 	/**
 	 * Start service.
@@ -74,16 +76,35 @@ private:
      */
 	SoundAiEngine(
 		const std::shared_ptr<utils::DeviceInfo>& deviceInfo,
-		std::string &configPath, double threshold);
+		std::shared_ptr<dmInterface::MessageConsumerInterface> messageConsumer,
+		const std::string &configPath, double threshold);
 
     /**
      * Initialize the new instance.
      *
-     * @param root The root level node of the raw configuration from which to populate this instance.
-     * @param deviceInfo The deviceInfo instance.
      * @return Whether or not the operation was successful.
      */
     bool init();
+
+	/**
+     * This function updates the @c SoundAiObserver state and notifies the state observer.  Any changes to
+     * @c m_state should be made through this function.
+     *
+     * @param state The new state to change to.
+     */
+    void setState(SoundAiObserver::State state);
+
+	/**
+	 * Notifies all keyword observers of the keyword detection.
+	 *
+	 * @param dialogId The stream in which the keyword was detected.
+	 * @param keyword The keyword detected.
+	 * @param angle Indicate wake-up location.
+	 */
+	void notifyKeyWordObservers( 
+		std::string dialogId,
+		std::string keyword,
+		float angle);
 	
 	///@{ sai sdk interface method
 	/**
@@ -95,25 +116,6 @@ private:
 	 * Note: When you got data, copy it for transfering to sai online server for postprocessing
 	 */
 	static void asrDataCallback(void * usr_data_asr, const char * id, const char *buffer, size_t size);
-
-    /**
-     * This function updates the @c SoundAiObserver state and notifies the state observer.  Any changes to
-     * @c m_state should be made through this function.
-     *
-     * @param state The new state to change to.
-     */
-    void setState(SoundAiObserver::State state);
-
-	/**
-	 * Notifies all keyword observers of the keyword detection.
-	 * @param dialogId The stream in which the keyword was detected.
-	 * @param keyword The keyword detected.
-	 * @param angle Indicate wake-up location.
-	 */
-	void notifyKeyWordObservers( 
-		std::string dialogId,
-		std::string keyword,
-		float angle);
 
 	/**
 	 * Call-back functional handler
@@ -190,6 +192,9 @@ private:
 	/// Device info
     std::shared_ptr<utils::DeviceInfo> m_deviceInfo;
 
+	/// A consumer which the semantics message has been receive from sai sdk.
+	std::shared_ptr<dmInterface::MessageConsumerInterface> m_messageConsumer;
+	
 	/// resource file path for sai sdk
 	std::string m_config;
 	
