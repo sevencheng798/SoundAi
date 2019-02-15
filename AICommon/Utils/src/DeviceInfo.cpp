@@ -27,9 +27,13 @@ std::unique_ptr<DeviceInfo> DeviceInfo::create(std::string &configFile){
 	}
 
 	/**
-	 * To-Do : To implement how to generate the dialog of ID and the deviceSerialNumber
+	 * To-Do Sven
+	 * To implement how to generate the dialog of ID and the deviceSerialNumber
 	 */
-
+	// ...
+	// ...
+	// ...
+	// The follow is a temporary definition. 
 	dialogId = "123456789";
 	deviceSerialNumber = "Sven-test";
 	

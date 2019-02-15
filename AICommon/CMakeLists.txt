@@ -12,12 +12,17 @@ add_library(AICommon SHARED
 	Utils/src/Executor.cpp
 	Utils/src/TaskQueue.cpp
 	Utils/src/TaskThread.cpp
+	Utils/src/DialogRelay/DialogUXStateRelay.cpp
 	Utils/src/SafeShutdown.cpp
 	${Logging_SOURCES})
 
-target_include_directories(AICommon PUBLIC "${AICommon_SOURCE_DIR}/Utils/include")
+target_include_directories(AICommon PUBLIC 
+	"${AICommon_SOURCE_DIR}/Utils/include"
+	"${AICommon_SOURCE_DIR}/DMInterface/include")
 
-LIST(APPEND PATHS "${PROJECT_SOURCE_DIR}/Utils/include")
+LIST(APPEND PATHS 
+	"${PROJECT_SOURCE_DIR}/Utils/include"
+	"${AICommon_SOURCE_DIR}/DMInterface/include")
 
 asdk_install_multiple("${PATHS}")
 
