@@ -42,6 +42,7 @@ add_subdirectory(SndAi)
 add_subdirectory(KWD)
 add_subdirectory(NLP)
 add_subdirectory(Domain)
+add_subdirectory(Application)
 
 # Create .pc pkg-config file
 include(build/cmake/GeneratePkgConfig.cmake)
