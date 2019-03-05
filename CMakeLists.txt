@@ -25,7 +25,7 @@
 cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 message("first not creat root project")
 set(CMAKE_FIND_NO_INSTALL_PREFIX TRUE)
-project(AI_SDK VERSION 1.0.1)
+project(aisdk VERSION 1.0.1)
 
 add_definitions(-std=c++11)
 
