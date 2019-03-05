@@ -14,7 +14,7 @@
 #define __SAMPLE_APPLICATION_H_
 
 #include <memory>
-#include <PortAudioMediaPlayer/PaWrapper.h>
+#include <AudioMediaPlayer/AOWrapper.h>
 
 #include "Application/AIClient.h"
 #include "Application/UIManager.h"
@@ -42,14 +42,17 @@ public:
 private:
 	bool initialize();
 
+	// The used to create libao objects.
+	std::shared_ptr<mediaPlayer::ffmpeg::AOEngine> m_aoEngine;
+
 	// The @c MediaPlayer used by @c SpeechSyth.
-	std::shared_ptr<mediaPlayer::ffmpeg::PaWrapper> m_chatMediaPlayer;
+	std::shared_ptr<mediaPlayer::ffmpeg::AOWrapper> m_chatMediaPlayer;
 
 	// The @c MediaPlayer used by @c Alarms.
-	std::shared_ptr<mediaPlayer::ffmpeg::PaWrapper> m_streamMediaPlayer;
+	std::shared_ptr<mediaPlayer::ffmpeg::AOWrapper> m_streamMediaPlayer;
 
 	// The @c MediaPlayer used by @c MediaStream.
-	std::shared_ptr<mediaPlayer::ffmpeg::PaWrapper> m_alarmMediaPlayer;
+	std::shared_ptr<mediaPlayer::ffmpeg::AOWrapper> m_alarmMediaPlayer;
 
 	std::shared_ptr<AIClient> m_aiClient;
 };

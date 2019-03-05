@@ -6,4 +6,9 @@ project(SampleApp LANGUAGES CXX)
 
 include(../build/BuildDefaults.cmake)
 
+if (SAI_SDK_LIBRARY)
+    add_definitions(-DENABLE_HTTP2)
+    link_directories("${SoundAi_SOURCE_DIR}/lib")	
+endif()
+
 add_subdirectory("src")

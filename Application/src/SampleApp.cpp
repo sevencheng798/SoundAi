@@ -58,20 +58,27 @@ SampleApp::~SampleApp() {
 
 bool SampleApp::initialize() {
 
+	// Create a libao engine object.
+	auto m_aoEngine = mediaPlayer::ffmpeg::AOEngine::create();
+	if(!m_aoEngine) {
+		AISDK_ERROR(LX("Failed to create media player engine!"));
+		return false;
+	}
+	
 	// Create a chatMediaPlayer of @c Pawrapper.
-	m_chatMediaPlayer = mediaPlayer::ffmpeg::PaWrapper::create();
+	m_chatMediaPlayer = mediaPlayer::ffmpeg::AOWrapper::create(m_aoEngine);
 	if(!m_chatMediaPlayer) {
 		AISDK_ERROR(LX("Failed to create media player for chat speech!"));
 		return false;
 	}
 
-	m_streamMediaPlayer = mediaPlayer::ffmpeg::PaWrapper::create();
+	m_streamMediaPlayer = mediaPlayer::ffmpeg::AOWrapper::create(m_aoEngine);
 	if(!m_streamMediaPlayer) {
 		AISDK_ERROR(LX("Failed to create media player for stream!"));
 		return false;
 	}
 
-	m_alarmMediaPlayer = mediaPlayer::ffmpeg::PaWrapper::create();
+	m_alarmMediaPlayer = mediaPlayer::ffmpeg::AOWrapper::create(m_aoEngine);
 	if(!m_alarmMediaPlayer) {
 		AISDK_ERROR(LX("Failed to create media player for alarm!"));
 		return false;
