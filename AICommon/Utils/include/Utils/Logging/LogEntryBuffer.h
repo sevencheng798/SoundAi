@@ -67,4 +67,4 @@ private:
 }  // namespace utils
 }  // namespace aisdk
 
-#endif  // ALEXA_CLIENT_SDK_AVSCOMMON_UTILS_INCLUDE_AVSCOMMON_UTILS_LOGGER_LOGENTRYBUFFER_H_
+#endif  // _LOG_ENTRY_BUFFER_H_
