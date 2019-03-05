@@ -9,6 +9,9 @@ include(BuildOption)
 # Setup PortAudio variables.
 include(PortAudio)
 
+# Setup Libao variables.
+include(Libao)
+
 # Setup ffmpeg variables.
 include(FFmpeg)
 

@@ -1,5 +1,5 @@
 #
-# Set up PortAudio libraries for the sample app.
+# Set up Openssl libraries for the sample app.
 #
 # To build with PortAudio, run the following command,
 #     cmake <path-to-source> 
