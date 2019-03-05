@@ -15,6 +15,7 @@ Once the setup is complete, you can execute the following commands for compilati
 	git clone ssh://git@119.3.60.230:1622/hardware/Soundai.git
 
 ##setp3, To execute the cmake command
+
 	cmake ../Soundai -DCMAKE_TOOLCHAIN_FILE=../Soundai/am113a-toolchain.cmake \
 			-DFFMPEG_LIB_PATH="/home/sven/work/3rd/_install/ffmpeg-4.0-am113/lib" \
 			-DFFMPEG_INCLUDE_DIR="/home/sven/work/3rd/_install/ffmpeg-4.0-am113/include" \
