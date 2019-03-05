@@ -7,7 +7,7 @@ add_library(SpeechSynthesizer SHARED
 target_include_directories(SpeechSynthesizer PUBLIC
         "${SpeechSynthesizer_SOURCE_DIR}/include")
 
-target_link_libraries(SpeechSynthesizer AICommon PortAudioMediaPlayer NLP)
+target_link_libraries(SpeechSynthesizer AICommon AudioMediaPlayer NLP)
 
 # install target
 asdk_install()
