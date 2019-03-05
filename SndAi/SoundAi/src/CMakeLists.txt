@@ -1,10 +1,9 @@
+#
 # Creater By Sven
+#
 add_library(SoundAi SHARED
 			SoundAiEngine.cpp
-			MessageConsumer.cpp
-			)
-
-link_directories("${SoundAi_SOURCE_DIR}/lib")
+			MessageConsumer.cpp)
 
 target_include_directories(SoundAi PUBLIC
         "${SoundAi_SOURCE_DIR}/include")
