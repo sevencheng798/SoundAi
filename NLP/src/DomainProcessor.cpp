@@ -135,7 +135,7 @@ void DomainProcessor::onHandlingCompleted(std::shared_ptr<NLPDomain> domain) {
 void DomainProcessor::onHandlingFailed(std::shared_ptr<NLPDomain> domain, const std::string& description) {
     std::unique_lock<std::mutex> lock(m_mutex);
     AISDK_DEBUG(LX("onHandlingFailed")
-                    .d("messageId", directive->getMessageId())
+                    .d("messageId", domain->getMessageId())
                     .d("domainBeingPreHandled",
                        m_directiveBeingPreHandled ? m_directiveBeingPreHandled->getMessageId() : "(nullptr)")
                     .d("description", description));
