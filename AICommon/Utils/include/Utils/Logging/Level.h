@@ -23,34 +23,22 @@ namespace logging {
  * Enum used to specify the severity assigned to a log message.
  */
 enum class Level {
-    /// Most verbose debug log level. Compiled out when ACSDK_DEBUG_LOG_ENABLED is not defined.
-    DEBUG9,
-
-    /// Intermediate debug log level. Compiled out when ACSDK_DEBUG_LOG_ENABLED is not defined.
-    DEBUG8,
-
-    /// Intermediate debug log level. Compiled out when ACSDK_DEBUG_LOG_ENABLED is not defined.
-    DEBUG7,
-
-    /// Intermediate debug log level. Compiled out when ACSDK_DEBUG_LOG_ENABLED is not defined.
-    DEBUG6,
-
-    /// Intermediate debug log level. Compiled out when ACSDK_DEBUG_LOG_ENABLED is not defined.
+    /// Most verbose debug log level. Compiled out when AISDK_DEBUG_LOG_ENABLED is not defined.
     DEBUG5,
 
-    /// Intermediate debug log level. Compiled out when ACSDK_DEBUG_LOG_ENABLED is not defined.
+    /// Intermediate debug log level. Compiled out when AISDK_DEBUG_LOG_ENABLED is not defined.
     DEBUG4,
 
-    /// Intermediate debug log level. Compiled out when ACSDK_DEBUG_LOG_ENABLED is not defined.
+    /// Intermediate debug log level. Compiled out when AISDK_DEBUG_LOG_ENABLED is not defined.
     DEBUG3,
 
-    /// Intermediate debug log level. Compiled out when ACSDK_DEBUG_LOG_ENABLED is not defined.
+    /// Intermediate debug log level. Compiled out when AISDK_DEBUG_LOG_ENABLED is not defined.
     DEBUG2,
 
-    /// Intermediate debug log level. Compiled out when ACSDK_DEBUG_LOG_ENABLED is not defined.
+    /// Intermediate debug log level. Compiled out when AISDK_DEBUG_LOG_ENABLED is not defined.
     DEBUG1,
 
-    /// Least verbose debug log level. Compiled out when ACSDK_DEBUG_LOG_ENABLED is not defined.
+    /// Least verbose debug log level. Compiled out when AISDK_DEBUG_LOG_ENABLED is not defined.
     DEBUG0,
 
     /// Logs of normal operations, to be used in release builds.

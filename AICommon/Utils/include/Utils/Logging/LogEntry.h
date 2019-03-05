@@ -184,8 +184,8 @@ LogEntry& LogEntry::d(const char* key, const ValueType& value) {
     return *this;
 }
 
-// Define ACSDK_EMIT_SENSITIVE_LOGS if you want to include sensitive data in log output.
-#ifdef ACSDK_EMIT_SENSITIVE_LOGS
+// Define AISDK_EMIT_SENSITIVE_LOGS if you want to include sensitive data in log output.
+#ifdef AISDK_EMIT_SENSITIVE_LOGS
 
 template <typename ValueType>
 LogEntry& LogEntry::sensitive(const char* key, const ValueType& value) {

@@ -13,7 +13,7 @@ endif()
 
 # Determine the platform and compiler dependent flags.
 if (UNIX OR CMAKE_COMPILER_IS_GNUCXX)
-    set(CXX_PLATFORM_DEPENDENT_FLAGS_DEBUG      "-DDEBUG -DACSDK_DEBUG_LOG_ENABLED -Wall -Werror -Wsign-compare -g")
+    set(CXX_PLATFORM_DEPENDENT_FLAGS_DEBUG      "-DDEBUG -DAISDK_DEBUG_LOG_ENABLED -Wall -Werror -Wsign-compare -g")
     set(CXX_PLATFORM_DEPENDENT_FLAGS_RELEASE    "-DNDEBUG -Wall -Werror -O2")
     set(CXX_PLATFORM_DEPENDENT_FLAGS_MINSIZEREL "-DNDEBUG -Wall -Werror -Os")
     if (CMAKE_COMPILER_IS_GNUCXX AND (NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "8.0")))

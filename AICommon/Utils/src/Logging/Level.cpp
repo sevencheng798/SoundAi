@@ -25,10 +25,6 @@ namespace logging {
 
 std::string convertLevelToName(Level in) {
     switch (in) {
-        LEVEL_TO_NAME(DEBUG9)
-        LEVEL_TO_NAME(DEBUG8)
-        LEVEL_TO_NAME(DEBUG7)
-        LEVEL_TO_NAME(DEBUG6)
         LEVEL_TO_NAME(DEBUG5)
         LEVEL_TO_NAME(DEBUG4)
         LEVEL_TO_NAME(DEBUG3)
@@ -51,10 +47,6 @@ std::string convertLevelToName(Level in) {
 
 char convertLevelToChar(Level in) {
     switch (in) {
-        LEVEL_TO_CHAR(DEBUG9, '9')
-        LEVEL_TO_CHAR(DEBUG8, '8')
-        LEVEL_TO_CHAR(DEBUG7, '7')
-        LEVEL_TO_CHAR(DEBUG6, '6')
         LEVEL_TO_CHAR(DEBUG5, '5')
         LEVEL_TO_CHAR(DEBUG4, '4')
         LEVEL_TO_CHAR(DEBUG3, '3')
@@ -75,11 +67,7 @@ char convertLevelToChar(Level in) {
     { #name, Level::name }
 
 Level convertNameToLevel(const std::string& in) {
-    static std::unordered_map<std::string, Level> nameToLevel = {NAME_TO_LEVEL(DEBUG9),
-                                                                 NAME_TO_LEVEL(DEBUG8),
-                                                                 NAME_TO_LEVEL(DEBUG7),
-                                                                 NAME_TO_LEVEL(DEBUG6),
-                                                                 NAME_TO_LEVEL(DEBUG5),
+    static std::unordered_map<std::string, Level> nameToLevel = {NAME_TO_LEVEL(DEBUG5),
                                                                  NAME_TO_LEVEL(DEBUG4),
                                                                  NAME_TO_LEVEL(DEBUG3),
                                                                  NAME_TO_LEVEL(DEBUG2),

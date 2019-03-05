@@ -249,38 +249,6 @@ inline Logger& ACSDK_GET_LOGGER_FUNCTION() {
 #ifdef AISDK_DEBUG_LOG_ENABLED
 
 /**
- * Send a DEBUG9 severity log line.
- *
- * @param loggerArg The Logger to send the line to.
- * @param entry The text (or builder of the text) for the log entry.
- */
-#define AISDK_DEBUG9(entry) ACSDK_LOG(aisdk::utils::logging::Level::DEBUG9, entry)
-
-/**
- * Send a DEBUG8 severity log line.
- *
- * @param loggerArg The Logger to send the line to.
- * @param entry The text (or builder of the text) for the log entry.
- */
-#define AISDK_DEBUG8(entry) ACSDK_LOG(aisdk::utils::logging::Level::DEBUG8, entry)
-
-/**
- * Send a DEBUG7 severity log line.
- *
- * @param loggerArg The Logger to send the line to.
- * @param entry The text (or builder of the text) for the log entry.
- */
-#define AISDK_DEBUG7(entry) ACSDK_LOG(aisdk::utils::logging::Level::DEBUG7, entry)
-
-/**
- * Send a DEBUG6 severity log line.
- *
- * @param loggerArg The Logger to send the line to.
- * @param entry The text (or builder of the text) for the log entry.
- */
-#define AISDK_DEBUG6(entry) ACSDK_LOG(aisdk::utils::logging::Level::DEBUG6, entry)
-
-/**
  * Send a DEBUG5 severity log line.
  *
  * @param loggerArg The Logger to send the line to.
@@ -337,38 +305,6 @@ inline Logger& ACSDK_GET_LOGGER_FUNCTION() {
 #define AISDK_DEBUG(entry) ACSDK_LOG(aisdk::utils::logging::Level::DEBUG0, entry)
 
 #else  // AISDK_DEBUG_LOG_ENABLED
-
-/**
- * Compile out a DEBUG9 severity log line.
- *
- * @param loggerArg The Logger to send the line to.
- * @param entry The text (or builder of the text) for the log entry.
- */
-#define AISDK_DEBUG9(entry)
-
-/**
- * Compile out a DEBUG8 severity log line.
- *
- * @param loggerArg The Logger to send the line to.
- * @param entry The text (or builder of the text) for the log entry.
- */
-#define AISDK_DEBUG8(entry)
-
-/**
- * Compile out a DEBUG7 severity log line.
- *
- * @param loggerArg The Logger to send the line to.
- * @param entry The text (or builder of the text) for the log entry.
- */
-#define AISDK_DEBUG7(entry)
-
-/**
- * Compile out a DEBUG6 severity log line.
- *
- * @param loggerArg The Logger to send the line to.
- * @param entry The text (or builder of the text) for the log entry.
- */
-#define AISDK_DEBUG6(entry)
 
 /**
  * Compile out a DEBUG5 severity log line.

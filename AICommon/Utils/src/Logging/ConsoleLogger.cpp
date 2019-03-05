@@ -41,7 +41,8 @@ void ConsoleLogger::emit(
 
 ConsoleLogger::ConsoleLogger() : Logger(Level::UNKNOWN) {
 #ifdef DEBUG
-    setLevel(Level::DEBUG0);
+	// default DEBUG0 or DEBUG5
+    setLevel(Level::DEBUG5);
 #else
     setLevel(Level::INFO);
 #endif  // DEBUG
