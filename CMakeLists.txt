@@ -35,8 +35,8 @@ include(build/BuildDefaults.cmake)
 include(build/cmake/PrepareInstall.cmake)
 
 # Below is added AI SDK targets.
-add_subdirectory(MediaPlayer)
 add_subdirectory(AICommon)
+add_subdirectory(MediaPlayer)
 add_subdirectory(ATM)
 add_subdirectory(SndAi)
 add_subdirectory(KWD)
