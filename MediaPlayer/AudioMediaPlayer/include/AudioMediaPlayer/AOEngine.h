@@ -33,6 +33,7 @@ private:
 	/// Construct.
 	AOEngine(int defaultDriver);
 	
+	/// A specific default driver id.
 	int m_defaultDriver;
 
     /// Atomic flag used to ensure there is only one @c AOEngine.

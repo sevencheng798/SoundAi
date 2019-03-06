@@ -21,7 +21,7 @@ namespace mediaPlayer {
 namespace ffmpeg {
 
 /**
- * Generic deleter class to free FFmpeg C structures.
+ * Generic deleter class to free libao C structures.
  *
  * @tparam ObjectT The type of object to be deleted.
  */

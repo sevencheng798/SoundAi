@@ -29,28 +29,40 @@ static const std::string TAG{"AOWrapper"};
 
 #define LX(event) aisdk::utils::logging::LogEntry(TAG, event)
 
-static constexpr size_t DEFAULT_SAMPLE_RATE{48000};
-
 /// Buffer size for the decoded data. This has to be big enough to be used with the decoder.
 static constexpr size_t BUFFER_SIZE{16384u};	// 32768
 
 namespace aisdk {
 namespace mediaPlayer {
 namespace ffmpeg {
+/**
+ * Describes the format of audio samples @c ao_sample_format.
+ * It will convert the appropriate bits and channels according to config @c PlaybackConfiguration.
+*/
+static int convertBitsPreSample(PlaybackConfiguration::SampleFormat format) {
+	switch (format) {
+		case PlaybackConfiguration::SampleFormat::UNSIGNED_8:
+			return 8;
+		case PlaybackConfiguration::SampleFormat::SIGNED_16:
+			return 16;
+		case PlaybackConfiguration::SampleFormat::SIGNED_32:
+			return 32;
+	}
+
+	AISDK_WARN(LX("invalidFormat").d("format", static_cast<int>(format)));
+	return 16;
+}
+
 std::unique_ptr<AOWrapper> AOWrapper::create(
 	std::shared_ptr<AOEngine> aoEngine,
-	int preSampleBits, 
-	int channelsCount,
 	const PlaybackConfiguration& config){
 	if(!aoEngine) {
 		AISDK_ERROR(LX("createFailed").d("reason", "aoEngineIsNullptr"));
 		return nullptr;
 	}
-
-	auto defaultDriver = aoEngine->getDefaultDriver();
 	
 	auto player = std::unique_ptr<AOWrapper>(
-			new AOWrapper(aoEngine, defaultDriver, preSampleBits, channelsCount, config));
+			new AOWrapper(aoEngine, config));
 	if(!player->initialize()){
 		AISDK_ERROR(LX("createFailed").d("reason", "initializeFailedAOWrapper"));
 		return nullptr;
@@ -61,8 +73,7 @@ std::unique_ptr<AOWrapper> AOWrapper::create(
 
 AOWrapper::AOWrapper(
 	std::shared_ptr<AOEngine> aoEngine,
-	int defaultDriver, int preSampleBits,
-	int channelsCount, const PlaybackConfiguration& config):
+	const PlaybackConfiguration& config):
 	SafeShutdown{"AOWrapper"},
 	m_sourceId{MediaPlayerInterface::ERROR},
 	m_engine{aoEngine},
@@ -71,14 +82,8 @@ AOWrapper::AOWrapper(
 	m_initialOffset{0},
 	m_state{AOPlayerState::IDLE},
 	m_isShuttingDown{false},
-	m_defaultDriver{defaultDriver},
 	m_config{config} {
-	// Bzero the structs @c ao_sample_format.
-	std::memset(&m_aoSampleformat, 0, sizeof m_aoSampleformat);
-	m_aoSampleformat.bits = preSampleBits;
-	m_aoSampleformat.channels = channelsCount;
-	m_aoSampleformat.rate = DEFAULT_SAMPLE_RATE;
-	m_aoSampleformat.byte_format = AO_FMT_LITTLE;
+	
 }
 
 AOWrapper::~AOWrapper(){
@@ -246,8 +251,19 @@ int AOWrapper::configureNewRequest(
 }
 
 bool AOWrapper::initialize(){
+
+	ao_sample_format format;
+	// Bzero the structs @c ao_sample_format.
+	std::memset(&format, 0, sizeof format);
+	format.bits = convertBitsPreSample(m_config.sampleFormat());
+	format.channels = m_config.numberChannels();
+	format.rate = m_config.sampleRate();
+	format.byte_format = (m_config.isLittleEndian()?AO_FMT_LITTLE : AO_FMT_BIG);
+
+	auto defaultDriver = m_engine->getDefaultDriver();
+	
 	/// Open liao driver.
-	auto device = ao_open_live(m_defaultDriver, &m_aoSampleformat, NULL);
+	auto device = ao_open_live(defaultDriver, &format, NULL);
 	if (device == NULL) {
 		AISDK_DEBUG2(LX("initializeFailed").d("reason", "ErrorOpeningDevice"));
 		return false;

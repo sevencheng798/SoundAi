@@ -61,8 +61,6 @@ public:
      */
 	static std::unique_ptr<AOWrapper> create(	
 	std::shared_ptr<AOEngine> aoEngine,
-	int preSampleBits = 16,	
-	int channelsCount = 2,
 	const PlaybackConfiguration& config = PlaybackConfiguration());
 
     /// @name MediaPlayerInterface methods.
@@ -91,8 +89,7 @@ private:
      */	
     AOWrapper(
     std::shared_ptr<AOEngine> aoEngine,
-    int defaultDriver, int preSampleBits, 
-    int channelsCount, const PlaybackConfiguration& config);
+    const PlaybackConfiguration& config);
 		
 	/// initialize Portaudio
 	bool initialize();
@@ -138,7 +135,7 @@ private:
     std::chrono::milliseconds m_initialOffset;
 
 	/// A type used to set audio playback parameters.
-	ao_sample_format m_aoSampleformat;
+	//ao_sample_format m_aoSampleformat;
 	
 	AOPlayerState m_state;
 
@@ -146,7 +143,7 @@ private:
 	bool m_isShuttingDown;
 	
 	/// A specific default driver id.
-	int m_defaultDriver;
+	//int m_defaultDriver;
 	
     // The android media player configuration.
     PlaybackConfiguration m_config;
