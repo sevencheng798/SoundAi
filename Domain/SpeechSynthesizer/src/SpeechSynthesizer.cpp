@@ -13,6 +13,8 @@
 #include <iostream>
 
 #include "SpeechSynthesizer/SpeechSynthesizer.h"
+#include <Utils/cJSON.h>
+#include "string.h"
 
 namespace aisdk {
 namespace domain {
@@ -248,12 +250,49 @@ void SpeechSynthesizer::init() {
 void SpeechSynthesizer::executePreHandleAfterValidation(std::shared_ptr<ChatDirectiveInfo> info) {
 	/// To-Do parse tts url and insert chatInfo map
 	/// ...
-	/// ...
-	
+    /// add by wx @20190228
+     auto nlpDomain = info->directive;
+     auto dateMessage = nlpDomain->getData();
+    // printf("%s \n", dateMessage.c_str());
+    
+     cJSON* json = NULL,
+     *json_data = NULL,*json_tts_url = NULL, *json_isMultiDialog = NULL, *json_answer = NULL;
+    
+     (void )json;
+     (void )json_data;
+     (void )json_answer;
+     (void )json_tts_url;
+     (void )json_isMultiDialog;
+    
+      json_data = cJSON_Parse(dateMessage.c_str());
+    
+      if(!json_data)
+      {
+      std::cout << "json Error before: " <<cJSON_GetErrorPtr() << std::endl;
+      }
+      else
+      {
+         json_answer = cJSON_GetObjectItem(json_data, "answer");
+         json_tts_url = cJSON_GetObjectItem(json_data, "tts_url");
+         json_isMultiDialog = cJSON_GetObjectItem(json_data, "isMultiDialog");
+         std::cout << "json_answer =  " << json_answer->valuestring << std::endl;
+         std::cout << "json_tts_url =  " << json_tts_url->valuestring << std::endl;
+         std::cout << "json_isMultiDialog = " << json_isMultiDialog->valueint << std::endl;
+      }
+     
+     info->url = json_tts_url->valuestring;
+     std::cout << "info->url = " << info->url << std::endl;
+     
+     // If everything checks out, add the chatInfo to the map.    
+     std::cout << "=========================i'm here!!!-解析date数据===========================" << std::endl;
 	// If everything checks out, add the chatInfo to the map.
     if (!setChatDirectiveInfo(info->directive->getMessageId(), info)) {
 		std::cout << "executePreHandleFailed:reason:prehandleCalledTwiceOnSameDirective:messageId: " << info->directive->getMessageId() << std::endl;
     }
+
+     cJSON_Delete(json_data);  
+
+    /// add by wx @20190228
 }
 
 void SpeechSynthesizer::executeHandleAfterValidation(std::shared_ptr<ChatDirectiveInfo> info) {

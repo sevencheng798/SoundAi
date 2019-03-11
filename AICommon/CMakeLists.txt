@@ -14,6 +14,7 @@ add_library(AICommon SHARED
 	Utils/src/TaskThread.cpp
 	Utils/src/DialogRelay/DialogUXStateRelay.cpp
 	Utils/src/SafeShutdown.cpp
+	Utils/src/cJSON.cc
 	${Logging_SOURCES})
 
 target_include_directories(AICommon PUBLIC 
