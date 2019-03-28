@@ -155,6 +155,7 @@ void SoundAiEngine::setState(SoundAiObserver::State state){
 	m_state = state;
 	for (auto observer : m_observers) {
         if (observer) {
+            AISDK_INFO(LX("setState").d("reason", state));
             observer->onStateChanged(state);
         }
     }

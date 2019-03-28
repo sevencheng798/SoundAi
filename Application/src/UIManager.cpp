@@ -47,7 +47,7 @@ void UIManager::printState() {
             AISDK_INFO(LX("response wake up and aplay wakeup_9.wav "));
             system("aplay /cfg/sai_config/wakeup/wakeup_9.wav");
             //+WAKE UP  ; LED  ;
-
+            
 			break;
 		case DialogUXStateObserverInterface::DialogUXState::THINKING:
 			AISDK_INFO(LX("Thinking ..."));

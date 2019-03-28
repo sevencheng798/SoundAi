@@ -253,7 +253,8 @@ void SpeechSynthesizer::executePreHandleAfterValidation(std::shared_ptr<ChatDire
     /// add by wx @20190228
      auto nlpDomain = info->directive;
      auto dateMessage = nlpDomain->getData();
-    // printf("%s \n", dateMessage.c_str());
+     //printf("%s \n", dateMessage.c_str());
+     std::cout << "dateMessage =  " << dateMessage.c_str() << std::endl;
     
      cJSON* json = NULL,
      *json_data = NULL,*json_tts_url = NULL, *json_isMultiDialog = NULL, *json_answer = NULL;
@@ -282,6 +283,9 @@ void SpeechSynthesizer::executePreHandleAfterValidation(std::shared_ptr<ChatDire
      
      info->url = json_tts_url->valuestring;
      std::cout << "info->url = " << info->url << std::endl;
+     
+    // info->answer = json_answer->valuestring;
+    // std::cout << "info->answer = " << info->answer << std::endl;
      
      // If everything checks out, add the chatInfo to the map.    
      std::cout << "=========================i'm here!!!-解析date数据===========================" << std::endl;
@@ -475,6 +479,7 @@ void SpeechSynthesizer::startPlaying() {
         // Execution of play is successful.
         m_isAlreadyStopping = false;
     }
+    	std::cout << "=======================here：startplaying=========." << std::endl;  
 }
 
 void SpeechSynthesizer::stopPlaying() {
@@ -489,6 +494,7 @@ void SpeechSynthesizer::stopPlaying() {
         // Execution of stop is successful.
         m_isAlreadyStopping = true;
     }
+     std::cout << "=======================here：stopPlaying=========." << std::endl; 
 }
 
 void SpeechSynthesizer::setCurrentStateLocked(

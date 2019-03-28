@@ -67,6 +67,12 @@ public:
         std::shared_ptr<ChannelObserverInterface> channelObserver,
         const std::string& interface) = 0;
 
+
+/*    virtual bool changeChannel(
+        const std::string& channelName,
+        std::shared_ptr<ChannelObserverInterface>ChannelObserver,
+        const std::string& interface) = 0;
+*/        
     /**
      * This method will release the Channel and notify the observer of the Channel.
      *

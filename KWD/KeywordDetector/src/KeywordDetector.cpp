@@ -15,8 +15,21 @@
 
 #include "KeywordDetector/KeywordDetector.h"
 
+
 namespace aisdk {
 namespace kwd {
+
+//using namespace utils::mediaPlayer;
+//using namespace utils::channel;
+//using namespace dmInterface;
+
+
+/// The name of the @c AudioTrackManager channel used by the @c SpeechSynthesizer.
+static const std::string CHANNEL_NAME = utils::channel::AudioTrackManagerInterface::DIALOG_CHANNEL_NAME;
+
+/// The name of the @c SafeShutdown
+static const std::string SPEECHNAME{"SpeechSynthesizer"};
+
 
 /// Set keyword timeout time
 auto timeoutForListeningToIdle = std::chrono::seconds{15};
@@ -32,7 +45,6 @@ void KeywordDetector::stop() {
 
     if (std::this_thread::get_id() != m_detectionThread.get_id() && m_detectionThread.joinable()) {
         m_detectionThread.join();
-		std::cout << "stop task..." << std::endl;  //tmp debug
     }
 }
 
@@ -42,10 +54,9 @@ void KeywordDetector::detectionHandler(){
 
 	/* To-Do */
 	/// In here acquire channel player priority
-	// ...
-	// ...
-	
-	std::cout << "detectionHandler entry...." << std::endl;
+      m_trackManager->acquireChannel(CHANNEL_NAME, shared_from_this(), SPEECHNAME);
+
+	std::cout << "========================detectionHandler entry....1234==================" << std::endl;
 	std::unique_lock<std::mutex> lock(m_detectionWaitMutex);
     // Wait for stop() or a delay/period to elapse.
     if (m_detectionWaitCondition.wait_until(lock, now + timeoutForListeningToIdle, [this]() { return m_stopping; })) {
@@ -56,7 +67,7 @@ void KeywordDetector::detectionHandler(){
 		std::cout << "wakeup handler timeout:reason: don't check vad event or network unreachable." << std::endl;
 		// To-Do release channel player
 		// ...
-		// ...
+		m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this()); //add @ 190320
 	}
 
 	/// Close current wakeup event when a timeout happens
@@ -95,6 +106,10 @@ void KeywordDetector::onStateChanged(utils::soundai::SoundAiObserverInterface::S
 	if(utils::soundai::SoundAiObserverInterface::State::BUSY == state){
 		stop();
 	}
+}
+
+void KeywordDetector::onTrackChanged(utils::channel::FocusState newTrace) {
+    // no-default op
 }
 
 KeywordDetector::KeywordDetector(

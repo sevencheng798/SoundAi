@@ -21,6 +21,7 @@
 
 #include <Utils/SoundAi/SoundAiObserverInterface.h>
 #include <Utils/Channel/AudioTrackManagerInterface.h>
+#include <Utils/Channel/ChannelObserverInterface.h> // support channelObserver
 
 namespace aisdk {
 namespace kwd {
@@ -28,7 +29,10 @@ namespace kwd {
 /**
 *  an KeywordDetector class
 */
-class KeywordDetector : public utils::soundai::SoundAiObserverInterface {
+class KeywordDetector
+                        : public utils::soundai::SoundAiObserverInterface
+                        , public utils::channel::ChannelObserverInterface
+                         ,public std::enable_shared_from_this<KeywordDetector>{
 public:
 	/**
 	 * Constructs an empty KeywordDetector.
@@ -50,7 +54,12 @@ public:
 	void onStateChanged(
 		utils::soundai::SoundAiObserverInterface::State state) override;
 	/// @}
-	
+
+    /// name ChannelObserverInterface:
+    /// @{
+    void onTrackChanged(utils::channel::FocusState newTrace) override;
+    ///}
+    
 	/// stop a detectionHandler task
 	void stop();
 

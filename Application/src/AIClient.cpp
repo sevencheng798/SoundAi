@@ -141,12 +141,17 @@ bool AIClient::initialize(
     }
 
 	m_speechSynthesizer->addObserver(m_dialogUXStateRelay);
+    
+    AISDK_INFO(LX("initializeSucessed").d("reason", "CreateSpeechSynthesizer============here!!!!!!!!"));
 
 	/// To-Do Sven
 	/// Continue to add other domain commponent.
 	/// ...
 	/// ...
 	/// ...
+   /*
+    * Creating the ResourcesPlayer. This is the commponent that deals with to play Resources domain.
+    */
 
 	
 	/*

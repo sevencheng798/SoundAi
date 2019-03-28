@@ -138,6 +138,7 @@ inline std::ostream& operator<<(std::ostream &stream, NLPDomain::ParseStatus sta
 	return stream << nlpDomainParseStatusToString(status);
 }
 
+
 }  // namespace nlp
 }  // namespace aisdk
 
