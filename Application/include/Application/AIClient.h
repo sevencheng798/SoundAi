@@ -26,6 +26,8 @@
 #include "AudioTrackManager/AudioTrackManager.h"
 #include "SoundAi/SoundAiEngine.h"
 #include "SpeechSynthesizer/SpeechSynthesizer.h"
+#include "ResourcesPlayer/ResourcesPlayer.h"
+
 
 namespace aisdk {
 namespace application {
@@ -91,6 +93,9 @@ private:
 
 	/// The speech synthesizer.
 	std::shared_ptr<domain::speechSynthesizer::SpeechSynthesizer> m_speechSynthesizer;
+
+    /// The resources player.
+	std::shared_ptr<domain::resourcesPlayer::ResourcesPlayer> m_resourcesPlayer;
 };
 
 }  // namespace application

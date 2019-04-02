@@ -16,6 +16,7 @@ target_link_libraries(SampleApp
 		SoundAi
 		NLP
 		SpeechSynthesizer
+		ResourcesPlayer
 		ao
 		asound
 		z)

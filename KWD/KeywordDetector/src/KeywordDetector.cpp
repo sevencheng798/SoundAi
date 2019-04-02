@@ -30,6 +30,9 @@ static const std::string CHANNEL_NAME = utils::channel::AudioTrackManagerInterfa
 /// The name of the @c SafeShutdown
 static const std::string SPEECHNAME{"SpeechSynthesizer"};
 
+/// The name of the @c SafeShutdown
+//static const std::string SPEECHNAME{"ResourcesPlayer"};
+
 
 /// Set keyword timeout time
 auto timeoutForListeningToIdle = std::chrono::seconds{15};

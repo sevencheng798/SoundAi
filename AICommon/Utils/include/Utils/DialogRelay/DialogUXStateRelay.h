@@ -20,6 +20,8 @@
 #include "Utils/SoundAi/SoundAiObserverInterface.h"
 #include "Utils/Threading/Executor.h"
 #include "DMInterface/SpeechSynthesizerObserverInterface.h"
+#include "DMInterface/ResourcesPlayerObserverInterface.h"
+
 
 namespace aisdk {
 namespace utils {
@@ -31,7 +33,8 @@ namespace dialogRelay {
  */
 class DialogUXStateRelay
         : public soundai::SoundAiObserverInterface
-        , public dmInterface::SpeechSynthesizerObserverInterface {
+        , public dmInterface::SpeechSynthesizerObserverInterface
+        , public dmInterface::ResourcesPlayerObserverInterface{
 public:
     /**
      * Constructor.
@@ -58,6 +61,8 @@ public:
 	void onKeyWordDetected(std::string dialogId, std::string keyword, float angle) override;
 
     void onStateChanged(dmInterface::SpeechSynthesizerObserverInterface::SpeechSynthesizerState state) override;
+
+    void onStateChanged(dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState state) override;
 
 private:
     /**
@@ -91,6 +96,9 @@ private:
 
 	/// Contains the current state of the @c SpeechSynthesizer as reported by @c SpeechSynthesizerObserverInterface
     dmInterface::SpeechSynthesizerObserverInterface::SpeechSynthesizerState m_speechSynthesizerState;
+
+    /// Contains the current state of the @c ResourcesPlayer as reported by @c ResourcesPlayerObserverInterface
+    dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState m_resourcesPlayerState;
 };
 
 }	// namespace dialogRelay

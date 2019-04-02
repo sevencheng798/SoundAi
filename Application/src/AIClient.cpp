@@ -149,11 +149,25 @@ bool AIClient::initialize(
 	/// ...
 	/// ...
 	/// ...
+	
    /*
     * Creating the ResourcesPlayer. This is the commponent that deals with to play Resources domain.
-    */
+    *///add by wx @190401
+    m_resourcesPlayer = domain::resourcesPlayer::ResourcesPlayer::create(
+        chatMediaPlayer,
+		m_audioTrackManager,
+		m_dialogUXStateRelay);
+    if (!m_resourcesPlayer) {
+        AISDK_ERROR(LX("initializeFailed").d("reason", "unableToCreateResourcesPlayer"));
+        return false;
+    }
 
-	
+	m_resourcesPlayer->addObserver(m_dialogUXStateRelay);
+    
+    AISDK_INFO(LX("initializeSucessed").d("reason", "CreateResourcesPlayer============here!!!!!!!!"));
+
+
+    
 	/*
 	 * The following statements show how to register domain relay commponent to the domain directive sequencer.
 	 */
@@ -166,6 +180,15 @@ bool AIClient::initialize(
 
 	/// To-Do Sven
 	/// Continue to add other domain commponent.
+	if (!m_domainSequencer->addDomainHandler(m_resourcesPlayer)) {
+		AISDK_ERROR(LX("initializeFailed")
+						.d("reason", "unableToRegisterDomainHandler")
+						.d("domainHandler", "ResourcesPlayer"));
+		return false;
+	}
+
+
+    
 	/// ...
 	/// ...
 	/// ...
@@ -191,6 +214,11 @@ AIClient::~AIClient() {
 		AISDK_DEBUG5(LX("SpeechSynthesizerShutdown"));
 		m_speechSynthesizer->shutdown();
 	}
+
+ 	if(m_resourcesPlayer) {
+		AISDK_DEBUG5(LX("ResourcesPlayerShutdown"));
+		m_resourcesPlayer->shutdown();
+	}   
 }
 
 }  // namespace application

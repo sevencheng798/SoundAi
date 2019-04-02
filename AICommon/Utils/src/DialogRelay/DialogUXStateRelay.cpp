@@ -76,6 +76,8 @@ void DialogUXStateRelay::onStateChanged(soundai::SoundAiObserverInterface::State
 	});
 }
 
+
+
 void DialogUXStateRelay::onKeyWordDetected(std::string dialogId, std::string keyword, float angle){
 	/// default no-op
 }
@@ -107,6 +109,42 @@ void DialogUXStateRelay::onStateChanged(dmInterface::SpeechSynthesizerObserverIn
     });
 
 }
+
+
+//add test by wx @190402
+
+void DialogUXStateRelay::onStateChanged(dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState state) {
+	std::cout << "ResourcesPlayer onStateChanged: " << state << std::endl;
+    m_resourcesPlayerState = state;
+
+    m_executor.submit([this, state]() {
+        switch (state) {
+            case dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING:
+                setState(DialogUXStateObserverInterface::DialogUXState::SPEAKING);
+                return;
+            case dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED:
+                 m_executor.submit([this]() {
+			        if (m_currentState != DialogUXStateObserverInterface::DialogUXState::IDLE &&
+			            m_soundAiState == soundai::SoundAiObserverInterface::State::IDLE &&
+			            m_resourcesPlayerState == dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED) {
+			            setState(DialogUXStateObserverInterface::DialogUXState::IDLE);
+			        }
+			    });
+                return;
+            case dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState::LOSING_FOCUS:
+                return;
+            case dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState::GAINING_FOCUS:
+                return;
+        }
+		std::cout << "unknownResourcesPlayerState" << std::endl;
+    });
+
+}
+
+
+
+
+
 
 void DialogUXStateRelay::notifyObserversOfState() {
     for (auto observer : m_observers) {
