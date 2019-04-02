@@ -58,6 +58,7 @@ void KeywordDetector::detectionHandler(){
 	/* To-Do */
 	/// In here acquire channel player priority
       m_trackManager->acquireChannel(CHANNEL_NAME, shared_from_this(), SPEECHNAME);
+     //  m_trackManager->acquireChannel(CHANNEL_NAME, shared_from_this(), "ResourcesPlayer");
 
 	std::cout << "========================detectionHandler entry....1234==================" << std::endl;
 	std::unique_lock<std::mutex> lock(m_detectionWaitMutex);
@@ -71,6 +72,7 @@ void KeywordDetector::detectionHandler(){
 		// To-Do release channel player
 		// ...
 		m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this()); //add @ 190320
+	//	m_trackManager->releaseChannel("ResourcesPlayer", shared_from_this()); //add @ 190320
 	}
 
 	/// Close current wakeup event when a timeout happens

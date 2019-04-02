@@ -247,6 +247,31 @@ void ResourcesPlayer::init() {
     m_speechPlayer->setObserver(shared_from_this());
 }
 
+//--------------------add by wx @190402-----------------
+#if 0
+
+struct AnalysisNlpResourceData
+{
+    int    NlpData_code;
+    char * NlpData_message;
+    char * NlpData_query;
+    std::string NlpData_domain;
+    char * NlpData_dataMsg;
+};
+
+void AnalysisNlpDataForResourcesPlayer(const char *datain , struct NlpData *nlpdata);
+
+
+void AnalysisNlpDataForResourcesPlayer(const char * datain , struct NlpData *nlpdata)
+{
+
+}
+
+#endif
+//--------------------add by wx @190402-----------------
+
+
+
 void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<ChatDirectiveInfo> info) {
 	/// To-Do parse tts url and insert chatInfo map
 	/// ...
@@ -257,13 +282,27 @@ void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<ChatDirect
      std::cout << "dateMessage =  " << dateMessage.c_str() << std::endl;
     
      cJSON* json = NULL,
-     *json_data = NULL,*json_tts_url = NULL, *json_isMultiDialog = NULL, *json_answer = NULL;
-    
+     *json_data = NULL,*json_tts_url = NULL, *json_isMultiDialog = NULL, *json_answer = NULL,
+
+     *json_parameters = NULL, *json_artist = NULL, *json_title = NULL,
+     *json_album = NULL,*json_audio_list = NULL, *json_audio_url = NULL;
+
+     
      (void )json;
      (void )json_data;
      (void )json_answer;
      (void )json_tts_url;
      (void )json_isMultiDialog;
+
+
+     (void )json_parameters;
+     (void )json_artist;
+     (void )json_title;
+     (void )json_album;
+     (void )json_audio_list;
+     (void )json_audio_url;
+
+     
     
       json_data = cJSON_Parse(dateMessage.c_str());
     
@@ -279,9 +318,72 @@ void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<ChatDirect
          std::cout << "json_answer =  " << json_answer->valuestring << std::endl;
          std::cout << "json_tts_url =  " << json_tts_url->valuestring << std::endl;
          std::cout << "json_isMultiDialog = " << json_isMultiDialog->valueint << std::endl;
+
+#if 1
+            //parameters  
+            json_parameters = cJSON_GetObjectItem(json_data, "parameters"); 
+           if(json_parameters != NULL) 
+           {
+            json_album = cJSON_GetObjectItem(json_parameters, "album");
+            json_title = cJSON_GetObjectItem(json_parameters, "title");
+
+        //    std::cout << "json_album =  " << json_album->valuestring << std::endl;
+         //   std::cout << "json_artist =  " << json_artist->valuestring << std::endl;
+
+           }
+            else
+            {
+                
+            std::cout << "parameters is null"<< std::endl;
+            }
+
+         /*
+            //audio_list
+            json_audio_list = cJSON_GetObjectItem(json_data, "audio_list");
+            if(json_audio_list != NULL) 
+            {
+            json_title = cJSON_GetObjectItem(json_audio_list, "title");
+            json_audio_url = cJSON_GetObjectItem(json_audio_list, "audio_url");
+
+            std::cout << "json_title =  " << json_title->valuestring << std::endl;
+            std::cout << "json_audio_url =  " << json_audio_url->valuestring << std::endl;
+            }
+
+        */
+        
+            
+            cJSON *js_list = cJSON_GetObjectItem(json_data, "audio_list");
+             if(!js_list){
+                 printf("no audio_list!\n");
+             }
+             int array_size = cJSON_GetArraySize(js_list);
+            printf("array size is %d\n",array_size);
+             int i = 0;
+             cJSON *item,*it;
+             char *p  = NULL;
+             for(i=0; i< array_size; i++) {
+                item = cJSON_GetArrayItem(js_list, i);
+                if(!item) {
+                   //TODO...
+                }
+                p = cJSON_PrintUnformatted(item);
+                it = cJSON_Parse(p);
+                if(!it)
+                   continue ;
+            json_title = cJSON_GetObjectItem(it, "title");
+            json_audio_url = cJSON_GetObjectItem(it, "audio_url");
+
+            std::cout << "json_title =  " << json_title->valuestring << std::endl;
+            std::cout << "json_audio_url =  " << json_audio_url->valuestring << std::endl;
+             }
+      
+#endif
+
+         
       }
      
-     info->url = json_tts_url->valuestring;
+    // info->url = json_tts_url->valuestring;
+     info->url = json_audio_url->valuestring;
      std::cout << "info->url = " << info->url << std::endl;
      
     // info->answer = json_answer->valuestring;
