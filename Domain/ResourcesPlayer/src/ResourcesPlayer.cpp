@@ -16,6 +16,9 @@
 #include <Utils/cJSON.h>
 #include "string.h"
 
+#include<deque>  
+
+//using namespace std;
 namespace aisdk {
 namespace domain {
 namespace resourcesPlayer {
@@ -38,6 +41,10 @@ static const std::chrono::seconds STATE_CHANGE_TIMEOUT{5};
 
 /// The duration to start playing offset position.
 static const std::chrono::milliseconds DEFAULT_OFFSET{0};
+
+//add deque for store audio_list;
+std::deque<std::string> AUDIO_URL_LIST; 
+
 
 std::shared_ptr<ResourcesPlayer> ResourcesPlayer::create(
 	std::shared_ptr<MediaPlayerInterface> mediaPlayer,
@@ -248,157 +255,140 @@ void ResourcesPlayer::init() {
 }
 
 //--------------------add by wx @190402-----------------
-#if 0
+#if 1
+void AnalysisNlpDataForResourcesPlayer(cJSON          * datain , std::deque<std::string> &audiourllist );
 
-struct AnalysisNlpResourceData
+void AnalysisNlpDataForResourcesPlayer(cJSON          * datain , std::deque<std::string> &audiourllist )
 {
-    int    NlpData_code;
-    char * NlpData_message;
-    char * NlpData_query;
-    std::string NlpData_domain;
-    char * NlpData_dataMsg;
-};
-
-void AnalysisNlpDataForResourcesPlayer(const char *datain , struct NlpData *nlpdata);
-
-
-void AnalysisNlpDataForResourcesPlayer(const char * datain , struct NlpData *nlpdata)
-{
-
-}
-
-#endif
-//--------------------add by wx @190402-----------------
-
-
-
-void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<ChatDirectiveInfo> info) {
-	/// To-Do parse tts url and insert chatInfo map
-	/// ...
-    /// add by wx @20190401
-     auto nlpDomain = info->directive;
-     auto dateMessage = nlpDomain->getData();
-     //printf("%s \n", dateMessage.c_str());
-     std::cout << "dateMessage =  " << dateMessage.c_str() << std::endl;
-    
-     cJSON* json = NULL,
+    cJSON* json = NULL,
      *json_data = NULL,*json_tts_url = NULL, *json_isMultiDialog = NULL, *json_answer = NULL,
 
      *json_parameters = NULL, *json_artist = NULL, *json_title = NULL,
      *json_album = NULL,*json_audio_list = NULL, *json_audio_url = NULL;
 
-     
      (void )json;
      (void )json_data;
      (void )json_answer;
      (void )json_tts_url;
      (void )json_isMultiDialog;
 
-
      (void )json_parameters;
      (void )json_artist;
      (void )json_title;
      (void )json_album;
      (void )json_audio_list;
-     (void )json_audio_url;
+     (void )json_audio_url;  
 
      
-    
-      json_data = cJSON_Parse(dateMessage.c_str());
-    
-      if(!json_data)
-      {
-      std::cout << "json Error before: " <<cJSON_GetErrorPtr() << std::endl;
-      }
-      else
-      {
-         json_answer = cJSON_GetObjectItem(json_data, "answer");
-         json_tts_url = cJSON_GetObjectItem(json_data, "tts_url");
-         json_isMultiDialog = cJSON_GetObjectItem(json_data, "isMultiDialog");
-         std::cout << "json_answer =  " << json_answer->valuestring << std::endl;
-         std::cout << "json_tts_url =  " << json_tts_url->valuestring << std::endl;
-         std::cout << "json_isMultiDialog = " << json_isMultiDialog->valueint << std::endl;
+       json_data = datain;
+       if(!json_data)
+       {
+       std::cout << "json Error before: " <<cJSON_GetErrorPtr() << std::endl;
+       }
+       else
+       {
+          json_answer = cJSON_GetObjectItem(json_data, "answer");
+          json_tts_url = cJSON_GetObjectItem(json_data, "tts_url");
+          json_isMultiDialog = cJSON_GetObjectItem(json_data, "isMultiDialog");
+         // std::cout << "json_answer =  " << json_answer->valuestring << std::endl;
+        //  std::cout << "json_tts_url =  " << json_tts_url->valuestring << std::endl;
+        //  std::cout << "json_isMultiDialog = " << json_isMultiDialog->valueint << std::endl;
 
-#if 1
-            //parameters  
-            json_parameters = cJSON_GetObjectItem(json_data, "parameters"); 
-           if(json_parameters != NULL) 
-           {
-            json_album = cJSON_GetObjectItem(json_parameters, "album");
-            json_title = cJSON_GetObjectItem(json_parameters, "title");
+          audiourllist.push_back(json_tts_url->valuestring);
 
-        //    std::cout << "json_album =  " << json_album->valuestring << std::endl;
-         //   std::cout << "json_artist =  " << json_artist->valuestring << std::endl;
-
-           }
-            else
+             //parameters  
+             json_parameters = cJSON_GetObjectItem(json_data, "parameters"); 
+            if(json_parameters != NULL) 
             {
-                
-            std::cout << "parameters is null"<< std::endl;
+             json_album = cJSON_GetObjectItem(json_parameters, "album");
+             json_title = cJSON_GetObjectItem(json_parameters, "title");
             }
-
-         /*
-            //audio_list
-            json_audio_list = cJSON_GetObjectItem(json_data, "audio_list");
-            if(json_audio_list != NULL) 
-            {
-            json_title = cJSON_GetObjectItem(json_audio_list, "title");
-            json_audio_url = cJSON_GetObjectItem(json_audio_list, "audio_url");
-
-            std::cout << "json_title =  " << json_title->valuestring << std::endl;
-            std::cout << "json_audio_url =  " << json_audio_url->valuestring << std::endl;
-            }
-
-        */
-        
-            
-            cJSON *js_list = cJSON_GetObjectItem(json_data, "audio_list");
-             if(!js_list){
-                 printf("no audio_list!\n");
+             else
+             {
+             std::cout << "parameters is null"<< std::endl;
              }
-             int array_size = cJSON_GetArraySize(js_list);
-            printf("array size is %d\n",array_size);
-             int i = 0;
-             cJSON *item,*it;
-             char *p  = NULL;
-             for(i=0; i< array_size; i++) {
-                item = cJSON_GetArrayItem(js_list, i);
-                if(!item) {
-                   //TODO...
-                }
-                p = cJSON_PrintUnformatted(item);
-                it = cJSON_Parse(p);
-                if(!it)
-                   continue ;
-            json_title = cJSON_GetObjectItem(it, "title");
-            json_audio_url = cJSON_GetObjectItem(it, "audio_url");
 
-            std::cout << "json_title =  " << json_title->valuestring << std::endl;
-            std::cout << "json_audio_url =  " << json_audio_url->valuestring << std::endl;
-             }
-      
+             //audio_list
+             cJSON *js_list = cJSON_GetObjectItem(json_data, "audio_list");
+              if(!js_list){
+                  std::cout << "no audio_list!"<< std::endl;
+              }
+              int array_size = cJSON_GetArraySize(js_list);
+              std::cout << "audio_list size : " <<array_size << std::endl;
+              int i = 0;
+              cJSON *item,*it;
+              char *p  = NULL;
+              for(i=0; i< array_size; i++) {
+                 item = cJSON_GetArrayItem(js_list, i);
+                 if(!item) {
+                    //TODO...
+                 }
+                 p = cJSON_PrintUnformatted(item);
+                 it = cJSON_Parse(p);
+                 if(!it)
+                    continue ;
+             json_title = cJSON_GetObjectItem(it, "title");
+             json_audio_url = cJSON_GetObjectItem(it, "audio_url");
+             // std::cout << "NO: " << i << ":json_title =  "<< json_title->valuestring << std::endl;
+             // std::cout << "NO: " << i << ":json_audio_url =  " << json_audio_url->valuestring << std::endl;
+             audiourllist.push_back(json_audio_url->valuestring);
+              }
+#if 0
+       std::cout <<"get_udio_url_list："<< std::endl;        
+       for(std::size_t i = 0; i< audiourllist.size(); i++)
+       {
+        std::cout << "list_no:" << i << "; get_udio_url=" << audiourllist.at(i) << std::endl;
+       }
+#endif          
+       }
+
+     
+}
+
 #endif
+//--------------------add by wx @190402-----------------
 
-         
+void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<ChatDirectiveInfo> info) {
+	/// To-Do parse tts url and insert chatInfo map
+    /// add by wx @201904
+     auto nlpDomain = info->directive;
+     auto dateMessage = nlpDomain->getData();
+     std::cout << "dateMessage =  " << dateMessage.c_str() << std::endl;
+
+     cJSON* json = NULL, *json_data = NULL;
+     (void )json;
+     (void )json_data;
+     json_data = cJSON_Parse(dateMessage.c_str());
+
+    //get nlp data audio url list to resources player @20190408
+     AnalysisNlpDataForResourcesPlayer(json_data, AUDIO_URL_LIST);
+     std::cout <<"====【20190408】==========AnalysisNlpDataForResourcesPlayer:"<< std::endl;  
+     
+     for(std::size_t i = 0; i< AUDIO_URL_LIST.size(); i++)
+     {
+      std::cout << "audio_url:" << AUDIO_URL_LIST.at(i) << std::endl;
+     }
+     std::cout << "====【20190408】==========i'm here!!!audio list get down========================" << std::endl;
+
+   //  for(std::size_t i = 0; i < AUDIO_URL_LIST.size(); i++)
+      for(std::size_t i = 0; i < 1; i++) 
+      {
+          info->url = AUDIO_URL_LIST.at(i);
+          std::cout << "playing_now_audio_url = " << AUDIO_URL_LIST.at(i) << std::endl;
+     
+          AUDIO_URL_LIST.pop_back();
       }
-     
-    // info->url = json_tts_url->valuestring;
-     info->url = json_audio_url->valuestring;
-     std::cout << "info->url = " << info->url << std::endl;
-     
-    // info->answer = json_answer->valuestring;
-    // std::cout << "info->answer = " << info->answer << std::endl;
-     
-     // If everything checks out, add the chatInfo to the map.    
-     std::cout << "=========================i'm here!!!-解析date数据===========================" << std::endl;
-	// If everything checks out, add the chatInfo to the map.
+
+      // If everything checks out, add the chatInfo to the map.    
+      std::cout << "=========================i'm here!!!-解析date数据===========================" << std::endl;
+
+
     if (!setChatDirectiveInfo(info->directive->getMessageId(), info)) {
 		std::cout << "executePreHandleFailed:reason:prehandleCalledTwiceOnSameDirective:messageId: " << info->directive->getMessageId() << std::endl;
     }
-
+     //clear reque list data;
+     while (!AUDIO_URL_LIST.empty()) AUDIO_URL_LIST.pop_back();
      cJSON_Delete(json_data);  
-
-    /// add by wx @20190228
 }
 
 void ResourcesPlayer::executeHandleAfterValidation(std::shared_ptr<ChatDirectiveInfo> info) {
@@ -752,6 +742,81 @@ void ResourcesPlayer::executeOnDialogUXStateChanged(
         m_currentFocus = FocusState::NONE;
     }
 }
+
+
+#if 0
+
+int test();
+void test_string();
+
+
+//-------------
+int test()
+{
+    std::deque<int> test;
+    test.push_back(10);
+    test.push_back(20);
+    test.push_back(30);
+    std::cout << "=========================i'm here!!!我是队列测试demo-start===========================" << std::endl;
+    std::cout <<"原始双端队列："<< std::endl;  
+    
+    for(std::size_t i = 0; i< test.size(); i++)
+    {
+     std::cout << "test: = " << test.at(i) << std::endl;
+    }
+
+    test.push_front(99);
+    test.push_front(88);
+    test.push_front(77);
+    std::cout <<"从前端插入：" << std::endl;
+
+    for(std::size_t i = 0; i < test.size(); i++)
+    {
+    std::cout << "push front: = " << test.at(i) << std::endl;
+    }
+
+    test.pop_front();    
+    for(std::size_t i = 0; i < test.size(); i++)
+    {
+    std::cout << "after pop front: = " << test.at(i) << std::endl;
+    }
+
+    test.pop_back();
+    for(std::size_t i = 0; i < test.size(); i++)
+    {
+    std::cout << "after pop back: = " << test.at(i) << std::endl;
+    }
+
+    
+
+    std::cout << "=========================i'm here!!!我是队列测试demo-end===========================" << std::endl;
+    return 0;
+}
+
+
+
+//-------------
+void test_string()
+{
+    std::deque<std::string> d;
+    d.push_back("aaaa");
+   // test.push_back(20);
+   // test.push_back(30);
+    std::cout << "=========================i'm here!!!我是队列测试demo-start===========================" << std::endl;
+    std::cout <<"原始双端队列："<< std::endl;  
+    
+    for(std::size_t i = 0; i< d.size(); i++)
+    {
+     std::cout << "test: = " << d.at(i) << std::endl;
+    }
+    
+    std::cout << "=========================i'm here!!!我是队列测试demo-end===========================" << std::endl;
+    //return 0;
+}
+
+#endif
+    
+//-------------
 
 }	// namespace speechSynthesizer
 }	// namespace domain
