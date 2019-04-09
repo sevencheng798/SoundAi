@@ -44,6 +44,10 @@ public:
 	static std::unique_ptr<AIClient> createNew(
 		std::shared_ptr<utils::DeviceInfo> deviceInfo,
 		std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> chatMediaPlayer,
+        std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> resourceMediaPlayer,      
+    	/// To-Do wx
+    	/// ...
+    	/// ...
 		std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> streamMediaPlayer,
 		std::unordered_set<std::shared_ptr<utils::dialogRelay::DialogUXStateObserverInterface>>
         	dialogStateObservers,
@@ -73,6 +77,10 @@ private:
 	bool initialize(
 		std::shared_ptr<utils::DeviceInfo> deviceInfo,
 		std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> chatMediaPlayer,
+		std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> resourceMediaPlayer,	
+    	/// To-Do wx
+    	/// ...
+    	/// ...
 		std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> streamMediaPlayer,
 		std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> alarmMediaPlayer,
 		std::unordered_set<std::shared_ptr<utils::dialogRelay::DialogUXStateObserverInterface>>
@@ -96,6 +104,10 @@ private:
 
     /// The resources player.
 	std::shared_ptr<domain::resourcesPlayer::ResourcesPlayer> m_resourcesPlayer;
+
+    /// To-Do wx
+	/// ...
+	/// ...
 };
 
 }  // namespace application

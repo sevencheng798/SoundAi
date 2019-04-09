@@ -128,10 +128,10 @@ void SpeechSynthesizer::onTrackChanged(FocusState newTrace) {
 }
 
 void SpeechSynthesizer::onPlaybackStarted(SourceId id) {
-	std::cout << "onPlaybackStarted:callbackSourceId: " << id << std::endl;
+	std::cout << "SpeechSynthesizeronPlaybackStarted:callbackSourceId: " << id  << "--------m_mediaSourceId::::::::"<<m_mediaSourceId<< std::endl;
 	
     if (id != m_mediaSourceId) {
-		std::cout << "ERR: queueingExecutePlaybackStartedFailed:reason:mismatchSourceId:callbackSourceId: " << id << ":sourceId: "<< m_mediaSourceId << std::endl;
+		std::cout << "ERRrrrrrr: queueingExecutePlaybackStartedFailed:reason:mismatchSourceId:callbackSourceId: " << id << ":sourceId: "<< m_mediaSourceId << std::endl;
 		
         m_executor.submit([this] {
             executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "executePlaybackStartedFailed");
@@ -479,7 +479,7 @@ void SpeechSynthesizer::startPlaying() {
         // Execution of play is successful.
         m_isAlreadyStopping = false;
     }
-    	std::cout << "=======================here：startplaying=========." << std::endl;  
+    std::cout << "=======================here：startplaying=========.m_mediaSourceId::::" <<m_mediaSourceId<< std::endl;  
 }
 
 void SpeechSynthesizer::stopPlaying() {

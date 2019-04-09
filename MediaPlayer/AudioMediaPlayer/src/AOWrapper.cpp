@@ -349,6 +349,9 @@ void AOWrapper::doPlayAudioLocked(std::unique_lock<std::mutex> &lock) {
 	lock.lock();
 	if(unexpected) {
 		m_state = AOPlayerState::FINISHED;
+    if (m_observer) {
+        m_observer->onPlaybackFinished(m_sourceId);
+    }
 	}
 	
 }

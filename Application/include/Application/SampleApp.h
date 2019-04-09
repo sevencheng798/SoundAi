@@ -48,6 +48,9 @@ private:
 	// The @c MediaPlayer used by @c SpeechSyth.
 	std::shared_ptr<mediaPlayer::ffmpeg::AOWrapper> m_chatMediaPlayer;
 
+	// The @c ResourcePlayer used by @c ResourceSyth.
+	std::shared_ptr<mediaPlayer::ffmpeg::AOWrapper> m_resourceMediaPlayer;
+
 	// The @c MediaPlayer used by @c Alarms.
 	std::shared_ptr<mediaPlayer::ffmpeg::AOWrapper> m_streamMediaPlayer;
 

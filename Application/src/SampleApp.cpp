@@ -48,6 +48,14 @@ SampleApp::~SampleApp() {
 	if(m_chatMediaPlayer) {
 		m_chatMediaPlayer->shutdown();
 	}
+	if(m_resourceMediaPlayer) {
+		m_resourceMediaPlayer->shutdown();
+	}
+	/// To-Do wx
+	/// ...
+	/// ...
+
+    
 	if(m_streamMediaPlayer) {
 		m_streamMediaPlayer->shutdown();
 	}
@@ -71,6 +79,16 @@ bool SampleApp::initialize() {
 		AISDK_ERROR(LX("Failed to create media player for chat speech!"));
 		return false;
 	}
+
+    // Create a resourceMediaPlayer of @c Pawrapper. @20190409
+    m_resourceMediaPlayer = mediaPlayer::ffmpeg::AOWrapper::create(m_aoEngine);
+    if(!m_resourceMediaPlayer) {
+        AISDK_ERROR(LX("Failed to create media player for resource play!"));
+        return false;
+    }
+    /// To-Do wx
+    /// ...
+    /// ...
 
 	m_streamMediaPlayer = mediaPlayer::ffmpeg::AOWrapper::create(m_aoEngine);
 	if(!m_streamMediaPlayer) {
@@ -103,6 +121,10 @@ bool SampleApp::initialize() {
 	m_aiClient = aisdk::application::AIClient::createNew(
 		deviceInfo,
 		m_chatMediaPlayer,
+		m_resourceMediaPlayer,
+        /// To-Do wx
+        /// ...
+        /// ...
 		m_streamMediaPlayer,
 		{userInterfaceManager},
 		m_alarmMediaPlayer);

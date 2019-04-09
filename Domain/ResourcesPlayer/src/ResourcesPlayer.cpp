@@ -135,7 +135,7 @@ void ResourcesPlayer::onTrackChanged(FocusState newTrace) {
 }
 
 void ResourcesPlayer::onPlaybackStarted(SourceId id) {
-	std::cout << "onPlaybackStarted:callbackSourceId: " << id << std::endl;
+	std::cout << "ResourcesPlayeronPlaybackStarted:callbackSourceId: " << id << std::endl;
 	
     if (id != m_mediaSourceId) {
 		std::cout << "ERR: queueingExecutePlaybackStartedFailed:reason:mismatchSourceId:callbackSourceId: " << id << ":sourceId: "<< m_mediaSourceId << std::endl;
@@ -371,7 +371,7 @@ void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<ChatDirect
      std::cout << "====【20190408】==========i'm here!!!audio list get down========================" << std::endl;
 
    //  for(std::size_t i = 0; i < AUDIO_URL_LIST.size(); i++)
-      for(std::size_t i = 0; i < 1; i++) 
+      for(std::size_t i = 0; i < 2; i++) 
       {
           info->url = AUDIO_URL_LIST.at(i);
           std::cout << "playing_now_audio_url = " << AUDIO_URL_LIST.at(i) << std::endl;

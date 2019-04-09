@@ -28,6 +28,8 @@ namespace application {
 std::unique_ptr<AIClient> AIClient::createNew(
 	std::shared_ptr<utils::DeviceInfo> deviceInfo,
 	std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> chatMediaPlayer,
+    std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> resourceMediaPlayer,
+	
 	std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> streamMediaPlayer,
 	std::unordered_set<std::shared_ptr<utils::dialogRelay::DialogUXStateObserverInterface>>
     	dialogStateObservers,
@@ -36,6 +38,7 @@ std::unique_ptr<AIClient> AIClient::createNew(
 	if(!aiClient->initialize(
 		deviceInfo,
 		chatMediaPlayer,
+		resourceMediaPlayer,
 		streamMediaPlayer,
 		alarmMediaPlayer,
 		dialogStateObservers
@@ -57,6 +60,7 @@ std::unique_ptr<AIClient> AIClient::createNew() {
 bool AIClient::initialize(
 	std::shared_ptr<utils::DeviceInfo> deviceInfo,
 	std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> chatMediaPlayer,
+	std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> resourceMediaPlayer,
 	std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> streamMediaPlayer,
 	std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> alarmMediaPlayer,
 	std::unordered_set<std::shared_ptr<utils::dialogRelay::DialogUXStateObserverInterface>>
@@ -70,6 +74,11 @@ bool AIClient::initialize(
 		AISDK_ERROR(LX("initializeFailed").d("reason", "nullChatMediaPlayer"));
 		return false;
 	}
+
+    if(!resourceMediaPlayer){
+        AISDK_ERROR(LX("initializeFailed").d("reason", "nullResourceMediaPlayer"));
+        return false;
+    }
 
 	if(!streamMediaPlayer) {
 		AISDK_ERROR(LX("initializeFailed").d("reason", "nullStreamMediaPlayer"));
@@ -154,7 +163,7 @@ bool AIClient::initialize(
     * Creating the ResourcesPlayer. This is the commponent that deals with to play Resources domain.
     *///add by wx @190401
     m_resourcesPlayer = domain::resourcesPlayer::ResourcesPlayer::create(
-        chatMediaPlayer,
+        resourceMediaPlayer,
 		m_audioTrackManager,
 		m_dialogUXStateRelay);
     if (!m_resourcesPlayer) {
