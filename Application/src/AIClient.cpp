@@ -175,8 +175,23 @@ bool AIClient::initialize(
     
     AISDK_INFO(LX("initializeSucessed").d("reason", "CreateResourcesPlayer============here!!!!!!!!"));
 
-
+#if 1
+    /*
+      * Creating the ResourcesPlayer. This is the commponent that deals with to play Resources domain.
+      *///add by wx @190401
+      m_alarmsPlayer = domain::alarmsPlayer::AlarmsPlayer::create(
+          alarmMediaPlayer,
+          m_audioTrackManager,
+          m_dialogUXStateRelay);
+      if (!m_alarmsPlayer) {
+          AISDK_ERROR(LX("initializeFailed").d("reason", "unableToCreateAlarmsPlayer"));
+          return false;
+      }
     
+      m_alarmsPlayer->addObserver(m_dialogUXStateRelay);
+      
+      AISDK_INFO(LX("initializeSucessed").d("reason", "CreateAlarmsPlayer============here!!!!!!!!"));
+#endif    
 	/*
 	 * The following statements show how to register domain relay commponent to the domain directive sequencer.
 	 */
@@ -198,7 +213,15 @@ bool AIClient::initialize(
 
 
     
-	/// ...
+	///alarms play add by wx @190412
+#if 1	
+	if (!m_domainSequencer->addDomainHandler(m_alarmsPlayer)) {
+	AISDK_ERROR(LX("initializeFailed")
+					.d("reason", "unableToRegisterDomainHandler")
+					.d("domainHandler", "m_alarmMediaPlayer"));
+	return false;
+	}
+#endif    
 	/// ...
 	/// ...
 
@@ -228,6 +251,13 @@ AIClient::~AIClient() {
 		AISDK_DEBUG5(LX("ResourcesPlayerShutdown"));
 		m_resourcesPlayer->shutdown();
 	}   
+
+#if 1
+ 	if(m_alarmsPlayer) {
+		AISDK_DEBUG5(LX("AlarmMediaPlayerShutdown"));
+		m_alarmsPlayer->shutdown();
+	}
+#endif    
 }
 
 }  // namespace application

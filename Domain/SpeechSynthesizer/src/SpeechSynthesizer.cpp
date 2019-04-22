@@ -468,7 +468,7 @@ void SpeechSynthesizer::executePlaybackError(const utils::mediaPlayer::ErrorType
 }
 
 void SpeechSynthesizer::startPlaying() {
-	std::cout << "startPlaying" << std::endl;
+	std::cout << "=============startPlaying============" << std::endl;
     m_mediaSourceId = m_speechPlayer->setSource(m_currentInfo->url, DEFAULT_OFFSET);
     if (MediaPlayerInterface::ERROR == m_mediaSourceId) {
 		std::cout << "startPlayingFailed:reason:setSourceFailed." << std::endl;
@@ -479,11 +479,11 @@ void SpeechSynthesizer::startPlaying() {
         // Execution of play is successful.
         m_isAlreadyStopping = false;
     }
-    std::cout << "=======================here：startplaying=========.m_mediaSourceId::::" <<m_mediaSourceId<< std::endl;  
+    std::cout << "m_mediaSourceId:" <<m_mediaSourceId<< std::endl;  
 }
 
 void SpeechSynthesizer::stopPlaying() {
-	std::cout << "stopPlaying" << std::endl;
+	std::cout << "=============stopPlaying==============" << std::endl;
     if (MediaPlayerInterface::ERROR == m_mediaSourceId) {
 		std::cout << "stopPlayingFailed:reason:invalidMediaSourceId:mediaSourceId: " << m_mediaSourceId << std::endl;
     } else if (m_isAlreadyStopping) {
@@ -494,7 +494,7 @@ void SpeechSynthesizer::stopPlaying() {
         // Execution of stop is successful.
         m_isAlreadyStopping = true;
     }
-     std::cout << "=======================here：stopPlaying=========." << std::endl; 
+    // std::cout << "=======================here：stopPlaying=========." << std::endl; 
 }
 
 void SpeechSynthesizer::setCurrentStateLocked(

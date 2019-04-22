@@ -142,6 +142,38 @@ void DialogUXStateRelay::onStateChanged(dmInterface::ResourcesPlayerObserverInte
 }
 
 
+//add test by wx @190412
+
+void DialogUXStateRelay::onStateChanged(dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState state) {
+	std::cout << "AlarmsPlayer onStateChanged: " << state << std::endl;
+    m_alarmsPlayerState = state;
+
+    m_executor.submit([this, state]() {
+        switch (state) {
+            case dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState::PLAYING:
+                setState(DialogUXStateObserverInterface::DialogUXState::SPEAKING);
+                return;
+            case dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState::FINISHED:
+                 m_executor.submit([this]() {
+			        if (m_currentState != DialogUXStateObserverInterface::DialogUXState::IDLE &&
+			            m_soundAiState == soundai::SoundAiObserverInterface::State::IDLE &&
+			            m_alarmsPlayerState == dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState::FINISHED) {
+			            setState(DialogUXStateObserverInterface::DialogUXState::IDLE);
+			        }
+			    });
+                return;
+            case dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState::LOSING_FOCUS:
+                return;
+            case dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState::GAINING_FOCUS:
+                return;
+        }
+		std::cout << "unknownAlarmsPlayerState" << std::endl;
+    });
+
+}
+
+
+
 
 
 

@@ -11,24 +11,29 @@
  */
 
 #include <iostream>
+#include <sqlite3.h>
 
-#include "ResourcesPlayer/ResourcesPlayer.h"
+#include "AlarmsPlayer/AlarmsPlayer.h"
 #include <Utils/cJSON.h>
 #include "string.h"
 
 #include<deque>  
 #include <Utils/Logging/Logger.h>
 
+//#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
 
 /// String to identify log entries originating from this file.
-static const std::string TAG{"ResourcesPlayer"};
+static const std::string TAG{"AlarmsPlayer"};
 
 #define LX(event) aisdk::utils::logging::LogEntry(TAG, event)
 
 //using namespace std;
 namespace aisdk {
 namespace domain {
-namespace resourcesPlayer {
+namespace alarmsPlayer {
 
 using namespace utils::mediaPlayer;
 using namespace utils::channel;
@@ -41,7 +46,7 @@ static const std::string CHANNEL_NAME = AudioTrackManagerInterface::DIALOG_CHANN
 //static const std::string SPEECHCHAT{"SpeechChat"};
 
 /// The name of the @c SafeShutdown
-static const std::string SPEECHNAME{"ResourcesPlayer"};
+static const std::string SPEECHNAME{"AlarmsPlayer"};
 
 /// The duration to wait for a state change in @c onTrackChanged before failing.
 static const std::chrono::seconds STATE_CHANGE_TIMEOUT{5};
@@ -49,33 +54,33 @@ static const std::chrono::seconds STATE_CHANGE_TIMEOUT{5};
 /// The duration to start playing offset position.
 static const std::chrono::milliseconds DEFAULT_OFFSET{0};
 
-//add deque for store audio_list;
-std::deque<std::string> AUDIO_URL_LIST; 
+//add deque for store TTS_URL_LIST;
+std::deque<std::string> TTS_URL_LIST; 
 
 
-std::shared_ptr<ResourcesPlayer> ResourcesPlayer::create(
+std::shared_ptr<AlarmsPlayer> AlarmsPlayer::create(
 	std::shared_ptr<MediaPlayerInterface> mediaPlayer,
 	std::shared_ptr<AudioTrackManagerInterface> trackManager,
 	std::shared_ptr<utils::dialogRelay::DialogUXStateRelay> dialogUXStateRelay){
 	if(!mediaPlayer){
         
-        AISDK_ERROR(LX("ResourcesPlayerCreationFailed").d("reason: ", "mediaPlayerNull"));
+        AISDK_ERROR(LX("AlarmsPlayerCreationFailed").d("reason: ", "mediaPlayerNull"));
 		return nullptr;
 	}
 
 	if(!trackManager){
-        AISDK_ERROR(LX("ResourcesPlayerCreationFailed").d("reason: ", "trackManagerNull"));
+        AISDK_ERROR(LX("AlarmsPlayerCreationFailed").d("reason: ", "trackManagerNull"));
 		return nullptr;
 	}
 
 	if(!dialogUXStateRelay){
-        AISDK_ERROR(LX("ResourcesPlayerCreationFailed").d("reason: ", "dialogUXStateRelayNull"));
+        AISDK_ERROR(LX("AlarmsPlayerCreationFailed").d("reason: ", "dialogUXStateRelayNull"));
 		return nullptr;
 	}
 
-	auto instance = std::shared_ptr<ResourcesPlayer>(new ResourcesPlayer(mediaPlayer, trackManager));
+	auto instance = std::shared_ptr<AlarmsPlayer>(new AlarmsPlayer(mediaPlayer, trackManager));
 	if(!instance){
-        AISDK_ERROR(LX("ResourcesPlayerCreationFailed").d("reason: ", "NewResourcesPlayerFailed"));
+        AISDK_ERROR(LX("AlarmsPlayerCreationFailed").d("reason: ", "NewAlarmsPlayerFailed"));
 		return nullptr;
 	}
 	instance->init();
@@ -85,26 +90,26 @@ std::shared_ptr<ResourcesPlayer> ResourcesPlayer::create(
 	return instance;
 }
 
-void ResourcesPlayer::onDeregistered() {
+void AlarmsPlayer::onDeregistered() {
 	// default no-op
 }
 
-void ResourcesPlayer::preHandleDirective(std::shared_ptr<DirectiveInfo> info) {
+void AlarmsPlayer::preHandleDirective(std::shared_ptr<DirectiveInfo> info) {
     AISDK_INFO(LX("preHandleDirective").d("messageId: ",  info->directive->getMessageId()));
     m_executor.submit([this, info]() { executePreHandle(info); });
 }
 
-void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
+void AlarmsPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
     AISDK_INFO(LX("handleDirective").d("messageId: ",  info->directive->getMessageId()));
     m_executor.submit([this, info]() { executeHandle(info); });
 }
 
-void ResourcesPlayer::cancelDirective(std::shared_ptr<DirectiveInfo> info) {
+void AlarmsPlayer::cancelDirective(std::shared_ptr<DirectiveInfo> info) {
     AISDK_INFO(LX("cancelDirective").d("messageId: ",  info->directive->getMessageId()));
     m_executor.submit([this, info]() { executeCancel(info); });
 }
 
-void ResourcesPlayer::onTrackChanged(FocusState newTrace) {
+void AlarmsPlayer::onTrackChanged(FocusState newTrace) {
     AISDK_INFO(LX("onTrackChanged").d("newTrace: ", newTrace));
     std::unique_lock<std::mutex> lock(m_mutex);
     m_currentFocus = newTrace;
@@ -116,10 +121,10 @@ void ResourcesPlayer::onTrackChanged(FocusState newTrace) {
     // Set intermediate state to avoid being considered idle
     switch (newTrace) {
         case FocusState::FOREGROUND:
-            setCurrentStateLocked(ResourcesPlayerObserverInterface::ResourcesPlayerState::GAINING_FOCUS);
+            setCurrentStateLocked(AlarmsPlayerObserverInterface::AlarmsPlayerState::GAINING_FOCUS);
             break;
         case FocusState::BACKGROUND:
-            setCurrentStateLocked(ResourcesPlayerObserverInterface::ResourcesPlayerState::LOSING_FOCUS);
+            setCurrentStateLocked(AlarmsPlayerObserverInterface::AlarmsPlayerState::LOSING_FOCUS);
             break;
         case FocusState::NONE:
             // We do not care of other track focus states yet
@@ -142,8 +147,8 @@ void ResourcesPlayer::onTrackChanged(FocusState newTrace) {
     }
 }
 
-void ResourcesPlayer::onPlaybackStarted(SourceId id) {
-	AISDK_INFO(LX("ResourcesPlayeronPlaybackStarted").d("callbackSourceId：", id));
+void AlarmsPlayer::onPlaybackStarted(SourceId id) {
+	AISDK_INFO(LX("AlarmsPlayeronPlaybackStarted").d("callbackSourceId：", id));
     if (id != m_mediaSourceId) {
 		AISDK_ERROR(LX("queueingExecutePlaybackStartedFailed").d("reason:mismatchSourceId:callbackSourceId:", id));
     
@@ -156,7 +161,7 @@ void ResourcesPlayer::onPlaybackStarted(SourceId id) {
 
 }
 
-void ResourcesPlayer::onPlaybackFinished(SourceId id) {
+void AlarmsPlayer::onPlaybackFinished(SourceId id) {
     AISDK_INFO(LX("onPlaybackFinished").d("callbackSourceId:", id));
 
     if (id != m_mediaSourceId) {
@@ -170,7 +175,7 @@ void ResourcesPlayer::onPlaybackFinished(SourceId id) {
     }
 }
 
-void ResourcesPlayer::onPlaybackError(
+void AlarmsPlayer::onPlaybackError(
 	SourceId id,
 	const utils::mediaPlayer::ErrorType& type,
 	std::string error) {
@@ -179,35 +184,35 @@ void ResourcesPlayer::onPlaybackError(
     m_executor.submit([this, type, error]() { executePlaybackError(type, error); });
 }
 
-void ResourcesPlayer::onPlaybackStopped(SourceId id) {
+void AlarmsPlayer::onPlaybackStopped(SourceId id) {
 	std::cout << "onPlaybackStopped:callbackSourceId: " << id << std::endl;
     onPlaybackFinished(id);
 }
 
-void ResourcesPlayer::addObserver(std::shared_ptr<ResourcesPlayerObserverInterface> observer) {
+void AlarmsPlayer::addObserver(std::shared_ptr<AlarmsPlayerObserverInterface> observer) {
 	std::cout << __func__ << ":addObserver:observer: " << observer.get() << std::endl;
     m_executor.submit([this, observer]() { m_observers.insert(observer); });
 }
 
-void ResourcesPlayer::removeObserver(std::shared_ptr<ResourcesPlayerObserverInterface> observer) {
+void AlarmsPlayer::removeObserver(std::shared_ptr<AlarmsPlayerObserverInterface> observer) {
 	std::cout << __func__ << ":removeObserver:observer: " << observer.get() << std::endl;	
     m_executor.submit([this, observer]() { m_observers.erase(observer); }).wait();
 }
 
-std::string ResourcesPlayer::getHandlerName() const {
+std::string AlarmsPlayer::getHandlerName() const {
 	return m_handlerName;
 }
 
-void ResourcesPlayer::doShutdown() {
+void AlarmsPlayer::doShutdown() {
 	std::cout << "doShutdown" << std::endl;
 	m_speechPlayer->setObserver(nullptr);
 	{
         std::unique_lock<std::mutex> lock(m_mutex);
-        if (ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING == m_currentState ||
-            ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING == m_desiredState) {
-            m_desiredState = ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED;
+        if (AlarmsPlayerObserverInterface::AlarmsPlayerState::PLAYING == m_currentState ||
+            AlarmsPlayerObserverInterface::AlarmsPlayerState::PLAYING == m_desiredState) {
+            m_desiredState = AlarmsPlayerObserverInterface::AlarmsPlayerState::FINISHED;
             stopPlaying();
-            m_currentState = ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED;
+            m_currentState = AlarmsPlayerObserverInterface::AlarmsPlayerState::FINISHED;
             lock.unlock();
             releaseForegroundTrace();
         }
@@ -217,7 +222,7 @@ void ResourcesPlayer::doShutdown() {
         std::lock_guard<std::mutex> lock(m_chatInfoQueueMutex);
         for (auto& info : m_chatInfoQueue) {
             if (info.get()->result) {
-                info.get()->result->setFailed("ResourcesPlayerShuttingDown");
+                info.get()->result->setFailed("AlarmsPlayerShuttingDown");
             }
             removeChatDirectiveInfo(info.get()->directive->getMessageId());
             removeDirective(info.get()->directive->getMessageId());
@@ -232,18 +237,18 @@ void ResourcesPlayer::doShutdown() {
 
 }
 
-ResourcesPlayer::ChatDirectiveInfo::ChatDirectiveInfo(
+AlarmsPlayer::AlarmDirectiveInfo::AlarmDirectiveInfo(
 	std::shared_ptr<nlp::DomainProxy::DirectiveInfo> directiveInfo) :
 	directive{directiveInfo->directive},
 	result{directiveInfo->result},
 	sendCompletedMessage{false} {
 }
 	
-void ResourcesPlayer::ChatDirectiveInfo::clear() {
+void AlarmsPlayer::AlarmDirectiveInfo::clear() {
     sendCompletedMessage = false;
 }
 
-ResourcesPlayer::ResourcesPlayer(
+AlarmsPlayer::AlarmsPlayer(
 	std::shared_ptr<MediaPlayerInterface> mediaPlayer,
 	std::shared_ptr<AudioTrackManagerInterface> trackManager) :
 	DomainProxy{SPEECHNAME},
@@ -252,111 +257,122 @@ ResourcesPlayer::ResourcesPlayer(
 	m_speechPlayer{mediaPlayer},
 	m_trackManager{trackManager},
 	m_mediaSourceId{MediaPlayerInterface::ERROR},
-	m_currentState{ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED},
-	m_desiredState{ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED},
+	m_currentState{AlarmsPlayerObserverInterface::AlarmsPlayerState::FINISHED},
+	m_desiredState{AlarmsPlayerObserverInterface::AlarmsPlayerState::FINISHED},
 	m_currentFocus{FocusState::NONE},
 	m_isAlreadyStopping{false} {
 }
 
-void ResourcesPlayer::init() {
+void AlarmsPlayer::init() {
     m_speechPlayer->setObserver(shared_from_this());
 }
 
 //--------------------add by wx @190402-----------------
 #if 1
-void AnalysisNlpDataForResourcesPlayer(cJSON          * datain , std::deque<std::string> &audiourllist );
+void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::string> &ttsurllist );
 
-void AnalysisNlpDataForResourcesPlayer(cJSON          * datain , std::deque<std::string> &audiourllist )
+void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::string> &ttsurllist )
 {
+     sqlite3 *db=NULL;
+     int len;
+     char *zErrMsg =NULL;
+     char alarmSql[512];
+     long long int timestamp = 0;
+     int evt_type = 0;
+     int action_type = 0;
+     int loop_mask = 0;
+     char content[512];
+     
+
     cJSON* json = NULL,
-     *json_data = NULL,*json_tts_url = NULL, *json_isMultiDialog = NULL, *json_answer = NULL,
-
-     *json_parameters = NULL, *json_artist = NULL, *json_title = NULL,
-     *json_album = NULL,*json_audio_list = NULL, *json_audio_url = NULL;
-
+    *json_data = NULL, *json_tts_url = NULL, *json_isMultiDialog = NULL, *json_answer = NULL
+    ,*json_parameters = NULL, *json_operation = NULL, *json_timestamp = NULL;
+     
      (void )json;
      (void )json_data;
      (void )json_answer;
      (void )json_tts_url;
      (void )json_isMultiDialog;
-
      (void )json_parameters;
-     (void )json_artist;
-     (void )json_title;
-     (void )json_album;
-     (void )json_audio_list;
-     (void )json_audio_url;  
+     (void )json_operation;
+     (void )json_timestamp;
 
-     
-       json_data = datain;
-       if(!json_data)
+      json_data = datain;  
+      if(!json_data)
+      {
+      AISDK_ERROR(LX("json_data").d("json Error before:", cJSON_GetErrorPtr()));
+      }
+      else
+      {
+         json_answer = cJSON_GetObjectItem(json_data, "answer");
+         json_tts_url = cJSON_GetObjectItem(json_data, "tts_url");
+         json_isMultiDialog = cJSON_GetObjectItem(json_data, "isMultiDialog");
+         AISDK_INFO(LX("json_data").d("json_answer", json_answer->valuestring));
+         AISDK_INFO(LX("json_data").d("json_tts_url", json_tts_url->valuestring));
+      
+         //parameters  
+         json_parameters = cJSON_GetObjectItem(json_data, "parameters"); 
+         if(json_parameters != NULL) 
+         {
+          json_operation = cJSON_GetObjectItem(json_parameters, "operation");
+          json_timestamp = cJSON_GetObjectItem(json_parameters, "timestamp");
+          AISDK_INFO(LX("json_parameters").d("json_operation", json_operation->valuestring));
+          AISDK_INFO(LX("json_parameters").d("json_timestamp", json_timestamp->valuestring));
+         }
+          else
+          {
+              AISDK_INFO(LX("parameters is null "));
+          }
+
+      }
+       ttsurllist.push_back(json_tts_url->valuestring);
+
+
+       /* 打开数据库 */
+       len = sqlite3_open("alarm.db",&db);
+       if( len )
        {
-       std::cout << "json Error before: " <<cJSON_GetErrorPtr() << std::endl;
+          //fprintf函数格式化输出错误信息到指定的stderr文件流中  
+          fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+          //sqlite3_errmsg(db)用以获得数据库打开错误码的英文描述。
+          sqlite3_close(db);
+          exit(1);
        }
-       else
-       {
-          json_answer = cJSON_GetObjectItem(json_data, "answer");
-          json_tts_url = cJSON_GetObjectItem(json_data, "tts_url");
-          json_isMultiDialog = cJSON_GetObjectItem(json_data, "isMultiDialog");
-         // std::cout << "json_answer =  " << json_answer->valuestring << std::endl;
-        //  std::cout << "json_tts_url =  " << json_tts_url->valuestring << std::endl;
-        //  std::cout << "json_isMultiDialog = " << json_isMultiDialog->valueint << std::endl;
+       else 
+          AISDK_INFO(LX("You have opened a sqlite3 database named alarm.db successfully created by WX!\n"));
+       
+     /* 创建表 */
+     char const *alarmList = " CREATE TABLE alarm(timestamp, evt_type, action_type, loop_mask, content ); " ;
+     sqlite3_exec(db,alarmList,NULL,NULL,&zErrMsg);
+     sqlite3_free(zErrMsg);
+     timestamp = atoll(json_timestamp->valuestring);    //把字符串转换成长长整型数（64位）long long atoll(const char *nptr);
+     AISDK_INFO(LX("timestamp").d("value:", timestamp));
 
-          audiourllist.push_back(json_tts_url->valuestring);
+     long int timesec = (long int)(timestamp/1000);   //long long int --> long int 
+     printf("%ld \n", timesec);
+     struct tm *p ;
+     p = localtime(&timesec);
+     //AISDK_INFO(LX("SET ALARM").d("set alarm time:", asctime(p)));
+     sprintf(content,"现在是北京时间%d年%d月%d日%d点%d分，您有一个提醒时间到了", 1900+p->tm_year, 1+p->tm_mon, p->tm_mday, p->tm_hour, p->tm_min);
+     AISDK_INFO(LX("Set Alarm Time:").d("content:", content));
+       
+     action_type = 1;
 
-             //parameters  
-             json_parameters = cJSON_GetObjectItem(json_data, "parameters"); 
-            if(json_parameters != NULL) 
-            {
-             json_album = cJSON_GetObjectItem(json_parameters, "album");
-             json_title = cJSON_GetObjectItem(json_parameters, "title");
-            }
-             else
-             {
-             std::cout << "parameters is null"<< std::endl;
-             }
-
-             //audio_list
-             cJSON *js_list = cJSON_GetObjectItem(json_data, "audio_list");
-              if(!js_list){
-                  std::cout << "no audio_list!"<< std::endl;
-              }
-              int array_size = cJSON_GetArraySize(js_list);
-              std::cout << "audio_list size : " <<array_size << std::endl;
-              int i = 0;
-              cJSON *item,*it;
-              char *p  = NULL;
-              for(i=0; i< array_size; i++) {
-                 item = cJSON_GetArrayItem(js_list, i);
-                 if(!item) {
-                    //TODO...
-                 }
-                 p = cJSON_PrintUnformatted(item);
-                 it = cJSON_Parse(p);
-                 if(!it)
-                    continue ;
-             json_title = cJSON_GetObjectItem(it, "title");
-             json_audio_url = cJSON_GetObjectItem(it, "audio_url");
-             // std::cout << "NO: " << i << ":json_title =  "<< json_title->valuestring << std::endl;
-             // std::cout << "NO: " << i << ":json_audio_url =  " << json_audio_url->valuestring << std::endl;
-             audiourllist.push_back(json_audio_url->valuestring);
-              }
-#if 0
-       std::cout <<"get_udio_url_list："<< std::endl;        
-       for(std::size_t i = 0; i< audiourllist.size(); i++)
-       {
-        std::cout << "list_no:" << i << "; get_udio_url=" << audiourllist.at(i) << std::endl;
-       }
-#endif          
-       }
-
-     
+     sprintf(alarmSql, "INSERT INTO 'alarm'VALUES(%lld, %d, %d, %d, '%s');" ,timestamp ,evt_type ,action_type ,loop_mask ,content);
+     //char const *alarm1 = "INSERT INTO 'alarmlist'VALUES(1, 12334455, 1, 0, 0);"; 
+     sqlite3_exec(db,alarmSql,NULL,NULL,&zErrMsg);
+       
+       
 }
 
 #endif
 //--------------------add by wx @190402-----------------
+void testsqlites();
+void AlarmDB(char const *datain);
 
-void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<ChatDirectiveInfo> info) {
+
+
+void AlarmsPlayer::executePreHandleAfterValidation(std::shared_ptr<AlarmDirectiveInfo> info) {
 	/// To-Do parse tts url and insert chatInfo map
     /// add by wx @201904
      auto nlpDomain = info->directive;
@@ -367,43 +383,22 @@ void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<ChatDirect
      (void )json;
      (void )json_data;
      json_data = cJSON_Parse(dateMessage.c_str());
-
-    //get nlp data audio url list to resources player @20190408
-     AnalysisNlpDataForResourcesPlayer(json_data, AUDIO_URL_LIST);
-     info->audioList = AUDIO_URL_LIST;
-     AISDK_INFO(LX("=【20190408】=========AnalysisNlpDataForResourcesPlayer"));
+     AnalysisNlpDataForAlarmsPlayer(json_data, TTS_URL_LIST);
+     info->url = TTS_URL_LIST.at(0);
      
-     for(std::size_t i = 0; i< AUDIO_URL_LIST.size(); i++)
-     {
-      AISDK_INFO(LX("AUDIO_URL_LIST").d("audio_url:",  AUDIO_URL_LIST.at(i)));
-     }
+     AISDK_INFO(LX("alarmplayer").d("当前播放内容:", info->url ));
 
-
-      info->url = AUDIO_URL_LIST.at(0);
-      AUDIO_URL_LIST.pop_front();
-#if 0
-   //  for(std::size_t i = 0; i < AUDIO_URL_LIST.size(); i++)
-      for(std::size_t i = 0; i < 1; i++) 
-      {
-          info->url = AUDIO_URL_LIST.at(i);
-          AISDK_INFO(LX("AUDIO_URL_LIST").d("playing_now_audio_url:",  AUDIO_URL_LIST.at(i)));
-          AUDIO_URL_LIST.pop_back();
-      }
-
-#endif
-      // If everything checks out, add the chatInfo to the map.    
-      std::cout << "=========================i'm here!!!-解析date数据===========================" << std::endl;
-
+     //TEST DEMO
+     //testsqlites();
 
     if (!setChatDirectiveInfo(info->directive->getMessageId(), info)) {
         AISDK_ERROR(LX("executePreHandleFailed").d("reason:prehandleCalledTwiceOnSameDirective:messageId:", info->directive->getMessageId()));
     }
-     //clear reque list data;
-   //  while (!AUDIO_URL_LIST.empty()) AUDIO_URL_LIST.pop_back();
+     while (!TTS_URL_LIST.empty()) TTS_URL_LIST.pop_back();
      cJSON_Delete(json_data);  
 }
 
-void ResourcesPlayer::executeHandleAfterValidation(std::shared_ptr<ChatDirectiveInfo> info) {
+void AlarmsPlayer::executeHandleAfterValidation(std::shared_ptr<AlarmDirectiveInfo> info) {
     m_currentInfo = info;
     AISDK_INFO(LX("executeHandleAfterValidation").d("m_currentInfo-url: ", m_currentInfo->url ));
     if (!m_trackManager->acquireChannel(CHANNEL_NAME, shared_from_this(), SPEECHNAME)) {
@@ -413,7 +408,7 @@ void ResourcesPlayer::executeHandleAfterValidation(std::shared_ptr<ChatDirective
     }
 }
 
-void ResourcesPlayer::executePreHandle(std::shared_ptr<DirectiveInfo> info) {
+void AlarmsPlayer::executePreHandle(std::shared_ptr<DirectiveInfo> info) {
     AISDK_INFO(LX("executePreHandle").d("messageId: ", info->directive->getMessageId() ));
     auto chatInfo = validateInfo("executePreHandle", info);
     if (!chatInfo) {
@@ -423,7 +418,7 @@ void ResourcesPlayer::executePreHandle(std::shared_ptr<DirectiveInfo> info) {
     executePreHandleAfterValidation(chatInfo);
 }
 
-void ResourcesPlayer::executeHandle(std::shared_ptr<DirectiveInfo> info) {
+void AlarmsPlayer::executeHandle(std::shared_ptr<DirectiveInfo> info) {
     AISDK_INFO(LX("executeHandle").d("messageId: ", info->directive->getMessageId() ));
     auto chatInfo = validateInfo("executeHandle", info);
      AISDK_INFO(LX("===========executeHandle").d("chatInfo=========: ", chatInfo->url));
@@ -434,7 +429,7 @@ void ResourcesPlayer::executeHandle(std::shared_ptr<DirectiveInfo> info) {
     addToDirectiveQueue(chatInfo);
 }
 
-void ResourcesPlayer::executeCancel(std::shared_ptr<DirectiveInfo> info) {
+void AlarmsPlayer::executeCancel(std::shared_ptr<DirectiveInfo> info) {
     AISDK_INFO(LX("executeCancel").d("messageId: ", info->directive->getMessageId() ));
     auto chatInfo = validateInfo("executeCancel", info);
     if (!chatInfo) {
@@ -458,10 +453,10 @@ void ResourcesPlayer::executeCancel(std::shared_ptr<DirectiveInfo> info) {
     }
 	
     std::unique_lock<std::mutex> lock(m_mutex);
-    if (ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED != m_desiredState) {
-        m_desiredState = ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED;
-        if (ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING == m_currentState ||
-            ResourcesPlayerObserverInterface::ResourcesPlayerState::GAINING_FOCUS == m_currentState) {
+    if (AlarmsPlayerObserverInterface::AlarmsPlayerState::FINISHED != m_desiredState) {
+        m_desiredState = AlarmsPlayerObserverInterface::AlarmsPlayerState::FINISHED;
+        if (AlarmsPlayerObserverInterface::AlarmsPlayerState::PLAYING == m_currentState ||
+            AlarmsPlayerObserverInterface::AlarmsPlayerState::GAINING_FOCUS == m_currentState) {
             lock.unlock();
             if (m_currentInfo) {
                 m_currentInfo->sendCompletedMessage = false;
@@ -472,8 +467,8 @@ void ResourcesPlayer::executeCancel(std::shared_ptr<DirectiveInfo> info) {
 
 }
 
-void ResourcesPlayer::executeStateChange() {
-    ResourcesPlayerObserverInterface::ResourcesPlayerState newState;
+void AlarmsPlayer::executeStateChange() {
+    AlarmsPlayerObserverInterface::AlarmsPlayerState newState;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         newState = m_desiredState;
@@ -481,25 +476,25 @@ void ResourcesPlayer::executeStateChange() {
 
     AISDK_INFO(LX("executeStateChange").d("newState: ", newState ));
     switch (newState) {
-        case ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING:
+        case AlarmsPlayerObserverInterface::AlarmsPlayerState::PLAYING:
             if (m_currentInfo) {
                 m_currentInfo->sendCompletedMessage = true;
             }
 			// Trigger play
             startPlaying();
             break;
-        case ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED:
+        case AlarmsPlayerObserverInterface::AlarmsPlayerState::FINISHED:
 			// Trigger stop
             stopPlaying();
             break;
-        case ResourcesPlayerObserverInterface::ResourcesPlayerState::GAINING_FOCUS:
-        case ResourcesPlayerObserverInterface::ResourcesPlayerState::LOSING_FOCUS:
+        case AlarmsPlayerObserverInterface::AlarmsPlayerState::GAINING_FOCUS:
+        case AlarmsPlayerObserverInterface::AlarmsPlayerState::LOSING_FOCUS:
             // Nothing to do
             break;
     }
 }
 
-void ResourcesPlayer::executePlaybackStarted() {
+void AlarmsPlayer::executePlaybackStarted() {
 	std::cout << "executePlaybackStarted." << std::endl;
 	
     if (!m_currentInfo) {
@@ -509,16 +504,16 @@ void ResourcesPlayer::executePlaybackStarted() {
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 		/// Set current state @c m_currentState to PLAYING to specify device alreay start to playback.
-        setCurrentStateLocked(ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING);
+        setCurrentStateLocked(AlarmsPlayerObserverInterface::AlarmsPlayerState::PLAYING);
     }
 	
 	/// wakeup condition wait
     m_waitOnStateChange.notify_one();
 }
 
-void ResourcesPlayer::executePlaybackFinished() {
+void AlarmsPlayer::executePlaybackFinished() {
 	std::cout << "executePlaybackFinished." << std::endl;
-    std::shared_ptr<ChatDirectiveInfo> infotest;
+    std::shared_ptr<AlarmDirectiveInfo> infotest;
 
     if (!m_currentInfo) {
         
@@ -527,7 +522,7 @@ void ResourcesPlayer::executePlaybackFinished() {
     }
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        setCurrentStateLocked(ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED);
+        setCurrentStateLocked(AlarmsPlayerObserverInterface::AlarmsPlayerState::FINISHED);
         //todo something 
     }
     m_waitOnStateChange.notify_one();
@@ -548,7 +543,7 @@ void ResourcesPlayer::executePlaybackFinished() {
 	
     resetMediaSourceId();
 
-#if 1
+#if 0
 //-------------------------
   //  while (!AUDIO_URL_LIST.empty()) AUDIO_URL_LIST.pop_back();
      for(std::size_t i = 0; i< AUDIO_URL_LIST.size(); i++)
@@ -558,7 +553,7 @@ void ResourcesPlayer::executePlaybackFinished() {
 
      if(!AUDIO_URL_LIST.empty()){
 
-         //  std::make_shared<ChatDirectiveInfo>(infotest);
+           //std::make_shared<AlarmDirectiveInfo>(infotest);
           // infotest->url = AUDIO_URL_LIST.at(3);
            AISDK_INFO(LX("infotest->url").d("=====infotest->url======:",  AUDIO_URL_LIST.at(3)));
        
@@ -567,14 +562,14 @@ void ResourcesPlayer::executePlaybackFinished() {
 #endif
 }
 
-void ResourcesPlayer::executePlaybackError(const utils::mediaPlayer::ErrorType& type, std::string error) {
+void AlarmsPlayer::executePlaybackError(const utils::mediaPlayer::ErrorType& type, std::string error) {
 	std::cout << "executePlaybackError: type: " << type << " error: " << error << std::endl;
     if (!m_currentInfo) {
         return;
     }
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        setCurrentStateLocked(ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED);
+        setCurrentStateLocked(AlarmsPlayerObserverInterface::AlarmsPlayerState::FINISHED);
     }
     m_waitOnStateChange.notify_one();
     releaseForegroundTrace();
@@ -593,7 +588,7 @@ void ResourcesPlayer::executePlaybackError(const utils::mediaPlayer::ErrorType& 
 
 }
 
-void ResourcesPlayer::startPlaying() {
+void AlarmsPlayer::startPlaying() {
 	std::cout << "startPlaying" << std::endl;
     m_mediaSourceId = m_speechPlayer->setSource(m_currentInfo->url, DEFAULT_OFFSET);
     if (MediaPlayerInterface::ERROR == m_mediaSourceId) {
@@ -608,7 +603,7 @@ void ResourcesPlayer::startPlaying() {
     	std::cout << "=======================here：startplaying=========." << std::endl;  
 }
 
-void ResourcesPlayer::stopPlaying() {
+void AlarmsPlayer::stopPlaying() {
 	std::cout << "stopPlaying" << std::endl;
     if (MediaPlayerInterface::ERROR == m_mediaSourceId) {
         AISDK_ERROR(LX("stopPlayingFailed").d("reason:invalidMediaSourceId:mediaSourceId:", m_mediaSourceId));
@@ -623,8 +618,8 @@ void ResourcesPlayer::stopPlaying() {
      std::cout << "=======================here：stopPlaying=========." << std::endl; 
 }
 
-void ResourcesPlayer::setCurrentStateLocked(
-	ResourcesPlayerObserverInterface::ResourcesPlayerState newState) {
+void AlarmsPlayer::setCurrentStateLocked(
+	AlarmsPlayerObserverInterface::AlarmsPlayerState newState) {
     AISDK_INFO(LX("setCurrentStateLocked").d("state", newState));
     m_currentState = newState;
 
@@ -633,19 +628,19 @@ void ResourcesPlayer::setCurrentStateLocked(
     }
 }
 
-void ResourcesPlayer::setDesiredStateLocked(FocusState newTrace) {
+void AlarmsPlayer::setDesiredStateLocked(FocusState newTrace) {
     switch (newTrace) {
         case FocusState::FOREGROUND:
-            m_desiredState = ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING;
+            m_desiredState = AlarmsPlayerObserverInterface::AlarmsPlayerState::PLAYING;
             break;
         case FocusState::BACKGROUND:
         case FocusState::NONE:
-            m_desiredState = ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED;
+            m_desiredState = AlarmsPlayerObserverInterface::AlarmsPlayerState::FINISHED;
             break;
     }
 }
 
-void ResourcesPlayer::resetCurrentInfo(std::shared_ptr<ChatDirectiveInfo> chatInfo) {
+void AlarmsPlayer::resetCurrentInfo(std::shared_ptr<AlarmDirectiveInfo> chatInfo) {
     if (m_currentInfo != chatInfo) {
         if (m_currentInfo) {
             removeChatDirectiveInfo(m_currentInfo->directive->getMessageId());
@@ -657,15 +652,15 @@ void ResourcesPlayer::resetCurrentInfo(std::shared_ptr<ChatDirectiveInfo> chatIn
     }
 }
 
-void ResourcesPlayer::setHandlingCompleted() {
+void AlarmsPlayer::setHandlingCompleted() {
 	std::cout << "setHandlingCompleted" << std::endl;
     if (m_currentInfo && m_currentInfo->result) {
         m_currentInfo->result->setCompleted();
     }
 }
 
-void ResourcesPlayer::reportExceptionFailed(
-	std::shared_ptr<ChatDirectiveInfo> info,
+void AlarmsPlayer::reportExceptionFailed(
+	std::shared_ptr<AlarmDirectiveInfo> info,
 	const std::string& message) {
     if (info && info->result) {
         info->result->setFailed(message);
@@ -673,14 +668,14 @@ void ResourcesPlayer::reportExceptionFailed(
     info->clear();
     removeDirective(info->directive->getMessageId());
     std::unique_lock<std::mutex> lock(m_mutex);
-    if (ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING == m_currentState ||
-        ResourcesPlayerObserverInterface::ResourcesPlayerState::GAINING_FOCUS == m_currentState) {
+    if (AlarmsPlayerObserverInterface::AlarmsPlayerState::PLAYING == m_currentState ||
+        AlarmsPlayerObserverInterface::AlarmsPlayerState::GAINING_FOCUS == m_currentState) {
         lock.unlock();
         stopPlaying();
     }
 }
 
-void ResourcesPlayer::releaseForegroundTrace() {
+void AlarmsPlayer::releaseForegroundTrace() {
 	std::cout << "releaseForegroundTrace" << std::endl;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -689,11 +684,11 @@ void ResourcesPlayer::releaseForegroundTrace() {
     m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this());
 }
 
-void ResourcesPlayer::resetMediaSourceId() {
+void AlarmsPlayer::resetMediaSourceId() {
     m_mediaSourceId = MediaPlayerInterface::ERROR;
 }
 
-std::shared_ptr<ResourcesPlayer::ChatDirectiveInfo> ResourcesPlayer::validateInfo(
+std::shared_ptr<AlarmsPlayer::AlarmDirectiveInfo> AlarmsPlayer::validateInfo(
 	const std::string& caller,
 	std::shared_ptr<DirectiveInfo> info,
 	bool checkResult) {
@@ -715,13 +710,13 @@ std::shared_ptr<ResourcesPlayer::ChatDirectiveInfo> ResourcesPlayer::validateInf
         return chatDirInfo;
     }
 
-    chatDirInfo = std::make_shared<ChatDirectiveInfo>(info);
+    chatDirInfo = std::make_shared<AlarmDirectiveInfo>(info);
 
     return chatDirInfo;
 
 }
 
-std::shared_ptr<ResourcesPlayer::ChatDirectiveInfo> ResourcesPlayer::getChatDirectiveInfo(const std::string& messageId) {
+std::shared_ptr<AlarmsPlayer::AlarmDirectiveInfo> AlarmsPlayer::getChatDirectiveInfo(const std::string& messageId) {
     std::lock_guard<std::mutex> lock(m_chatDirectiveInfoMutex);
     auto it = m_chatDirectiveInfoMap.find(messageId);
     if (it != m_chatDirectiveInfoMap.end()) {
@@ -730,9 +725,9 @@ std::shared_ptr<ResourcesPlayer::ChatDirectiveInfo> ResourcesPlayer::getChatDire
     return nullptr;
 }
 
-bool ResourcesPlayer::setChatDirectiveInfo(
+bool AlarmsPlayer::setChatDirectiveInfo(
 	const std::string& messageId,
-	std::shared_ptr<ResourcesPlayer::ChatDirectiveInfo> info) {
+	std::shared_ptr<AlarmsPlayer::AlarmDirectiveInfo> info) {
 	std::lock_guard<std::mutex> lock(m_chatDirectiveInfoMutex);
     auto it = m_chatDirectiveInfoMap.find(messageId);
     if (it != m_chatDirectiveInfoMap.end()) {
@@ -742,7 +737,7 @@ bool ResourcesPlayer::setChatDirectiveInfo(
     return true;
 }
 
-void ResourcesPlayer::addToDirectiveQueue(std::shared_ptr<ChatDirectiveInfo> info) {
+void AlarmsPlayer::addToDirectiveQueue(std::shared_ptr<AlarmDirectiveInfo> info) {
     std::lock_guard<std::mutex> lock(m_chatInfoQueueMutex);
      AISDK_INFO(LX("========================iamamama-"));
 
@@ -755,30 +750,117 @@ void ResourcesPlayer::addToDirectiveQueue(std::shared_ptr<ChatDirectiveInfo> inf
     }
 }
 
-void ResourcesPlayer::removeChatDirectiveInfo(const std::string& messageId) {
+void AlarmsPlayer::removeChatDirectiveInfo(const std::string& messageId) {
     std::lock_guard<std::mutex> lock(m_chatDirectiveInfoMutex);
     m_chatDirectiveInfoMap.erase(messageId);
 }
 
-void ResourcesPlayer::onDialogUXStateChanged(
+void AlarmsPlayer::onDialogUXStateChanged(
 	utils::dialogRelay::DialogUXStateObserverInterface::DialogUXState newState) {
 	std::cout << "onDialogUXStateChanged" << std::endl;
 	m_executor.submit([this, newState]() { executeOnDialogUXStateChanged(newState); });
 }
 
-void ResourcesPlayer::executeOnDialogUXStateChanged(
+void AlarmsPlayer::executeOnDialogUXStateChanged(
     utils::dialogRelay::DialogUXStateObserverInterface::DialogUXState newState) {
 	std::cout << "executeOnDialogUXStateChanged" << std::endl;
     if (newState != utils::dialogRelay::DialogUXStateObserverInterface::DialogUXState::IDLE) {
         return;
     }
     if (m_currentFocus != FocusState::NONE &&
-        m_currentState != ResourcesPlayerObserverInterface::ResourcesPlayerState::GAINING_FOCUS) {
+        m_currentState != AlarmsPlayerObserverInterface::AlarmsPlayerState::GAINING_FOCUS) {
         m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this());
         m_currentFocus = FocusState::NONE;
     }
 }
 
+
+
+#if 0
+
+void testsqlites()
+{
+     sqlite3 *db=NULL;
+     int len;
+
+     char *zErrMsg =NULL;
+   //  char **azResult=NULL; //二维数组存放结果
+     /* 打开数据库 */
+     len = sqlite3_open("alarm.db",&db);  //create test db named user.db 
+     if( len )
+     {
+        /*  fprintf函数格式化输出错误信息到指定的stderr文件流中  */
+        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+            //sqlite3_errmsg(db)用以获得数据库打开错误码的英文描述。
+        sqlite3_close(db);
+        exit(1);
+     }
+     else printf("You have opened a sqlite3 database named user.db successfully created by WX!\n");
+ 
+     /* 创建表 */
+     
+      char const *sql = " CREATE TABLE alarmlist(num, time, repeat, enable, execute ); " ;
+      //char *sql = (char*)" CREATE TABLE TestData(num,time,repeat,enable,execute); " ;
+      sqlite3_exec(db,sql,NULL,NULL,&zErrMsg);
+      sqlite3_free(zErrMsg);
+      char alarm1[100];
+      int a = 1;
+      char b[100] = "aaaaaa";
+      sprintf(alarm1, "INSERT INTO 'alarmlist'VALUES(%d, '%s', 1, 0, 0);" ,a ,b);
+      //char const *alarm1 = "INSERT INTO 'alarmlist'VALUES(1, 12334455, 1, 0, 0);"; 
+      sqlite3_exec(db,alarm1,NULL,NULL,&zErrMsg);
+      char const *alarm2 = "INSERT INTO 'alarmlist'VALUES(2, 55567767, 1, 0, 1);"; 
+      sqlite3_exec(db,alarm2,NULL,NULL,&zErrMsg);
+      char const *alarm3 = "INSERT INTO 'alarmlist'VALUES(3, 89898989, 1, 1, 1);"; 
+      sqlite3_exec(db,alarm3,NULL,NULL,&zErrMsg);
+
+
+
+#if 0
+
+      /*插入数据  */
+      char *sql1 ="INSERT INTO 'TestData'VALUES(0,11,22,33,44);";
+      sqlite3_exec(db,sql1,NULL,NULL,&zErrMsg);
+      char*sql2 ="INSERT INTO 'TestData'VALUES(1,111,222,333,444);";
+      sqlite3_exec(db,sql2,NULL,NULL,&zErrMsg);
+      char*sql3 ="INSERT INTO 'TestData'VALUES(2,1111,2222,3333,4444);";
+      sqlite3_exec(db,sql3,NULL,NULL,&zErrMsg);
+ 
+      /* 查询数据 */
+      sql="select *from TestData";
+      sqlite3_get_table( db , sql , &azResult , &nrow , &ncolumn , &zErrMsg );
+      printf("nrow=%d ncolumn=%d\n",nrow,ncolumn);
+      printf("the result is:\n");
+      for(i=0;i<(nrow+1)*ncolumn;i++)
+        {
+          printf("=======here!!!======azResult[%d]=%s\n",i,azResult[i]);
+        }
+ 
+     /* 删除某个特定的数据 */
+      sql="delete from TestData where ID = 1;";
+      sqlite3_exec( db , sql , NULL , NULL , &zErrMsg );
+      printf("zErrMsg = %s \n", zErrMsg);
+      sqlite3_free(zErrMsg);
+ 
+      /* 查询删除后的数据 */
+      sql = "SELECT * FROM TestData ";
+      sqlite3_get_table( db , sql , &azResult , &nrow , &ncolumn , &zErrMsg );
+      printf( "row:%d column=%d\n " , nrow , ncolumn );
+      printf( "After deleting , the result is : \n" );
+      for( i=0 ; i<( nrow + 1 ) * ncolumn ; i++ )
+      {
+            printf( "azResult[%d] = %s\n", i , azResult[i] );
+      }
+      sqlite3_free_table(azResult);
+   printf("zErrMsg = %s \n", zErrMsg);
+   sqlite3_free(zErrMsg);
+#endif 
+      sqlite3_close(db);
+   //   return 0;
+
+}
+
+#endif
 
 #if 0
 

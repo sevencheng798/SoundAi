@@ -10,33 +10,33 @@
  * permissions and limitations under the License.
  */
 
-#ifndef __RESOURCESPLAYER_OBSERVER_INTERFACE_H_
-#define __RESOURCESPLAYER_OBSERVER_INTERFACE_H_
+#ifndef __ALARMSPLAYER_OBSERVER_INTERFACE_H_
+#define __ALARMSPLAYER_OBSERVER_INTERFACE_H_
 #include <iostream>
 
 namespace aisdk {
 namespace dmInterface {
 
 /**
- * Interface for observing a ResourcesPlayer.
+ * Interface for observing a AlarmsPlayer.
  */
-class ResourcesPlayerObserverInterface {
+class AlarmsPlayerObserverInterface {
 public:
     /**
-     * This is an enum class used to indicate the state of the @c ResourcesPlayer.
+     * This is an enum class used to indicate the state of the @c AlarmsPlayer.
      */
-    enum class ResourcesPlayerState {
-        /// In this state, the @c ResourcesPlayer is playing back the speech.
+    enum class AlarmsPlayerState {
+        /// In this state, the @c AlarmsPlayer is playing back the speech.
         PLAYING,
 
-        /// In this state, the @c ResourcesPlayer is idle and not playing speech.
+        /// In this state, the @c AlarmsPlayer is idle and not playing speech.
         FINISHED,
 
-        /// In this state, the @c ResourcesPlayer is gaining the channel trace while still not playing anything
+        /// In this state, the @c AlarmsPlayer is gaining the channel trace while still not playing anything
         GAINING_FOCUS,
        // IDLE,
 
-        /// In this state, the @c ResourcesPlayer is losing the channel trace but not yet considered @c FINISHED
+        /// In this state, the @c AlarmsPlayer is losing the channel trace but not yet considered @c FINISHED
         LOSING_FOCUS
         //PAUSE
     };
@@ -44,13 +44,13 @@ public:
     /**
      * Destructor.
      */
-    virtual ~ResourcesPlayerObserverInterface() = default;
+    virtual ~AlarmsPlayerObserverInterface() = default;
 
     /**
      * Notification that the @c ResourcesPlayer state has changed. Callback functions must return as soon as possible.
      * @param state The new state of the @c ResourcesPlayer.
      */
-    virtual void onStateChanged(ResourcesPlayerState state) = 0;
+    virtual void onStateChanged(AlarmsPlayerState state) = 0;
 	
 };
 
@@ -63,18 +63,18 @@ public:
  */
 inline std::ostream& operator<<(
     std::ostream& stream,
-    const ResourcesPlayerObserverInterface::ResourcesPlayerState state) {
+    const AlarmsPlayerObserverInterface::AlarmsPlayerState state) {
     switch (state) {
-        case ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING:
+        case AlarmsPlayerObserverInterface::AlarmsPlayerState::PLAYING:
             stream << "PLAYING";
             break;
-        case ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED:
+        case AlarmsPlayerObserverInterface::AlarmsPlayerState::FINISHED:
             stream << "FINISHED";
             break;
-        case ResourcesPlayerObserverInterface::ResourcesPlayerState::GAINING_FOCUS:
+        case AlarmsPlayerObserverInterface::AlarmsPlayerState::GAINING_FOCUS:
             stream << "GAINING_FOCUS";
             break;
-        case ResourcesPlayerObserverInterface::ResourcesPlayerState::LOSING_FOCUS:
+        case AlarmsPlayerObserverInterface::AlarmsPlayerState::LOSING_FOCUS:
             stream << "LOSING_FOCUS";
             break;
     }
@@ -84,4 +84,4 @@ inline std::ostream& operator<<(
 }	//namespace dmInterface
 }	//namespace aisdk
 
-#endif 	//__RESOURCESPLAYER_OBSERVER_INTERFACE_H_
+#endif 	//__ALARMSPLAYER_OBSERVER_INTERFACE_H_

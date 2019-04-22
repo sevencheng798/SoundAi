@@ -28,6 +28,7 @@
 #include "SpeechSynthesizer/SpeechSynthesizer.h"
 #include "ResourcesPlayer/ResourcesPlayer.h"
 
+#include "AlarmsPlayer/AlarmsPlayer.h"
 
 namespace aisdk {
 namespace application {
@@ -106,6 +107,7 @@ private:
 	std::shared_ptr<domain::resourcesPlayer::ResourcesPlayer> m_resourcesPlayer;
 
     /// To-Do wx
+    std::shared_ptr<domain::alarmsPlayer::AlarmsPlayer> m_alarmsPlayer;
 	/// ...
 	/// ...
 };

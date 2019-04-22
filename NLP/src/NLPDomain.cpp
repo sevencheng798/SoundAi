@@ -148,8 +148,8 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
        if(strcmp(json_domain->valuestring, "alarm")== 0 
            ||strcmp(json_domain->valuestring, "schedule")== 0)
        {
-       nlpdata->NlpData_domain = "AlarmAndSchedule";
-       AISDK_INFO(LX("domain").d("domain", "AlarmAndSchedule"));
+       nlpdata->NlpData_domain = "AlarmsPlayer";
+       AISDK_INFO(LX("domain").d("domain", "AlarmsPlayer"));
        }
 
     //volume,playcontrol
@@ -167,7 +167,7 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
        AISDK_INFO(LX("domain").d("domain", "CustomizationManger"));
        }
 
-    std::cout << "=========================i'm here!!!-领域分类nlp domain:"<<nlpdata->NlpData_domain<< std::endl;
+       AISDK_INFO(LX("i'm here!!!-领域分类nlp domain:").d("domain:", nlpdata->NlpData_domain));
   // cJSON_Delete(json);  //释放内存
 }
 

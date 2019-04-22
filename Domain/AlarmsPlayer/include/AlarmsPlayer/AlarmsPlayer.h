@@ -10,8 +10,8 @@
  * permissions and limitations under the License.
  */
 
-#ifndef __RESOURCES_PLAYER_H_
-#define __RESOURCES_PLAYER_H_
+#ifndef __ALARMS_PLAYER_H_
+#define __ALARMS_PLAYER_H_
 
 #include <memory>
 #include <mutex>
@@ -26,24 +26,24 @@
 #include <Utils/MediaPlayer/MediaPlayerInterface.h>
 #include <Utils/MediaPlayer/MediaPlayerObserverInterface.h>
 #include <Utils/SafeShutdown.h>
-#include <DMInterface/ResourcesPlayerObserverInterface.h>
+#include <DMInterface/AlarmsPlayerObserverInterface.h>
 #include <NLP/DomainProxy.h>
 
 namespace aisdk {
 namespace domain {
-namespace resourcesPlayer {
+namespace alarmsPlayer {
 
 /*
  * This class implements the ResourcesPlayer for real-time conversation domains.
  * The domain include (music/story/fm/so on)
  */
  //public nlp::DomainProxy,
-class ResourcesPlayer
+class AlarmsPlayer
 		: public nlp::DomainProxy
 		, public utils::SafeShutdown
 		, public utils::mediaPlayer::MediaPlayerObserverInterface
 		, public utils::dialogRelay::DialogUXStateObserverInterface		
-		, public std::enable_shared_from_this<ResourcesPlayer> {
+		, public std::enable_shared_from_this<AlarmsPlayer> {
 public:
 	
     /**
@@ -55,7 +55,7 @@ public:
      *
      * @return Returns a new @c ResourcesPlayer, or @c nullptr if the operation failed.
      */
-    static std::shared_ptr<ResourcesPlayer> create(
+    static std::shared_ptr<AlarmsPlayer> create(
         std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> mediaPlayer,
         std::shared_ptr<utils::channel::AudioTrackManagerInterface> trackManager,
         std::shared_ptr<utils::dialogRelay::DialogUXStateRelay> dialogUXStateRelay);
@@ -99,11 +99,11 @@ public:
 	 * 
 	 * @param observer The observer to add.
 	 */
-	void addObserver(std::shared_ptr<dmInterface::ResourcesPlayerObserverInterface> observer);
+	void addObserver(std::shared_ptr<dmInterface::AlarmsPlayerObserverInterface> observer);
 
 	/// Remove an observer from the ResourcesPlayer.
 	/// @param observer The ovserver to remove.
-	void removeObserver(std::shared_ptr<dmInterface::ResourcesPlayerObserverInterface> observer);
+	void removeObserver(std::shared_ptr<dmInterface::AlarmsPlayerObserverInterface> observer);
 
 	/// Get the name of the execution DomainHandler. 
 	std::string getHandlerName() const override;
@@ -120,7 +120,7 @@ private:
     /**
      * This class has all the data that is needed to process @c Chat(url_tts) directives.
      */
-    class ChatDirectiveInfo {
+    class AlarmDirectiveInfo {
     public:
 		
         /**
@@ -128,7 +128,7 @@ private:
          *
          * @param directiveInfo The @c DirectiveInfo.
          */
-		ChatDirectiveInfo(std::shared_ptr<DirectiveInfo> directiveInfo);
+		AlarmDirectiveInfo(std::shared_ptr<DirectiveInfo> directiveInfo);
 
 		/// Release Chat specific resources.
         void clear();
@@ -154,7 +154,7 @@ private:
 	 * @param mediaPlayer The instance of the @c MediaPlayerInterface used to play audio.
 	 * @param trackManager The instance of the @c FocusManagerInterface used to acquire focus of a channel.
 	 */
-	ResourcesPlayer(
+	AlarmsPlayer(
 		std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> mediaPlayer,
 		std::shared_ptr<utils::channel::AudioTrackManagerInterface> trackManager);
 
@@ -169,7 +169,7 @@ private:
      *
      * @param info The directive to pre-handle and the associated data.
      */
-    void executePreHandleAfterValidation(std::shared_ptr<ChatDirectiveInfo> info);
+    void executePreHandleAfterValidation(std::shared_ptr<AlarmDirectiveInfo> info);
 
     /**
      * Handle a ResourcesPlayer.Chat directive (on the @c m_executor threadpool).  This starts a request for
@@ -177,7 +177,7 @@ private:
      *
      * @param info The directive to handle and the associated data.
      */
-    void executeHandleAfterValidation(std::shared_ptr<ChatDirectiveInfo> info);
+    void executeHandleAfterValidation(std::shared_ptr<AlarmDirectiveInfo> info);
 
     /**
      * Pre-handle a ResourcesPlayer.Chat directive (on the @c m_executor thread). This starts a request parse.
@@ -242,7 +242,7 @@ private:
      * @param newState The new state of the @c ResourcesPlayer.
      */
     void setCurrentStateLocked(
-    	dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState newState);
+    	dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState newState);
 		
     /**
      * Set the desired state the @c ResourcesPlayer needs to transition to based on the @c newTrace.
@@ -258,7 +258,7 @@ private:
      *
      * @param info The @c DirectiveInfo instance to make current (defaults to @c nullptr).
      */
-	void resetCurrentInfo(std::shared_ptr<ChatDirectiveInfo> info = nullptr);
+	void resetCurrentInfo(std::shared_ptr<AlarmDirectiveInfo> info = nullptr);
 
     /**
      * Send the handling completed notification to @c domainRouter and clean up the resources of @c m_currentInfo.
@@ -272,7 +272,7 @@ private:
      * @param message The error message to include in the ExceptionEncountered message.
      */
 	void reportExceptionFailed(
-		std::shared_ptr<ChatDirectiveInfo> info,
+		std::shared_ptr<AlarmDirectiveInfo> info,
         const std::string& message);
 
     /**
@@ -287,25 +287,25 @@ private:
     void resetMediaSourceId();
 
     /**
-     * Verify a pointer to a well formed @c ChatDirectiveInfo.
+     * Verify a pointer to a well formed @c AlarmDirectiveInfo.
      *
      * @param caller Name of the method making the call, for logging.
      * @param info The @c DirectiveInfo to test.
      * @param checkResult Check if the @c DomainHandlerResultInterface is not a @c nullptr in the @c DirectiveInfo.
-     * @return A @c ChatDirectiveInfo if it is well formed, otherwise @c nullptr.
+     * @return A @c AlarmDirectiveInfo if it is well formed, otherwise @c nullptr.
      */
-    std::shared_ptr<ChatDirectiveInfo> validateInfo(
+    std::shared_ptr<AlarmDirectiveInfo> validateInfo(
         const std::string& caller,
         std::shared_ptr<DirectiveInfo> info,
         bool checkResult = true);
 
     /**
-     * Find the @c ChatDirectiveInfo instance (if any) for the specified @c messageId.
+     * Find the @c AlarmDirectiveInfo instance (if any) for the specified @c messageId.
      *
-     * @param messageId The messageId value to find @c ChatDirectiveInfo instance.
-     * @return The @c ChatDirectiveInfo instance for @c messageId.
+     * @param messageId The messageId value to find @c AlarmDirectiveInfo instance.
+     * @return The @c AlarmDirectiveInfo instance for @c messageId.
      */
-    std::shared_ptr<ChatDirectiveInfo> getChatDirectiveInfo(const std::string& messageId);
+    std::shared_ptr<AlarmDirectiveInfo> getChatDirectiveInfo(const std::string& messageId);
 
     /**
      * Checks if the @c messageId is already present in the map. If its not present, adds an entry to the map.
@@ -317,17 +317,17 @@ private:
      */
     bool setChatDirectiveInfo(
         const std::string& messageId,
-        std::shared_ptr<ResourcesPlayer::ChatDirectiveInfo> info);
+        std::shared_ptr<AlarmsPlayer::AlarmDirectiveInfo> info);
 
     /**
      * Adds the @c ChatDirectiveInfo to the @c m_chatInfoQueue.
      *
      * @param info The @c ChatDirectiveInfo to add to the @c m_chatInfoQueue.
      */
-    void addToDirectiveQueue(std::shared_ptr<ChatDirectiveInfo> info);
+    void addToDirectiveQueue(std::shared_ptr<AlarmDirectiveInfo> info);
 
     /**
-     * Removes the @c ChatDirectiveInfo corresponding to the @c messageId from the @c m_chatDirectiveInfoMap.
+     * Removes the @c AlarmDirectiveInfo corresponding to the @c messageId from the @c m_chatDirectiveInfoMap.
      *
      * @param messageId The @c messageId to remove.
      */
@@ -354,25 +354,25 @@ private:
     utils::mediaPlayer::MediaPlayerInterface::SourceId m_mediaSourceId;
 	
     /// The set of @c SpeechSynthesizerObserverInterface instances to notify of state changes.
-    std::unordered_set<std::shared_ptr<dmInterface::ResourcesPlayerObserverInterface>> m_observers;
+    std::unordered_set<std::shared_ptr<dmInterface::AlarmsPlayerObserverInterface>> m_observers;
 
     /**
      * The current state of the @c SpeechSynthesizer. @c m_mutex must be acquired before reading or writing the
      * @c m_currentState.
      */
-    dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState m_currentState;
+    dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState m_currentState;
 
     /**
      * The state the @c SpeechSynthesizer must transition to. @c m_mutex must be acquired before reading or writing
      * the @c m_desiredState.
      */
-    dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState m_desiredState;
+    dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState m_desiredState;
 
     /// The current trace acquired by the @c SpeechSynthesizer.
     utils::channel::FocusState m_currentFocus;
 
-	/// @c ChatDirectiveInfo instance for the @c AVSDirective currently being handled.
-	std::shared_ptr<ChatDirectiveInfo> m_currentInfo;
+	/// @c AlarmDirectiveInfo instance for the @c AVSDirective currently being handled.
+	std::shared_ptr<AlarmDirectiveInfo> m_currentInfo;
 
 	/// Mutex to serialize access to m_currentState, m_desiredState, and m_waitOnStateChange.
 	std::mutex m_mutex;
@@ -383,17 +383,17 @@ private:
 	/// Condition variable to wake @c onFocusChanged() once the state transition to desired state is complete.
 	std::condition_variable m_waitOnStateChange;
 	
-    /// Map of message Id to @c ChatDirectiveInfo.
-    std::unordered_map<std::string, std::shared_ptr<ChatDirectiveInfo>> m_chatDirectiveInfoMap;
+    /// Map of message Id to @c AlarmDirectiveInfo.
+    std::unordered_map<std::string, std::shared_ptr<AlarmDirectiveInfo>> m_chatDirectiveInfoMap;
 
     /**
-     * Mutex to protect @c messageId to @c ChatDirectiveInfo mapping. This mutex must be acquired before accessing
+     * Mutex to protect @c messageId to @c AlarmDirectiveInfo mapping. This mutex must be acquired before accessing
      * or modifying the m_chatDirectiveInfoMap
      */
     std::mutex m_chatDirectiveInfoMutex;
 
     /// Queue which holds the directives to be processed.
-    std::deque<std::shared_ptr<ChatDirectiveInfo>> m_chatInfoQueue;
+    std::deque<std::shared_ptr<AlarmDirectiveInfo>> m_chatInfoQueue;
 
     /// Serializes access to @c m_chatInfoQueue
     std::mutex m_chatInfoQueueMutex;
@@ -403,7 +403,7 @@ private:
 
 };
 
-}	// namespace resourcesPlayer
+}	// namespace 
 } 	//namespace domain
 }	//namespace aisdk
 
