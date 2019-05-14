@@ -413,7 +413,6 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
      sqlite3_free(zErrMsg);
 
 
-     //get operation type:SET
      AISDK_INFO(LX("json_parameters").d("json_operation", json_operation->valuestring));
      //operation type:SET 
      if( strcmp(json_operation->valuestring, ALARM_SET_OPERATION) == 0)
@@ -464,7 +463,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
      if(strcmp(json_operation->valuestring, ALARM_UPDATE_OPERATION) == 0)
      {
         AISDK_INFO(LX("AnalysisNlpDataForAlarmsPlayer").d("OPERATION:","UPDATE"));   
-          //add operation
+        //add operation
         //...
         //...
      }

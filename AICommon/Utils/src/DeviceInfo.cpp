@@ -36,19 +36,12 @@ std::unique_ptr<DeviceInfo> DeviceInfo::create(std::string &configFile){
 	 * To-Do Sven
 	 * To implement how to generate the dialog of ID and the deviceSerialNumber
 	 */
-	// ...
-	// ...
-	// ...
-	// The follow is a temporary definition. 
     memset(device_id, 0, sizeof(device_id));
-
     getcpuinfo(device_id);
-
-    dialogId = device_id;
-
+    deviceSerialNumber = device_id;
+	std::cout << "SYS Initation:Get Device Unique Serial Number :" << deviceSerialNumber << std::endl;
     
-//	dialogId = "123456789";
-	deviceSerialNumber = "Sven-test";
+	//dialogId = "123456789";
 	
 	std::unique_ptr<DeviceInfo> instance(new DeviceInfo(dialogId, deviceSerialNumber));
 
