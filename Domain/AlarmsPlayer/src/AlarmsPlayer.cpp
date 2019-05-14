@@ -273,46 +273,79 @@ void AlarmsPlayer::sqliteThreadHander()
     int ncolumn;
     char *zErrMsg =NULL;
     char **azResult=NULL;
-    char  orderBy[1024];    
+    char deleteAlarmTime[512];
+
     while(1){
-        //open the sqlite3 db. 
         len = sqlite3_open("alarm.db",&db);
         if( len )
         {
-            //fprintf函数格式化输出错误信息到指定的stderr文件流中  
             fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
             sqlite3_close(db);
             exit(1);
         }
-        else 
-            AISDK_INFO(LX("You have opened a sqlite3 database named alarm.db successfully"));
-
-  
-        //pai xu
-       //  select * from alarm order by timestamp asc;
-         sprintf(orderBy, "select * from alarm order by timestamp asc;");
-       // char const *orderBy = "select * from alarm order by timestamp asc;" ;
-        sqlite3_exec(db, orderBy, NULL, NULL, &zErrMsg);
-
-        
+/*
+        char const *orderBy = "select * from alarm order by timestamp asc;" ;
+        sqlite3_get_table( db , orderBy , &azResult , &nrow , &ncolumn , &zErrMsg );
+ */
         char const *sql= "select *from alarm";
-          sqlite3_get_table( db , sql , &azResult , &nrow , &ncolumn , &zErrMsg );
-          printf("nrow=%d ncolumn=%d\n",nrow,ncolumn);
-          printf("the result is:\n");
+        sqlite3_get_table( db , sql , &azResult , &nrow , &ncolumn , &zErrMsg );
+        AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander::nrow", nrow).d(" ncolumn", ncolumn));
 
+        if((nrow >= 1) && (ncolumn != 0))
+        {
+        char const *minsql = "select min(timestamp) from alarm;";
+        sqlite3_get_table( db , minsql , &azResult , &nrow , &ncolumn , &zErrMsg );
         
-        for(int i=5;i<(nrow+1)*ncolumn;i++)
-         {
-           printf("=======here!!!======azResult[%d]=%s\n",i,azResult[i]);
-         }
+        for(int i=0;i<(nrow+1)*ncolumn;i++)
+            {
+             // printf("AlarmsPlayer:azResult[%d]=%s\n",i,azResult[i]);
+              AISDK_INFO(LX("Alarms time").d("i", i).d("azResult[i]", azResult[i]));
+            }         
+           std::cout << "AlarmsPlayer:: min(timestamp) from alarm " << azResult[nrow*ncolumn] << std::endl;
+           //first alarm time
+           long int alarmtimesec = (long int)(atoll(azResult[nrow*ncolumn])/1000);   //long long int --> long int;
+           struct tm *alarmp;
+           alarmp = localtime(&alarmtimesec);
+           printf("AlarmsPlayer:sqliteThreadHander::first alarm time:%d-%d-%d %d:%d:%d\n", 1900+alarmp->tm_year, 1+alarmp->tm_mon, alarmp->tm_mday, alarmp->tm_hour, alarmp->tm_min, alarmp->tm_sec);
+           AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander::first alarm time", alarmtimesec));
 
+           //current time
+           time_t timesec;
+           struct tm *p;
+           time(&timesec);
+           p = localtime(&timesec);         
+           printf("AlarmsPlayer:sqliteThreadHander::current system time:%d-%d-%d %d:%d:%d\n", 1900+p->tm_year, 1+p->tm_mon, p->tm_mday, p->tm_hour, p->tm_min, p->tm_sec);
+           AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander::current system time", timesec));           
+          
+           
+        if((timesec/60) == (alarmtimesec/60))  
+        {
+           for(int i = 0; i < 3; i++) 
+            {
+            AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
+            //test
+            //to do something 
+            system("cvlc /cfg/sai_config/alarm.mp3 --play-and-exit");
+            }
+          sprintf(deleteAlarmTime, "delete from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
+          sqlite3_exec( db , deleteAlarmTime , NULL , NULL , &zErrMsg );
+          sqlite3_free(zErrMsg);
+        }
+        else if((timesec/60) > (alarmtimesec/60))
+        { 
+          sprintf(deleteAlarmTime, "delete from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
+          sqlite3_exec( db , deleteAlarmTime , NULL , NULL , &zErrMsg );
+          sqlite3_free(zErrMsg);
+        }
+        else 
+        {
+          AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "waiting for alarm time!"));
+        }
+
+        }
         sqlite3_close(db);
-        sleep(200);
-        AISDK_INFO(LX("-----i'm here!! test for sqlite3 db -------"));
-
+        sleep(10);
     }
-   
-    
 }
 
 
@@ -337,11 +370,11 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
      sqlite3 *db=NULL;
      int len;
      char *zErrMsg =NULL;
-     char alarmSql[512];
-     char deleteSql[512];
+     char alarmSql[1024];
+     char deleteSql[1024];
     // char flushSql[512];
      long long int timestamp = 0;
-     int evt_type = 0;
+     char evt_type[64];
      int action_type = 0;
      int loop_mask = 0;
      char content[512];
@@ -349,7 +382,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
 
     cJSON* json = NULL,
     *json_data = NULL, *json_tts_url = NULL, *json_isMultiDialog = NULL, *json_answer = NULL
-    ,*json_parameters = NULL, *json_operation = NULL, *json_timestamp = NULL;
+    ,*json_parameters = NULL, *json_event = NULL,*json_operation = NULL, *json_timestamp = NULL;
      
      (void )json;
      (void )json_data;
@@ -357,8 +390,11 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
      (void )json_tts_url;
      (void )json_isMultiDialog;
      (void )json_parameters;
+     (void )json_event;
      (void )json_operation;
      (void )json_timestamp;
+
+   
 
       json_data = datain;  
       if(!json_data)
@@ -376,14 +412,99 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
          //parameters  
          json_parameters = cJSON_GetObjectItem(json_data, "parameters"); 
          if(json_parameters != NULL) 
-         {
+         { 
           json_operation = cJSON_GetObjectItem(json_parameters, "operation");
           AISDK_INFO(LX("json_parameters").d("json_operation", json_operation->valuestring));
+
           if(strcmp(json_operation->valuestring, ALARM_FLUSH_OPERATION) != 0)
             {
             json_timestamp = cJSON_GetObjectItem(json_parameters, "timestamp");
             AISDK_INFO(LX("json_parameters").d("json_timestamp", json_timestamp->valuestring));
-            }          
+            }  
+          
+            /* 打开数据库 */
+            len = sqlite3_open("alarm.db",&db);
+            if( len )
+            {
+               //fprintf函数格式化输出错误信息到指定的stderr文件流中  
+               fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+               //sqlite3_errmsg(db)用以获得数据库打开错误码的英文描述。
+               sqlite3_close(db);
+               exit(1);
+            }
+            else 
+               AISDK_INFO(LX("You have opened a sqlite3 database named alarm.db successfully created by WX!\n"));
+            
+          /* 创建表 */
+          char const *alarmList = " CREATE TABLE alarm(timestamp, evt_type, action_type, loop_mask, content); " ;
+          sqlite3_exec(db,alarmList,NULL,NULL,&zErrMsg);
+          sqlite3_free(zErrMsg);
+          
+          
+          AISDK_INFO(LX("json_parameters").d("json_operation", json_operation->valuestring));
+          //operation type:SET 
+          if( strcmp(json_operation->valuestring, ALARM_SET_OPERATION) == 0)
+          {
+          AISDK_INFO(LX("AnalysisNlpDataForAlarmsPlayer").d("OPERATION:","SET"));    
+          timestamp = atoll(json_timestamp->valuestring);    //把字符串转换成长长整型数（64位）long long atoll(const char *nptr);
+          AISDK_INFO(LX("timestamp").d("value:", timestamp));
+          
+          long int timesec = (long int)(timestamp/1000);   //long long int --> long int;
+          printf("%ld \n", timesec);
+          struct tm *p ;
+          p = localtime(&timesec);
+          
+          //AISDK_INFO(LX("SET ALARM").d("set alarm time:", asctime(p)));
+          sprintf(content, "现在是北京时间%d年%d月%d日%d点%d分，您有一个提醒时间到了", 1900+p->tm_year, 1+p->tm_mon, p->tm_mday, p->tm_hour, p->tm_min);
+          AISDK_INFO(LX("Set Alarm Time:").d("content:", content));
+
+          json_event = cJSON_GetObjectItem(json_parameters, "event");  
+          AISDK_INFO(LX("json_parameters").d("json_event", json_event->valuestring));
+          sprintf(evt_type,"%s", json_event->valuestring);
+          action_type = 1;
+          
+          sprintf(alarmSql, "INSERT INTO 'alarm'VALUES(%lld, '%s', %d, %d, '%s');" ,timestamp ,evt_type ,action_type ,loop_mask ,content);
+          //char const *alarm1 = "INSERT INTO 'alarmlist'VALUES(1, 12334455, 1, 0, 0);"; 
+          sqlite3_exec(db, alarmSql, NULL, NULL, &zErrMsg);  
+          }
+          
+          //operation type:DELETE 
+          if(strcmp(json_operation->valuestring, ALARM_DELETE_OPERATION) == 0)
+          {
+             AISDK_INFO(LX("AnalysisNlpDataForAlarmsPlayer").d("OPERATION:","DELETE"));
+             timestamp = atoll(json_timestamp->valuestring);    //把字符串转换成长长整型数（64位）long long atoll(const char *nptr);
+             AISDK_INFO(LX("timestamp").d("value:", timestamp));   
+             sprintf(deleteSql, "delete from alarm where timestamp = %lld;" ,timestamp);
+             sqlite3_exec(db, deleteSql, NULL, NULL, &zErrMsg);
+             printf("zErrMsg = %s \n", zErrMsg);
+             sqlite3_free(zErrMsg);   
+          }
+          
+          //operation type:FLUSH 
+          if(strcmp(json_operation->valuestring, ALARM_FLUSH_OPERATION) == 0)
+          {
+             AISDK_INFO(LX("AnalysisNlpDataForAlarmsPlayer").d("OPERATION:","FLUSH"));   
+             char const *flushSql = "drop table alarm;";
+             sqlite3_exec(db, flushSql, NULL, NULL, &zErrMsg);
+             printf("zErrMsg = %s \n", zErrMsg);
+             sqlite3_free(zErrMsg); 
+          
+             /* 创建表 */
+              char const *rebulidalarmList = " CREATE TABLE alarm(timestamp, evt_type, action_type, loop_mask, content ); " ;
+              sqlite3_exec(db,rebulidalarmList,NULL,NULL,&zErrMsg);
+              sqlite3_free(zErrMsg);      
+           }
+          
+          //operation type:UPDATE 
+          if(strcmp(json_operation->valuestring, ALARM_UPDATE_OPERATION) == 0)
+          {
+             AISDK_INFO(LX("AnalysisNlpDataForAlarmsPlayer").d("OPERATION:","UPDATE"));   
+             //add operation
+             //...
+             //...
+          }
+          
+          sqlite3_close(db);
          }
           else
           {
@@ -392,84 +513,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
 
       }
        ttsurllist.push_back(json_tts_url->valuestring);
-
-
-       /* 打开数据库 */
-       len = sqlite3_open("alarm.db",&db);
-       if( len )
-       {
-          //fprintf函数格式化输出错误信息到指定的stderr文件流中  
-          fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-          //sqlite3_errmsg(db)用以获得数据库打开错误码的英文描述。
-          sqlite3_close(db);
-          exit(1);
-       }
-       else 
-          AISDK_INFO(LX("You have opened a sqlite3 database named alarm.db successfully created by WX!\n"));
-       
-     /* 创建表 */
-     char const *alarmList = " CREATE TABLE alarm(timestamp, evt_type, action_type, loop_mask, content ); " ;
-     sqlite3_exec(db,alarmList,NULL,NULL,&zErrMsg);
-     sqlite3_free(zErrMsg);
-
-
-     AISDK_INFO(LX("json_parameters").d("json_operation", json_operation->valuestring));
-     //operation type:SET 
-     if( strcmp(json_operation->valuestring, ALARM_SET_OPERATION) == 0)
-     {
-     AISDK_INFO(LX("AnalysisNlpDataForAlarmsPlayer").d("OPERATION:","SET"));    
-     timestamp = atoll(json_timestamp->valuestring);    //把字符串转换成长长整型数（64位）long long atoll(const char *nptr);
-     AISDK_INFO(LX("timestamp").d("value:", timestamp));
- 
-     long int timesec = (long int)(timestamp/1000);   //long long int --> long int;
-     printf("%ld \n", timesec);
-     struct tm *p ;
-     p = localtime(&timesec);
-
-     //AISDK_INFO(LX("SET ALARM").d("set alarm time:", asctime(p)));
-     sprintf(content, "现在是北京时间%d年%d月%d日%d点%d分，您有一个提醒时间到了", 1900+p->tm_year, 1+p->tm_mon, p->tm_mday, p->tm_hour, p->tm_min);
-     AISDK_INFO(LX("Set Alarm Time:").d("content:", content));
- 
-     action_type = 1;
- 
-     sprintf(alarmSql, "INSERT INTO 'alarm'VALUES(%lld, %d, %d, %d, '%s');" ,timestamp ,evt_type ,action_type ,loop_mask ,content);
-     //char const *alarm1 = "INSERT INTO 'alarmlist'VALUES(1, 12334455, 1, 0, 0);"; 
-     sqlite3_exec(db, alarmSql, NULL, NULL, &zErrMsg);  
-     }
-
-     //operation type:DELETE 
-     if(strcmp(json_operation->valuestring, ALARM_DELETE_OPERATION) == 0)
-     {
-        AISDK_INFO(LX("AnalysisNlpDataForAlarmsPlayer").d("OPERATION:","DELETE"));
-        timestamp = atoll(json_timestamp->valuestring);    //把字符串转换成长长整型数（64位）long long atoll(const char *nptr);
-        AISDK_INFO(LX("timestamp").d("value:", timestamp));   
-        sprintf(deleteSql, "delete from alarm where timestamp = %lld;" ,timestamp);
-        sqlite3_exec(db, deleteSql, NULL, NULL, &zErrMsg);
-        printf("zErrMsg = %s \n", zErrMsg);
-        sqlite3_free(zErrMsg);   
-     }
-
-     //operation type:FLUSH 
-     if(strcmp(json_operation->valuestring, ALARM_FLUSH_OPERATION) == 0)
-     {
-        AISDK_INFO(LX("AnalysisNlpDataForAlarmsPlayer").d("OPERATION:","FLUSH"));   
-        char const *flushSql = "drop table alarm;";
-        sqlite3_exec(db, flushSql, NULL, NULL, &zErrMsg);
-        printf("zErrMsg = %s \n", zErrMsg);
-        sqlite3_free(zErrMsg);     
-      }
-
-     //operation type:UPDATE 
-     if(strcmp(json_operation->valuestring, ALARM_UPDATE_OPERATION) == 0)
-     {
-        AISDK_INFO(LX("AnalysisNlpDataForAlarmsPlayer").d("OPERATION:","UPDATE"));   
-        //add operation
-        //...
-        //...
-     }
-
-     sqlite3_close(db);
-
+      
 }
 
 #endif

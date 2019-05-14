@@ -21,7 +21,6 @@ namespace utils {
 
 int getcpuinfo(char *id);
 
-
 std::unique_ptr<DeviceInfo> DeviceInfo::create(std::string &configFile){
     std::string dialogId;
     std::string deviceSerialNumber;
@@ -52,15 +51,7 @@ std::unique_ptr<DeviceInfo> DeviceInfo::create(std::string &configFile){
 
 /*************************************************************************
  *   Function:       getcpuinfo
- *   Description:    获取设备id信息
- *   Calls:
- *   Called By:
- *   Table Accessed: 无
- *   Table Updated:  无
- *   Input:          id
- *   Output:         ID信息
- *   Return:         0成功 -1失败
- *   Others:         无
+ *   Description:    Get Device Unique Serial Number
  ************************************************************************/
 int getcpuinfo(char *id)
 {
