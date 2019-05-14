@@ -115,7 +115,8 @@ SoundAiEngine::SoundAiEngine(
 }
 
 bool SoundAiEngine::init(){
-	std::string dsn = m_deviceInfo->getDeviceSerialNumber();
+	//std::string dsn = m_deviceInfo->getDeviceSerialNumber();
+	std::string dsn = {"250b42006265f4bcbe0dc8d147aaa3aa"};
 	
 	/// Set logger print level
 	set_logger_level(m_logLevel);

@@ -159,10 +159,17 @@ private:
 		std::shared_ptr<utils::channel::AudioTrackManagerInterface> trackManager);
 
     /**
-     * Initializes the @c ResourcesPlayer.
-     * Adds the @c SpeechSynthesizer as an observer of the speech player.
+     * Initializes the @c AlarmsPlayer.
+     * Adds the @c AlarmsPlayer as an observer of the speech player.
      */
     void init();
+
+
+    /**
+     * Initializes the @c AlarmsPlayer.
+     * Adds the @c AlarmsPlayer as check sqlite3 db.
+     */
+    void sqliteThreadHander();
 
     /**
      * Pre-handle a ResourcesPlayer.Chat directive (on the @c m_executor threadpool) to parse own keys and values.
@@ -401,6 +408,9 @@ private:
 	/// An internal thread pool which queues up operations from asynchronous API calls
 	utils::threading::Executor m_executor;
 
+    ///sqlite thread for check sqlite3 data and play alarm  
+    std::thread m_sqliteThread;
+    
 };
 
 }	// namespace 

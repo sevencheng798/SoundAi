@@ -13,13 +13,19 @@
  */
 #include <iostream>
 #include "Utils/DeviceInfo.h"
+#include "string.h"
+
 
 namespace aisdk {
 namespace utils {
 
+int getcpuinfo(char *id);
+
+
 std::unique_ptr<DeviceInfo> DeviceInfo::create(std::string &configFile){
     std::string dialogId;
     std::string deviceSerialNumber;
+    char device_id[128];
 
 	if(configFile.empty()){
 		std::cout << "Device info config file is null" << std::endl;
@@ -34,13 +40,76 @@ std::unique_ptr<DeviceInfo> DeviceInfo::create(std::string &configFile){
 	// ...
 	// ...
 	// The follow is a temporary definition. 
-	dialogId = "123456789";
+    memset(device_id, 0, sizeof(device_id));
+
+    getcpuinfo(device_id);
+
+    dialogId = device_id;
+
+    
+//	dialogId = "123456789";
 	deviceSerialNumber = "Sven-test";
 	
 	std::unique_ptr<DeviceInfo> instance(new DeviceInfo(dialogId, deviceSerialNumber));
 
 	return instance;
 }
+
+/////
+
+/*************************************************************************
+ *   Function:       getcpuinfo
+ *   Description:    获取设备id信息
+ *   Calls:
+ *   Called By:
+ *   Table Accessed: 无
+ *   Table Updated:  无
+ *   Input:          id
+ *   Output:         ID信息
+ *   Return:         0成功 -1失败
+ *   Others:         无
+ ************************************************************************/
+int getcpuinfo(char *id)
+{
+    FILE *fpcpu;
+    int nread = 0;
+	const char *cpufile = "/proc/cpuinfo";
+    char *buffer = NULL;
+    char content[64]="";
+    size_t len = 0;
+	int ret = -1;
+
+    fpcpu = fopen(cpufile,"rb");
+
+    if(fpcpu == NULL)
+    {
+        printf("error happen to open\n");
+		ret = -1;
+    }
+
+    while((nread=getline(&buffer,&len,fpcpu)) != -1)
+    {
+        if(strstr(buffer,"Serial")!=NULL)
+        {
+            buffer[strlen(buffer)-1]=0;
+            sscanf(buffer,"%s%s%s",content,content,content);
+            strcpy(id, content);
+			ret = 0;
+        }
+    }
+	if(0 == strlen(id))
+	{
+         strcpy(id, "11011010010011001001001001001001");
+		 ret = -1;
+	}
+	fclose(fpcpu);
+
+	return ret;
+}
+
+////
+
+
 
 std::string DeviceInfo::getDialogId() const {
     return m_dialogId;
