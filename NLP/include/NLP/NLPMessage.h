@@ -37,7 +37,7 @@ public:
      * 		The device must randomly generate a UUID as the messageId
      */
     NLPMessage(
-    	const std::string &code,
+    	const int code,
     	const std::string &message,
 		const std::string &query,
 		const std::string &domain,
@@ -62,7 +62,7 @@ public:
      *
      * @return The code.
      */
-    std::string getCode() const;
+    int getCode() const;
 
 	/**
      * Returns The message of the message.
@@ -107,7 +107,7 @@ public:
 
 private:
 	/// The code of a NLP message. 
-	const std::string m_code;
+	const int m_code;
 
 	/// The msg of a NLP message.
 	const std::string m_message;

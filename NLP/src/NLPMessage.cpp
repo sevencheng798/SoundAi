@@ -15,7 +15,7 @@
 namespace aisdk {
 namespace nlp {
 
-std::string NLPMessage::getCode() const {
+int NLPMessage::getCode() const {
     return m_code;
 }
 

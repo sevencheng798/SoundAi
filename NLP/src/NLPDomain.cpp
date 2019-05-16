@@ -9,7 +9,8 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-#include <iostream>
+// jsoncpp ver-1.8.3 
+#include <json/json.h>
 #include <Utils/Logging/Logger.h>
 
 #include "NLP/NLPDomain.h"
@@ -40,7 +41,8 @@ void GetNLPData(const char *datain , struct NlpData *nlpdata);
 
 std::pair<std::unique_ptr<NLPDomain>, NLPDomain::ParseStatus> NLPDomain::create(
 	const std::string &unparsedDomain,
-	const std::string &messageId){
+	const std::string &messageId,
+	std::shared_ptr<utils::attachment::AttachmentManagerInterface> attachmentDocker){
     std::pair<std::unique_ptr<NLPDomain>, ParseStatus> result;
 	/// Default set the state as SUCCESS
     result.second = ParseStatus::SUCCESS;
@@ -57,13 +59,18 @@ std::pair<std::unique_ptr<NLPDomain>, NLPDomain::ParseStatus> NLPDomain::create(
 		return result;
 	}
 
+	if(!attachmentDocker) {
+		AISDK_ERROR(LX("createFailed").d("reason", "nullAttachmentManager"));
+		return result;
+	}
+	
     struct NlpData outnlpdata;
     cJSON* json = NULL;
     GetNLPData(unparsedDomain.c_str(),&outnlpdata);
     std::cout << "======20190328 dubuglog:NlpData_dataMsg:========>" <<outnlpdata.NlpData_dataMsg<< std::endl;
     
     // To-Do to prase json key:value from the unparsedDomain    
-        std::string code{"ok"};
+        int code = outnlpdata.NlpData_code;
         std::string message = outnlpdata.NlpData_message;
         std::string query = outnlpdata.NlpData_query;
         std::string domain = outnlpdata.NlpData_domain;
@@ -72,7 +79,7 @@ std::pair<std::unique_ptr<NLPDomain>, NLPDomain::ParseStatus> NLPDomain::create(
 
 #if 1
 	result.first = std::unique_ptr<NLPDomain>(
-		new NLPDomain(unparsedDomain,
+		new NLPDomain(attachmentDocker, unparsedDomain,
 		code, message, query, domain, data,
 		messageId));
 #endif

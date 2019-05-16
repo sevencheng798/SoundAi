@@ -16,6 +16,7 @@
 #include <memory>
 #include <string>
 
+#include <Utils/Attachment/AttachmentManagerInterface.h>
 #include "NLPMessage.h"
 
 namespace aisdk {
@@ -60,20 +61,34 @@ public:
 	 *
 	 * @param unparsedDomain The unparsed NLP Domain Directive JSON string.
 	 * @param messageId The id consistent with the current session.
+	 * @param attachmentDocker The @c AttachmentManaer object which created @c NLPDomain will use to acquire Attachment.
 	 */
 	static std::pair<std::unique_ptr<NLPDomain>, ParseStatus> create(
 		const std::string &unparsedDomain,
-		const std::string &messageId);
+		const std::string &messageId,
+		std::shared_ptr<utils::attachment::AttachmentManagerInterface> attachmentDocker);
 	
     /**
      * Returns the underlying unparsed domain directive.
      */
     std::string getUnparsedDomain() const;
+
+    /**
+     * Returns a reader for the attachment associated with this nlpdomain.
+     *
+     * @param contentId The contentId associated with the attachment.
+     * @param readerPolicy The policy with which to create the @c AttachmentReader.
+     * @return An attachment reader or @c nullptr if no attachment was found with the given @c contentId.
+     */
+    std::unique_ptr<utils::attachment::AttachmentReader> getAttachmentReader(
+        const std::string& contentId,
+        utils::sharedbuffer::ReaderPolicy readerPolicy) const;
 	
 private:
     /**
      * Constructor.
      *
+     * @param attachmentDocker The @c AttachmentManaer object which created @c NLPDomain will use to acquire Attachment.
      * @param unparsedDomain The unparsed NLP Domain directive from JSON string.
      * @param code The code associated with NLP message.
      * @param message The message associated with NLP message.
@@ -83,14 +98,18 @@ private:
      * @param messageId The message associated with NLP message.
      */
     NLPDomain(
+    	std::shared_ptr<utils::attachment::AttachmentManagerInterface> attachmentDocker,
     	const std::string &unparsedDomain,
-    	const std::string &code,
+    	const int code,
     	const std::string &message,
 		const std::string &query,
 		const std::string &domain,
 		const std::string &data,
     	const std::string &messageId);
-	
+
+	/// The @c AttachmentManager objects.
+	std::shared_ptr<utils::attachment::AttachmentManagerInterface> m_attachmentDocker;
+		
 	/// The unparsed NLP domain directive from JSON string. 
 	const std::string m_unparsedDomain;
 
@@ -137,7 +156,6 @@ inline std::string nlpDomainParseStatusToString(NLPDomain::ParseStatus status) {
 inline std::ostream& operator<<(std::ostream &stream, NLPDomain::ParseStatus status) {
 	return stream << nlpDomainParseStatusToString(status);
 }
-
 
 }  // namespace nlp
 }  // namespace aisdk
