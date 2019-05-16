@@ -22,7 +22,7 @@ namespace dialogRelay {
 /// A dialog specific UX state observer.
 class DialogUXStateObserverInterface {
 public:
-    /// The different dialog specific AVS UX states.
+    /// The different dialog specific NLP UX states.
     enum class DialogUXState {
         /// Device is idle and ready for an interaction.
         IDLE,
