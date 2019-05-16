@@ -153,20 +153,26 @@ bool DomainRouter::cancelDomain(std::shared_ptr<NLPDomain> domain) {
 void DomainRouter::doShutdown() {
 	std::vector<std::shared_ptr<dmInterface::DomainHandlerInterface>> releasedHandlers;
 	std::unique_lock<std::mutex> lock(m_mutex);
-	for(auto &it : m_configuration) {
-		auto handler = it.second;
+
+	// Should remove all configurations cleanly.
+    size_t numConfigurations = m_configuration.size();
+    for (size_t i = 0; i < numConfigurations && !m_configuration.empty(); ++i) {
+        auto handler = m_configuration.begin()->second;
 		if(removeDomainHandlerLocked(handler)) {
 			releasedHandlers.push_back(handler);
 		}
 	}
+
 	/// Clear map space to call destructor.
-	m_configuration.clear();
+	if(!m_configuration.empty())
+		m_configuration.clear();
 	lock.unlock();
 
     for (auto releasedHandler : releasedHandlers) {
         AISDK_DEBUG5(LX("onDeregisteredCalled").d("handler", releasedHandler.get()));
         releasedHandler->onDeregistered();
     }
+
 }
 
 }  // namespace nlp

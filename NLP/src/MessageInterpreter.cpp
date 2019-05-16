@@ -22,13 +22,15 @@ namespace aisdk {
 namespace nlp {
 
 MessageInterpreter::MessageInterpreter(
-	std::shared_ptr<dmInterface::DomainSequencerInterface> domainSequencer):
-	m_domainSequencer{domainSequencer} {
+	std::shared_ptr<dmInterface::DomainSequencerInterface> domainSequencer,
+	std::shared_ptr<utils::attachment::AttachmentManagerInterface> attachmentDocker):
+	m_domainSequencer{domainSequencer},
+	m_attachmentDocker{attachmentDocker} {
 
 }
 
 void MessageInterpreter::receive(const std::string& contextId, const std::string& message) {
-    auto createResult = NLPDomain::create(message, contextId);
+    auto createResult = NLPDomain::create(message, contextId, m_attachmentDocker);
     std::shared_ptr<NLPDomain> nlpDomain{std::move(createResult.first)};
     if (!nlpDomain) {
 		std::string descriptMsg = nlpDomainParseStatusToString(createResult.second);		

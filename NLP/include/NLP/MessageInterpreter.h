@@ -32,15 +32,20 @@ public:
      *
      * @param domainSequencerInterface The DomainSequencerInterface implementation, which will receive
      *        @c NLPDirectives.
+     * @param attachmentDocker The @c AttachmentManager which created @c NLPDomain will use to acquire Attachments.
      */
     MessageInterpreter(
-        std::shared_ptr<dmInterface::DomainSequencerInterface> domainSequencer);
+        std::shared_ptr<dmInterface::DomainSequencerInterface> domainSequencer,
+        std::shared_ptr<utils::attachment::AttachmentManagerInterface> attachmentDocker);
 
     void receive(const std::string& contextId, const std::string& message) override;
 
 private:
     /// Object to which we will send @c NLPDirectives.
     std::shared_ptr<dmInterface::DomainSequencerInterface> m_domainSequencer;
+
+	/// The attachmentManager.
+	std::shared_ptr<utils::attachment::AttachmentManagerInterface> m_attachmentDocker;
 };
 
 }  // namespace nlp
