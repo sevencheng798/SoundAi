@@ -57,18 +57,26 @@ public:
      * @param observer The observer to remove.
      */
     void removeObserver(std::shared_ptr<DialogUXStateObserverInterface> observer);
-
+	
+	/// @ name SoundAiObserverInterface method;
+	/// @{
     void onStateChanged(soundai::SoundAiObserverInterface::State state) override;
-
 	void onKeyWordDetected(std::string dialogId, std::string keyword, float angle) override;
-
+	/// @}
+	
+	/// @name SpeechSynthesizerObserverInterface method;
+	/// @{
     void onStateChanged(dmInterface::SpeechSynthesizerObserverInterface::SpeechSynthesizerState state) override;
-
+	/// @}
     void onStateChanged(dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState state) override;
     
     void onStateChanged(dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState state) override;
 
 private:
+	/**
+     * Sets the internal state to @c IDLE if both @c SpeechSynthesizer and @c GenericAutomaticSpeechRecognizer are in idle state.
+     */
+	void tryEnterIdleState();
     /**
      * Notifies all observers of the current state. This should only be used within the internal executor.
      */
@@ -91,9 +99,6 @@ private:
 	
     /// The current overall UX state.
     dialogRelay::DialogUXStateObserverInterface::DialogUXState m_currentState;
-
-    /// Contains the current state of the @c SpeechSynthesizer as reported by @c SpeechSynthesizerObserverInterface
-    //SpeechSynthesizerObserverInterface::SpeechSynthesizerState  m_speechSynthesizerState;
 
     /// Contains the current state of the @c SoundAi as reported by @c SoundAiObserverInterface
     soundai::SoundAiObserverInterface::State m_soundAiState;

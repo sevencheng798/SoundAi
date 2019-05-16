@@ -12,6 +12,7 @@
  */
  
 #include <iostream>
+#include <unistd.h>
 
 #include "Utils/Logging/Logger.h"
 #include "Utils/DialogRelay/DialogUXStateRelay.h"
@@ -25,7 +26,8 @@ namespace dialogRelay {
 
 DialogUXStateRelay::DialogUXStateRelay()
 	:m_currentState{DialogUXStateObserverInterface::DialogUXState::IDLE},
-	m_soundAiState{soundai::SoundAiObserverInterface::State::IDLE}{
+	m_soundAiState{soundai::SoundAiObserverInterface::State::IDLE},
+	m_speechSynthesizerState{dmInterface::SpeechSynthesizerObserverInterface::SpeechSynthesizerState::FINISHED} {
 
 }
 
@@ -54,12 +56,13 @@ void DialogUXStateRelay::removeObserver(
 void DialogUXStateRelay::onStateChanged(soundai::SoundAiObserverInterface::State state){
 	m_soundAiState = state;
 	
-	AISDK_INFO(LX("onStateChanged").d("SoundAiNewState", state));
+	// AISDK_INFO(LX("onStateChanged").d("SoundAiNewState", state));
 	
 	m_executor.submit([this, state](){
 		switch(state){
 			case soundai::SoundAiObserverInterface::State::IDLE:
-				setState(dialogRelay::DialogUXStateObserverInterface::DialogUXState::IDLE);
+//				setState(dialogRelay::DialogUXStateObserverInterface::DialogUXState::IDLE);
+				tryEnterIdleState();
 				return;
 			case soundai::SoundAiObserverInterface::State::EXPECTING_SPEECH:
 				setState(dialogRelay::DialogUXStateObserverInterface::DialogUXState::LISTENING);
@@ -76,14 +79,12 @@ void DialogUXStateRelay::onStateChanged(soundai::SoundAiObserverInterface::State
 	});
 }
 
-
-
 void DialogUXStateRelay::onKeyWordDetected(std::string dialogId, std::string keyword, float angle){
 	/// default no-op
 }
 
 void DialogUXStateRelay::onStateChanged(dmInterface::SpeechSynthesizerObserverInterface::SpeechSynthesizerState state) {
-	std::cout << "SpeechSynth onStateChanged: " << state << std::endl;
+	// AISDK_INFO(LX("onStateChanged").d("SpeechSynth", state));
     m_speechSynthesizerState = state;
 
     m_executor.submit([this, state]() {
@@ -105,7 +106,7 @@ void DialogUXStateRelay::onStateChanged(dmInterface::SpeechSynthesizerObserverIn
             case dmInterface::SpeechSynthesizerObserverInterface::SpeechSynthesizerState::GAINING_FOCUS:
                 return;
         }
-		std::cout << "unknownSpeechSynthesizerState" << std::endl;
+		AISDK_WARN(LX("unknownSpeechSynthesizerState"));
     });
 
 }
@@ -176,7 +177,16 @@ void DialogUXStateRelay::onStateChanged(dmInterface::AlarmsPlayerObserverInterfa
 
 
 
-
+void DialogUXStateRelay::tryEnterIdleState() {
+	m_executor.submit([this]() {
+		// The delay ensures that ASR state is avoided from Thinking to IDLE.
+		usleep(200*1000);
+		if(m_currentState != dialogRelay::DialogUXStateObserverInterface::DialogUXState::IDLE && \
+			m_speechSynthesizerState == dmInterface::SpeechSynthesizerObserverInterface::SpeechSynthesizerState::FINISHED) {
+			setState(dialogRelay::DialogUXStateObserverInterface::DialogUXState::IDLE);
+		}
+	});
+}
 
 void DialogUXStateRelay::notifyObserversOfState() {
     for (auto observer : m_observers) {
