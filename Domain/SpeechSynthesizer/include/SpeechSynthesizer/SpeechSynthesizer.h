@@ -368,7 +368,7 @@ private:
     /// The current trace acquired by the @c SpeechSynthesizer.
     utils::channel::FocusState m_currentFocus;
 
-	/// @c ChatDirectiveInfo instance for the @c AVSDirective currently being handled.
+	/// @c ChatDirectiveInfo instance for the @c NLPDirective currently being handled.
 	std::shared_ptr<ChatDirectiveInfo> m_currentInfo;
 
 	/// Mutex to serialize access to m_currentState, m_desiredState, and m_waitOnStateChange.
