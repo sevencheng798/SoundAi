@@ -187,10 +187,15 @@ static int shouldInterrupt(void* decoderPtr) {
 }
 
 bool FFmpegDecoder::shouldInterruptFFmpeg() {
+#if 0
     auto runtime =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_initializeStartTime);
     return (DecodingState::INVALID == m_state) ||
            ((DecodingState::INITIALIZING == m_state) && (runtime > INITIALIZE_TIMEOUT));
+#else
+
+    return (DecodingState::INVALID == m_state);
+#endif
 }
 
 void FFmpegDecoder::initialize() {
@@ -204,9 +209,10 @@ void FFmpegDecoder::initialize() {
 	}
 
 	/// Set interrupt callback logic.
-#if 0
+#if 1
 	avformatContext->interrupt_callback.callback = shouldInterrupt;
     avformatContext->interrupt_callback.opaque = this;
+	m_initializeStartTime = std::chrono::steady_clock::now();
 #endif	
     std::tie(result, m_formatContext, initialPosition) = m_inputController->getCurrentFormatContextOpen();
     if (!m_formatContext) {
@@ -220,12 +226,13 @@ void FFmpegDecoder::initialize() {
         setState(DecodingState::INVALID);
         return;
     }
-	
+#if 0	
 	m_formatContext->interrupt_callback.callback = shouldInterrupt;
     m_formatContext->interrupt_callback.opaque = this;
 	m_initializeStartTime = std::chrono::steady_clock::now();
-
-    auto status = avformat_find_stream_info(m_formatContext.get(), nullptr);
+#endif
+    
+	auto status = avformat_find_stream_info(m_formatContext.get(), nullptr);
     if (!transitionStateUsingStatus(status, DecodingState::INVALID, "initialize::findStreamInfo")) {
         return;
     }
@@ -248,7 +255,7 @@ void FFmpegDecoder::initialize() {
         }
     }
 
-AISDK_DEBUG5(LX("initialDurations").d("durations(ms)", m_formatContext->duration));
+	AISDK_DEBUG5(LX("initialDurations").d("durations(ms)", m_formatContext->duration));
     m_codecContext = std::shared_ptr<AVCodecContext>(avcodec_alloc_context3(codec), AVContextDeleter());
     avcodec_parameters_to_context(m_codecContext.get(), m_formatContext->streams[streamIndex]->codecpar);
     status = avcodec_open2(m_codecContext.get(), codec, nullptr);
@@ -260,6 +267,11 @@ AISDK_DEBUG5(LX("initialDurations").d("durations(ms)", m_formatContext->duration
         // Some codecs do not fill up this property, so use default layout.
         m_codecContext->channel_layout = av_get_default_channel_layout(m_codecContext->channels);
     }
+	AISDK_INFO(LX("initialized").d("reason", "codecContext")
+				.d("channels", m_codecContext->channels)
+				.d("sample_rate", m_codecContext->sample_rate)
+				.d("out_sample_rate", m_outputRate)
+				.d("out_layout_channel", m_outputLayout));
 
     m_swrContext = std::shared_ptr<SwrContext>(
         swr_alloc_set_opts(
@@ -318,6 +330,13 @@ size_t FFmpegDecoder::readData(Byte* buffer, size_t size, size_t bytesRead) {
 }
 
 void FFmpegDecoder::resample(std::shared_ptr<AVFrame> inputFrame) {
+	//total_duration += inputFrame->pkt_duration;
+	//AISDK_INFO(LX("resample").d("pkt_duration", inputFrame->pkt_duration).d("total_duration", total_duration));
+#if 0
+	AISDK_INFO(LX("resample").d("pkt_duration", inputFrame->pkt_duration)
+				.d("codec_sample_rate", m_codecContext->sample_rate)
+				.d("m_outputRate", m_outputRate));
+#endif	
     int outSamples = av_rescale_rnd(
         swr_get_delay(m_swrContext.get(), m_codecContext->sample_rate) + inputFrame->nb_samples,
         m_outputRate,

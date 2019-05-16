@@ -20,6 +20,7 @@ extern "C" {
 #include <Utils/MediaPlayer/MediaPlayerObserverInterface.h>
 #include "AudioMediaPlayer/FFmpegUrlInputController.h"
 #include "AudioMediaPlayer/FFmpegStreamInputController.h"
+#include "AudioMediaPlayer/FFmpegAttachmentInputController.h"
 //#include "AudioMediaPlayer/FFmpegDecoder.h"
 #include "AudioMediaPlayer/AOWrapper.h"
 #include "AudioMediaPlayer/AudioOutputDeleter.h"
@@ -71,30 +72,10 @@ std::unique_ptr<AOWrapper> AOWrapper::create(
 	return player;
 }
 
-AOWrapper::AOWrapper(
-	std::shared_ptr<AOEngine> aoEngine,
-	const PlaybackConfiguration& config):
-	SafeShutdown{"AOWrapper"},
-	m_sourceId{MediaPlayerInterface::ERROR},
-	m_engine{aoEngine},
-	m_decoder{nullptr},
-	m_device{nullptr},
-	m_initialOffset{0},
-	m_state{AOPlayerState::IDLE},
-	m_isShuttingDown{false},
-	m_config{config} {
-	
-}
-
-AOWrapper::~AOWrapper(){
-	AISDK_DEBUG5(LX("AOWrapper").d("reason", "Destructor"));
-	shutdown();
-}
-
 AOWrapper::SourceId AOWrapper::setSource(const std::string& url, std::chrono::milliseconds offset){
 	auto input = FFmpegUrlInputController::create(url, offset);
 	auto newID = configureNewRequest(std::move(input), offset);
-	if(ERROR == newID){
+	if(utils::mediaPlayer::MediaPlayerInterface::ERROR == newID){
 		AISDK_DEBUG5(LX("setSourceFailed").d("type", "url").d("offset(ms)", offset.count()));
 	}
 
@@ -104,10 +85,22 @@ AOWrapper::SourceId AOWrapper::setSource(const std::string& url, std::chrono::mi
 AOWrapper::SourceId AOWrapper::setSource(std::shared_ptr<std::istream> stream, bool repeat){	
 	auto input = FFmpegStreamInputController::create(stream, repeat);
 	auto newID = configureNewRequest(std::move(input));
-	if(ERROR == newID){
+	if(utils::mediaPlayer::MediaPlayerInterface::ERROR == newID){
 		AISDK_DEBUG5(LX("setSourceFailed").d("type", "istream").d("repeat", repeat));
 	}
 	
+	return newID;
+}
+
+AOWrapper::SourceId AOWrapper::setSource(
+    std::shared_ptr<utils::attachment::AttachmentReader> attachmentReader,
+    const utils::AudioFormat* format) {
+	auto input = FFmpegAttachmentInputController::create(attachmentReader, format);
+	auto newID = configureNewRequest(std::move(input));
+	if(utils::mediaPlayer::MediaPlayerInterface::ERROR == newID){
+		AISDK_DEBUG5(LX("setSourceFailed").d("type", "attachment").d("format", format));
+	}
+
 	return newID;
 }
 
@@ -138,8 +131,11 @@ bool AOWrapper::play(SourceId id)
 
 bool AOWrapper::stopLocked(){
 
-	if(m_state != AOPlayerState::IDLE) {
-		m_state = AOPlayerState::FINISHED;
+	if(m_state != AOWrapper::AOPlayerState::IDLE) {
+		m_state = AOWrapper::AOPlayerState::FINISHED;
+		if(m_decoder)
+			m_decoder->abort();
+
 		AISDK_DEBUG2(LX("stopLocked").d("reason", "startStopSuccess"));
 		m_playerWaitCondition.notify_one();
 		
@@ -221,6 +217,10 @@ void AOWrapper::setObserver(std::shared_ptr<utils::mediaPlayer::MediaPlayerObser
 int AOWrapper::configureNewRequest(
 	std::unique_ptr<FFmpegInputControllerInterface> inputController,
 	std::chrono::milliseconds offset){
+	if(!inputController) {
+		AISDK_ERROR(LX("configureNewRequestFailed").d("reason", "inputControllerIsNullptr"));
+		return utils::mediaPlayer::MediaPlayerInterface::ERROR;
+	}
 
 	{
 		// Use global lock to stop player and set new source id.
@@ -238,9 +238,10 @@ int AOWrapper::configureNewRequest(
 	}
 
 	// Delete old decoder before configuring new one.
+#if 0
 	if(m_decoder)
 		m_decoder->abort();
-		
+#endif		
 	m_decoder.reset();
 	
 	m_decoder = FFmpegDecoder::create(std::move(inputController), m_config);
@@ -258,7 +259,7 @@ bool AOWrapper::initialize(){
 	format.bits = convertBitsPreSample(m_config.sampleFormat());
 	format.channels = m_config.numberChannels();
 	format.rate = m_config.sampleRate();
-	format.byte_format = (m_config.isLittleEndian()?AO_FMT_LITTLE : AO_FMT_BIG);
+	format.byte_format = (m_config.isLittleEndian()?AO_FMT_LITTLE: AO_FMT_BIG);
 
 	auto defaultDriver = m_engine->getDefaultDriver();
 	
@@ -281,8 +282,10 @@ void AOWrapper::doShutdown()
 		m_isShuttingDown = true;
 		stopLocked();
 	    m_observer.reset();
+#if 0
 		if(m_decoder)
 			m_decoder->abort();
+#endif
 	    m_sourceId = ERROR;
 	}
 	// Make sure current thread be destroyed.
@@ -348,12 +351,33 @@ void AOWrapper::doPlayAudioLocked(std::unique_lock<std::mutex> &lock) {
 	
 	lock.lock();
 	if(unexpected) {
-		m_state = AOPlayerState::FINISHED;
-    if (m_observer) {
-        m_observer->onPlaybackFinished(m_sourceId);
-    }
+		m_state = AOWrapper::AOPlayerState::FINISHED;
+		if (m_observer) {
+            m_observer->onPlaybackFinished(m_sourceId);
+        }
 	}
 	
+}
+
+AOWrapper::AOWrapper(
+	std::shared_ptr<AOEngine> aoEngine,
+	const PlaybackConfiguration& config) :
+	SafeShutdown{"AOWrapper"},
+	m_sourceId{utils::mediaPlayer::MediaPlayerInterface::ERROR},
+	m_engine{aoEngine},
+	m_decoder{nullptr},
+	m_device{nullptr},
+	m_initialOffset{0},
+	m_state{AOPlayerState::IDLE},
+	m_isShuttingDown{false},
+	m_config{config} {
+	
+}
+
+AOWrapper::~AOWrapper() {
+	AISDK_DEBUG5(LX("AOWrapper").d("reason", "Destructor"));
+	m_decoder.reset();
+	doShutdown();
 }
 
 }// namespace ffmpeg

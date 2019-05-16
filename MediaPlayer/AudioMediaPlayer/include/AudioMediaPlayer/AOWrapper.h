@@ -67,6 +67,9 @@ public:
     ///@{
     SourceId setSource(const std::string& url, std::chrono::milliseconds offset) override;
 	SourceId setSource(std::shared_ptr<std::istream> stream, bool repeat) override;
+	SourceId setSource(
+		std::shared_ptr<utils::attachment::AttachmentReader> attachmentReader,
+		const utils::AudioFormat* format = nullptr) override;
     bool play(SourceId id) override;
     bool stop(SourceId id) override;
 	bool pause(SourceId id) override;
@@ -114,9 +117,6 @@ private:
      * that need to be invoked.
      */
 	void doPlayAudioLocked(std::unique_lock<std::mutex> &lock);
-
-	/// Internal thread that process the specify stream to play audio data.
-	std::thread m_playerThread;
 	
     /// The current source id.
     SourceId m_sourceId;
@@ -148,6 +148,9 @@ private:
     // The android media player configuration.
     PlaybackConfiguration m_config;
 
+	/// Internal thread that process the specify stream to play audio data.
+	std::thread m_playerThread;
+	
 	std::shared_ptr<utils::mediaPlayer::MediaPlayerObserverInterface> m_observer;
 
 	/// The condition variable used to wait @c libao operater.

@@ -7,6 +7,7 @@ add_library(AudioMediaPlayer SHARED
 	FFmpegDeleter.cpp
 	FFmpegUrlInputController.cpp
 	FFmpegStreamInputController.cpp
+	FFmpegAttachmentInputController.cpp
 	PlaybackConfiguration.cpp
 	RetryTimer.cpp)
 

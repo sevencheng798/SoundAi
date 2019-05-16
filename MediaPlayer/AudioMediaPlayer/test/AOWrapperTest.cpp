@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <cstdio>
 
+#include "Utils/Attachment/AttachmentReader.h"
 #include "Utils/MediaPlayer/MediaPlayerObserverInterface.h"
 #include "AudioMediaPlayer/AOWrapper.h"
 
@@ -46,6 +47,56 @@ int util::kbhit()
 
     return FD_ISSET(STDIN_FILENO, &rdfs);
 }
+class MockAttachmentReader : public aisdk::utils::attachment::AttachmentReader {
+public:
+	MockAttachmentReader(std::shared_ptr<std::ifstream> stream):m_stream{stream} {
+
+	};
+
+	/// @name AttachmentReader method;
+	/// @{
+	std::size_t read(
+        void* buf,
+        std::size_t numBytes,
+        ReadStatus* readStatus,
+        std::chrono::milliseconds timeoutMs = std::chrono::milliseconds(0)) override;
+	bool seek(uint64_t offset) override { return true; };
+	uint64_t getNumUnreadBytes() override { return 0; };
+	void close(ClosePoint closePoint = ClosePoint::AFTER_DRAINING_CURRENT_BUFFER) override;
+	/// @}
+	~MockAttachmentReader() {
+		std::cout << "~MockAttachmentReader destory" << std::endl;
+		close();
+	}
+private:
+	std::shared_ptr<std::ifstream> m_stream;
+};
+
+std::size_t MockAttachmentReader::read(
+	void* buf,
+	std::size_t numBytes,
+	ReadStatus* readStatus,
+	std::chrono::milliseconds timeoutMs) {
+	(*readStatus) = aisdk::utils::attachment::AttachmentReader::ReadStatus::OK;
+    m_stream->read(reinterpret_cast<char*>(buf), numBytes);
+    auto bytesRead = m_stream->gcount();
+    if (!bytesRead) {
+		(*readStatus) = aisdk::utils::attachment::AttachmentReader::ReadStatus::CLOSED;
+        if (m_stream->bad()) {
+			std::cout << "readFailed::occrous." << std::endl;
+            return 0;
+        }
+		std::cout << "readFailed::bytes: " << bytesRead << std::endl;
+        return 0;
+    }
+	
+    return bytesRead;
+}
+
+void MockAttachmentReader::close(ClosePoint closePoint) {
+	m_stream.reset();
+}
+
 
 class AudioPlayerTest 
 	: public aisdk::utils::mediaPlayer::MediaPlayerObserverInterface
@@ -63,6 +114,8 @@ public:
 
 	/// Set Observer
 	bool init();
+
+	bool run(std::shared_ptr<aisdk::utils::attachment::AttachmentReader> attachmentReader);
 
 	bool run(std::shared_ptr<std::istream> stream);
 
@@ -100,6 +153,7 @@ private:
 };
 
 std::shared_ptr<AudioPlayerTest> AudioPlayerTest::createNew() {
+	std::cout << "CreateNew entry" << std::endl;
 	auto instance = std::shared_ptr<AudioPlayerTest>(new AudioPlayerTest);
 	if(instance->init()) {
 		std::cout << "created:reason=initializedSuccess" << std::endl;
@@ -136,6 +190,31 @@ bool AudioPlayerTest::init(){
 	m_playWrapper->setObserver(shared_from_this());
 	
 	return true;
+}
+
+
+bool AudioPlayerTest::run(std::shared_ptr<aisdk::utils::attachment::AttachmentReader> attachmentReader) {
+#if 1
+	aisdk::utils::AudioFormat format{.encoding = aisdk::utils::AudioFormat::Encoding::LPCM,
+                       .endianness = aisdk::utils::AudioFormat::Endianness::LITTLE,
+                       .sampleRateHz = 16000,
+                       .sampleSizeInBits = 16,
+                       .numChannels = 1,
+                       .dataSigned = true};
+	#endif
+	//aisdk::utils::AudioFormat format;
+	m_sourceID = m_playWrapper->setSource(attachmentReader, &format);
+	if(aisdk::utils::mediaPlayer::MediaPlayerInterface::ERROR == m_sourceID){
+		std::cout << "run:reason=setSourceStreamFailed" << std::endl;
+		return false;
+	}
+	
+	std::cout << "newSourceId= " << m_sourceID << std::endl;
+
+	this->play();
+
+	return true;
+
 }
 
 bool AudioPlayerTest::run(std::shared_ptr<std::istream> stream){
@@ -292,10 +371,12 @@ void PaHelp(){
 	printf("Options: PaWrapperTest [options]\n" \
 		"\t -u set play a url resource.\n" \
 		"\t -f Set play a filename stream resource.\n" \
-		"\t -p set url stream start position[uint: sec]\n");
+		"\t -p set url stream start position[uint: sec]\n" \
+		"\t -r Set play a filename as attachment resource.\n" \
+		"\t\t the resource format must be: s16_le,16000,mono\n");
 }
 
-int work(std::string &url, std::string &filename, std::chrono::milliseconds offset){
+int work(std::string &url, std::string &filename, std::string &attachment, std::chrono::milliseconds offset){
 	auto audioPlayer = AudioPlayerTest::createNew();
 	std::cout << "audioPlayer shared_ptr:user_count= " << audioPlayer.use_count() << std::endl;
 
@@ -310,7 +391,16 @@ int work(std::string &url, std::string &filename, std::chrono::milliseconds offs
 			return -1;
 		}
 		audioPlayer->run(input);
-	}else{
+	}else if (!attachment.empty()) {
+		std::shared_ptr<std::ifstream> input = std::make_shared<std::ifstream>();
+		input->open(attachment, std::ifstream::in);
+		if(!input->is_open()){
+			std::cout << "Open the file is failed\n" << std::endl;
+			return -1;
+		}
+		auto attachmentReader = std::make_shared<MockAttachmentReader>(input);
+		audioPlayer->run(attachmentReader);
+	} else{
 		audioPlayer.reset();
 	}	
 	
@@ -326,11 +416,12 @@ int main(int argc, char *argv[]){
 	//std::shared_ptr<std::ifstream> input;
 	std::string url;
 	std::string filename;
+	std::string attachmentName;	
 	std::chrono::milliseconds offset = std::chrono::milliseconds::zero();
 		
 	int opt;
 	
-	while((opt = getopt(argc, argv, "yhu:p:f:")) != -1) {
+	while((opt = getopt(argc, argv, "yhu:r:p:f:")) != -1) {
 	switch (opt) {
 		case 'u':
 			url = optarg;
@@ -341,6 +432,9 @@ int main(int argc, char *argv[]){
 		case 'f':
 			filename = optarg;
 			break;
+		case 'r':
+			attachmentName = optarg;
+			break;			
 		case 'h':
 			PaHelp();
 			exit(EXIT_FAILURE);
@@ -356,7 +450,7 @@ int main(int argc, char *argv[]){
 	}
 	}
 
-	work(url, filename, offset);
+	work(url, filename, attachmentName, offset);
 
 	getchar();
 	std::cout << "play finished exit==========" << std::endl;
