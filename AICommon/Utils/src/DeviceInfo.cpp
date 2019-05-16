@@ -11,89 +11,42 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-#include <iostream>
+#include <fstream>
+#include <Utils/Logging/Logger.h>
 #include "Utils/DeviceInfo.h"
-#include "string.h"
 
+/// String to identify log entries originating from this file. 
+static const std::string TAG("DeviceInfo");
+
+#define LX(event) aisdk::utils::logging::LogEntry(TAG, event)
 
 namespace aisdk {
 namespace utils {
 
-int getcpuinfo(char *id);
+static const std::string DEFAULT_CPUINFO{"/proc/cpuinfo"};
+static const char DELIM = ':';
+bool getProcCPUInfo(std::string &serial);
 
 std::unique_ptr<DeviceInfo> DeviceInfo::create(std::string &configFile){
     std::string dialogId;
     std::string deviceSerialNumber;
-    char device_id[128];
 
 	if(configFile.empty()){
-		std::cout << "Device info config file is null" << std::endl;
+		AISDK_ERROR(LX("CreateFailed").d("reason", "configFileNotFound"));
 		return nullptr;
 	}
 
-	/**
-	 * To-Do Sven
-	 * To implement how to generate the dialog of ID and the deviceSerialNumber
-	 */
-    memset(device_id, 0, sizeof(device_id));
-    getcpuinfo(device_id);
-    deviceSerialNumber = device_id;
-	std::cout << "SYS Initation:Get Device Unique Serial Number :" << deviceSerialNumber << std::endl;
-    
-	//dialogId = "123456789";
-	
+	if(!getProcCPUInfo(deviceSerialNumber)) {
+		AISDK_ERROR(LX("CreateFailed").d("reason", "cpuinfoNotFound"));
+		return nullptr;
+	}
+	// The follow is a temporary definition. 
+	dialogId = "123456789";
+	AISDK_INFO(LX("Create").d("SerialNumber", deviceSerialNumber));
 	std::unique_ptr<DeviceInfo> instance(new DeviceInfo(dialogId, deviceSerialNumber));
 
 	return instance;
 }
-
-/////
-
-/*************************************************************************
- *   Function:       getcpuinfo
- *   Description:    Get Device Unique Serial Number
- ************************************************************************/
-int getcpuinfo(char *id)
-{
-    FILE *fpcpu;
-    int nread = 0;
-	const char *cpufile = "/proc/cpuinfo";
-    char *buffer = NULL;
-    char content[64]="";
-    size_t len = 0;
-	int ret = -1;
-
-    fpcpu = fopen(cpufile,"rb");
-
-    if(fpcpu == NULL)
-    {
-        printf("error happen to open\n");
-		ret = -1;
-    }
-
-    while((nread=getline(&buffer,&len,fpcpu)) != -1)
-    {
-        if(strstr(buffer,"Serial")!=NULL)
-        {
-            buffer[strlen(buffer)-1]=0;
-            sscanf(buffer,"%s%s%s",content,content,content);
-            strcpy(id, content);
-			ret = 0;
-        }
-    }
-	if(0 == strlen(id))
-	{
-         strcpy(id, "11011010010011001001001001001001");
-		 ret = -1;
-	}
-	fclose(fpcpu);
-
-	return ret;
-}
-
-////
-
-
 
 std::string DeviceInfo::getDialogId() const {
     return m_dialogId;
@@ -110,6 +63,32 @@ DeviceInfo::DeviceInfo(const std::string& dialogId, const std::string& deviceSer
 
 }
 
+/// reflects the device setup credentials
+bool getProcCPUInfo(std::string &serial) {
+	auto key = std::string("Serial");
+	std::ifstream fin(DEFAULT_CPUINFO);
+	if(!fin.is_open()) {
+		AISDK_ERROR(LX("getProcCPUInfoFailed").d("reason", "cpuinfoOpenedFailed"));
+		return false;
+	}
+
+	while(!fin.eof()) {
+		std::string line;
+		getline(fin, line);
+		auto pos = line.find(key);
+		if(pos != std::string::npos) {
+			pos = line.find_last_of(DELIM);
+			pos += 1; // skip delim :
+			serial = line.substr(pos);
+			break;
+		}
+	}
+
+	if(serial.empty()) 
+		return false;
+
+	return true;
+}
 
 }// utils
 } // namespace aisdk

@@ -18,6 +18,8 @@
 #include <cstdint>
 #include <future>
 #include <memory>
+#include <Utils/Attachment/AttachmentReader.h>
+#include <Utils/AudioFormat.h>
 
 namespace aisdk {
 namespace utils{
@@ -61,7 +63,18 @@ public:
      * returned if the source failed to be set.
      */		
 	virtual SourceId setSource(std::shared_ptr<std::istream> stream, bool repeat) = 0;
-	
+
+	/**
+     * Set an @c url source to play. The source should be set before making calls to any of the playback control
+     * APIs. If any source was set prior to this call, that source will be discarded.
+	 *
+     * @param url The url to set as the source.
+     * @param offset An optional offset parameter to start playing from when a @c play() call is made.
+     */
+    virtual SourceId setSource(
+        std::shared_ptr<utils::attachment::AttachmentReader> attachmentReader,
+        const utils::AudioFormat* format = nullptr) = 0;
+		
 	/**
      * Starts playing audio specified by the @c setSource() call.
 	 */

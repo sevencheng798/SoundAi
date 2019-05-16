@@ -58,7 +58,7 @@ std::string LogStringFormatter::format(
     bool millisecondFailure = false;
     char dateTimeString[DATE_AND_TIME_STRING_SIZE];
     auto timeAsTime_t = std::chrono::system_clock::to_time_t(time);
-	/// cts
+	/// cts convert UTC+8 by Sven
 	timeAsTime_t += (8*3600);
     std::tm timeAsTm;
     if (!m_safeCTimeAccess->getGmtime(timeAsTime_t, &timeAsTm) ||
