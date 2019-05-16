@@ -21,6 +21,7 @@ target_include_directories(AICommon PUBLIC
 	"${AICommon_SOURCE_DIR}/Utils/include"
 	"${AICommon_SOURCE_DIR}/DMInterface/include")
 
+target_link_libraries(AICommon ${LIB_SHARED_BUFFER})
 LIST(APPEND PATHS 
 	"${PROJECT_SOURCE_DIR}/Utils/include"
 	"${AICommon_SOURCE_DIR}/DMInterface/include")
