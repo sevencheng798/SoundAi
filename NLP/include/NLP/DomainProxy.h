@@ -84,7 +84,7 @@ protected:
         /**
          * Constructor.
          *
-         * @param directiveIn The @c AVSDirective with which to populate this DirectiveInfo.
+         * @param directiveIn The @c NLPDirective with which to populate this DirectiveInfo.
          * @param resultIn The @c DirectiveHandlerResultInterface instance with which to populate this DirectiveInfo.
          */
         DirectiveInfo(
