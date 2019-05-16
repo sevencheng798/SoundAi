@@ -302,17 +302,15 @@ void CheckAlarmList(sqlite3 *db)
     char const *minsql = "select min(timestamp) from alarm;";
     sqlite3_get_table( db , minsql , &azResult , &nrow , &ncolumn , &zErrMsg );
     
-    for(int i=0;i<(nrow+1)*ncolumn;i++)
-        {
-        AISDK_INFO(LX("Alarms time").d("i", i).d("azResult[i]", azResult[i]));
-        }         
-        std::cout << "AlarmsPlayer:: min(timestamp) from alarm " << azResult[nrow*ncolumn] << std::endl;
-        //ONE TIME ALARM ::first alarm time
+//    for(int i=0;i<(nrow+1)*ncolumn;i++)
+//        {
+//       AISDK_INFO(LX("Alarms time").d("i", i).d("azResult[i]", azResult[i]));
+//        } 
+        AISDK_INFO(LX("CheckAlarmList").d("min(timestamp) from alarm:", azResult[nrow*ncolumn]));        
         long int alarmtimesec = (long int)(atoll(azResult[nrow*ncolumn])/1000);   //long long int --> long int;
         struct tm *alarmp;
         alarmp = localtime(&alarmtimesec);
         printf("AlarmsPlayer:sqliteThreadHander::first alarm time:%d-%d-%d %d:%d:%d\n", 1900+alarmp->tm_year, 1+alarmp->tm_mon, alarmp->tm_mday, alarmp->tm_hour, alarmp->tm_min, alarmp->tm_sec);
-        AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander::first alarm time", alarmtimesec));
 
         //current time
         time_t timesec;
@@ -320,11 +318,11 @@ void CheckAlarmList(sqlite3 *db)
         time(&timesec);
         p = localtime(&timesec);         
         printf("AlarmsPlayer:sqliteThreadHander::current system time:%d-%d-%d %d:%d:%d\n", 1900+p->tm_year, 1+p->tm_mon, p->tm_mday, p->tm_hour, p->tm_min, p->tm_sec);
-        AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander::current system time", timesec));           
+       // AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander::current system time", timesec));           
 
 
-       if((timesec/60) == (alarmtimesec/60))  
-       {
+        if((timesec/60) == (alarmtimesec/60))  
+        {
           for(int i = 0; i < 3; i++) 
            {
            AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
@@ -335,19 +333,19 @@ void CheckAlarmList(sqlite3 *db)
          sprintf(deleteAlarmTime, "delete from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
          sqlite3_exec( db , deleteAlarmTime , NULL , NULL , &zErrMsg );
          sqlite3_free(zErrMsg);
-       }
-       else if((timesec/60) > (alarmtimesec/60))
-       { 
+        }
+        else if((timesec/60) > (alarmtimesec/60))
+        { 
          sprintf(deleteAlarmTime, "delete from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
          sqlite3_exec( db , deleteAlarmTime , NULL , NULL , &zErrMsg );
          sqlite3_free(zErrMsg);
-       }
-       else 
-       {
+        }
+        else 
+        {
          AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "waiting for one time alarm!"));
-       }
-       
-       }
+        }
+
+        }
 
 
 }
@@ -375,8 +373,6 @@ void CheckRepeatAlarmList(sqlite3 *db)
            AISDK_INFO(LX("alarmList_repeat time").d("i", i).d("azResult[i]", azResult[i]));
          }         
         std::cout << "AlarmsPlayer:: min(timestamp_day) from alarmList_repeat:: " << azResult[nrow*ncolumn] << std::endl;
-
-        std::cout << "AlarmsPlayer::今天的零点时间：--------------------:: "<< getMorningTime() << std::endl;
 
         long int alarmtimesec =(long int)( getMorningTime()+ (atoll(azResult[nrow*ncolumn])/1000));
 
@@ -423,18 +419,13 @@ void CheckRepeatAlarmListTEST(sqlite3 *db)
     char *zErrMsg =NULL;
     char **azResult=NULL;
 
-
     char const *alarmSql_repeat ="select *from alarmList_repeat;";    
     sqlite3_get_table( db , alarmSql_repeat , &azResult , &nrow , &ncolumn , &zErrMsg );
     AISDK_INFO(LX("CheckRepeatAlarmList").d("alarmList_repeat::nrow", nrow).d(" ncolumn", ncolumn));
 
     //current time
     time_t timesec;
-    struct tm *p;
     time(&timesec);
-    p = localtime(&timesec);         
-    printf("AlarmsPlayer:sqliteThreadHander::current system time:%d-%d-%d %d:%d:%d\n", 1900+p->tm_year, 1+p->tm_mon, p->tm_mday, p->tm_hour, p->tm_min, p->tm_sec);
-    AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander::current system time", timesec));           
     
     if((nrow >= 1) && (ncolumn != 0))
         {
@@ -445,7 +436,7 @@ void CheckRepeatAlarmListTEST(sqlite3 *db)
 
         struct tm *alarmp_repeat;
         alarmp_repeat = localtime(&alarmtimesec);
-        printf("AlarmsPlayer:CheckRepeatAlarmListTEST::repeat time:%d-%d-%d %d:%d:%d\n", 1900+alarmp_repeat->tm_year, 1+alarmp_repeat->tm_mon, alarmp_repeat->tm_mday, alarmp_repeat->tm_hour, alarmp_repeat->tm_min, alarmp_repeat->tm_sec);
+        printf("AlarmsPlayer:CheckRepeatAlarmList::repeat time: %d:%d:%d\n", alarmp_repeat->tm_hour, alarmp_repeat->tm_min, alarmp_repeat->tm_sec);
 
         if((timesec/20) == (alarmtimesec/20))  
          {
@@ -622,8 +613,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           sqlite3_exec(db,alarmList_repeat,NULL,NULL,&zErrMsg);
           sqlite3_free(zErrMsg);
 
-          
-          
+                   
           AISDK_INFO(LX("json_parameters").d("json_operation", json_operation->valuestring));
         ////operation type:SET 
           if( strcmp(json_operation->valuestring, ALARM_SET_OPERATION) == 0)
