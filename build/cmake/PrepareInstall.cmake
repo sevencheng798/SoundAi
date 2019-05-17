@@ -20,7 +20,7 @@ function(asdk_install_multiple path_list)
 endfunction()
 
 # Setup pkg_config variables
-SET(PKG_CONFIG_REQUIRES "openssl")
+SET(PKG_CONFIG_REQUIRES "openssl libao")
 
 SET(PKG_CONFIG_LIBS         "-L\${libdir}" CACHE INTERNAL "" FORCE)
 SET(PKG_CONFIG_LIBDIR       "\${prefix}/lib")

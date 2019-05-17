@@ -18,3 +18,11 @@ include(FFmpeg)
 # Setup openssl variables.
 include (OpenSSL)
 
+# Setup keyword detector variables.
+include (KeywordDetector)
+
+# Setup ASR Engine variables.
+include (ASREngine)
+
+# Setup googletest variables.
+include (Gtest)
