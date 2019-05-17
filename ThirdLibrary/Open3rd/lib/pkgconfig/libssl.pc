@@ -1,0 +1,11 @@
+prefix=/home/sven/work/3rd/build/openssl-1.1h-am113/../../_install/openssl-1.1h-am113
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: OpenSSL-libssl
+Description: Secure Sockets Layer and cryptography libraries
+Version: 1.1.0h
+Requires.private: libcrypto
+Libs: -L${libdir} -lssl
+Cflags: -I${includedir}

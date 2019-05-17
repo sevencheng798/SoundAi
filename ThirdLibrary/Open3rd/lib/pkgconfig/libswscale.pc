@@ -1,0 +1,14 @@
+prefix=/home/sven/work/3rd/build/ffmpeg-4.0-am113/../../_install/ffmpeg-4.0-am113
+exec_prefix=${prefix}
+libdir=/home/sven/work/3rd/build/ffmpeg-4.0-am113/../../_install/ffmpeg-4.0-am113/lib
+includedir=/home/sven/work/3rd/build/ffmpeg-4.0-am113/../../_install/ffmpeg-4.0-am113/include
+
+Name: libswscale
+Description: FFmpeg image rescaling library
+Version: 5.1.100
+Requires: 
+Requires.private: libavutil >= 56.14.100
+Conflicts:
+Libs: -L${libdir}  -lswscale 
+Libs.private: -lm
+Cflags: -I${includedir}
