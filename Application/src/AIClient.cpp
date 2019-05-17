@@ -11,11 +11,12 @@
  */
 
 #include <Utils/Logging/Logger.h>
+#include <Utils/Attachment/AttachmentManager.h>
 #include <NLP/DomainSequencer.h>
 #include <NLP/MessageInterpreter.h>
-#include <SoundAi/MessageConsumer.h>
-#include <KeywordDetector/KeywordDetector.h>
+#include <ASR/MessageConsumer.h>
 
+#include <ASR/AutomaticSpeechRecognizerRegister.h>
 #include "Application/AIClient.h"
 
 /// String to identify log entries originating from this file.
@@ -50,12 +51,6 @@ std::unique_ptr<AIClient> AIClient::createNew(
 	
 	return aiClient;
 }
-
-#if 0
-std::unique_ptr<AIClient> AIClient::createNew() {
-	return std::unique_ptr<AIClient>(new AIClient()); 
-}
-#endif
 
 bool AIClient::initialize(
 	std::shared_ptr<utils::DeviceInfo> deviceInfo,
@@ -108,34 +103,21 @@ bool AIClient::initialize(
 		AISDK_ERROR(LX("initializeFailed").d("reason", "unableToCreateDomainSequencer"));
 		return false;
 	}
-
+	/// Creating the @c AttachmentManager.
+	auto attachmentDocker = std::make_shared<utils::attachment::AttachmentManager>();
+	
 	/// Creating the domain messageinterpreter.
-	auto messageInterpreter = std::make_shared<nlp::MessageInterpreter>(m_domainSequencer);
+	auto messageInterpreter = std::make_shared<nlp::MessageInterpreter>(m_domainSequencer, attachmentDocker);
 
 	/// Creating a message consumer
-	auto messageConsumer = std::make_shared<soundai::engine::MessageConsumer>(messageInterpreter);
+	auto messageConsumer = std::make_shared<asr::MessageConsumer>(messageInterpreter);
 
-	/// Creating soundai client engine.
-	const std::string soundAiConfigPath("/cfg/sai_config");
-	m_soundAiEngine = soundai::engine::SoundAiEngine::create(deviceInfo, messageConsumer, soundAiConfigPath);
-	if(!m_soundAiEngine) {
-		AISDK_ERROR(LX("initializeFailed").d("reason", "unableToCreateSoundAiEngine"));
-		return false;
-	}
-	
-    /*
+	/*
      * Creating the Audio Track Manager
      */
     m_audioTrackManager = std::make_shared<atm::AudioTrackManager>();
 
-	/*
-	 * Creating the keyword observer - This is the commponent that deals with listener the soundai wakeup state.
-	 */
-	auto keywordObserver = std::make_shared<aisdk::kwd::KeywordDetector>(m_audioTrackManager);
-
-	// Add ai observer to ai engine.
-	m_soundAiEngine->addObserver(keywordObserver);
-	m_soundAiEngine->addObserver(m_dialogUXStateRelay);
+	m_asrEngine->addASRObserver(m_dialogUXStateRelay);
 
 	/*
 	 * Creating the speech synthesizer. This is the commponent that deals with real-time interactive domain.
@@ -150,8 +132,6 @@ bool AIClient::initialize(
     }
 
 	m_speechSynthesizer->addObserver(m_dialogUXStateRelay);
-    
-    AISDK_INFO(LX("initializeSucessed").d("reason", "CreateSpeechSynthesizer============here!!!!!!!!"));
 
 	/// To-Do Sven
 	/// Continue to add other domain commponent.
@@ -228,12 +208,26 @@ bool AIClient::initialize(
 	return true;
 }
 
+bool AIClient::notifyOfWakeWord(
+	std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream,
+	utils::sharedbuffer::SharedBuffer::Index beginIndex,
+	utils::sharedbuffer::SharedBuffer::Index endIndex) {
+	AISDK_DEBUG5(LX("notifyOfWakeWord").d("wakeup", "COMING"));
+
+	m_asrEngine->recognize(stream, beginIndex, endIndex);
+	return true;
+}
+
 void AIClient::connect() {
-	m_soundAiEngine->start();
+#ifdef ENABLE_SOUNDAI_ASR	
+	m_asrEngine->start();
+#endif
 }
 
 void AIClient::disconnect() {
-	m_soundAiEngine->stop();
+#ifdef ENABLE_SOUNDAI_ASR
+	m_asrEngine->stop();
+#endif	
 }
 
 AIClient::~AIClient() {

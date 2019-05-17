@@ -20,11 +20,13 @@
 #include <Utils/MediaPlayer/MediaPlayerInterface.h>
 #include <Utils/DialogRelay/DialogUXStateObserverInterface.h>
 #include <Utils/DialogRelay/DialogUXStateRelay.h>
-
+/// Stream buffer .
+#include <Utils/SharedBuffer/SharedBuffer.h>
 #include <DMInterface/DomainSequencerInterface.h>
 
 #include "AudioTrackManager/AudioTrackManager.h"
-#include "SoundAi/SoundAiEngine.h"
+
+#include <ASR/GenericAutomaticSpeechRecognizer.h>
 #include "SpeechSynthesizer/SpeechSynthesizer.h"
 #include "ResourcesPlayer/ResourcesPlayer.h"
 
@@ -53,9 +55,12 @@ public:
 		std::unordered_set<std::shared_ptr<utils::dialogRelay::DialogUXStateObserverInterface>>
         	dialogStateObservers,
         std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> alarmMediaPlayer);
-//
-//	static std::unique_ptr<AIClient> createNew();
-//
+
+	bool notifyOfWakeWord(
+		std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream,
+		utils::sharedbuffer::SharedBuffer::Index beginIndex,
+		utils::sharedbuffer::SharedBuffer::Index endIndex);
+
 	/**
 	 * Start service to allow the client to initiate connect sai sdk service. 
 	 */
@@ -95,7 +100,7 @@ private:
 	std::shared_ptr<dmInterface::DomainSequencerInterface> m_domainSequencer;
 
 	/// The SoundAi client engine.
-	std::shared_ptr<soundai::engine::SoundAiEngine> m_soundAiEngine;
+	std::shared_ptr<asr::GenericAutomaticSpeechRecognizer> m_asrEngine;
 
 	/// The AudioTrack manager for audio channel player.
 	std::shared_ptr<atm::AudioTrackManager> m_audioTrackManager;

@@ -21,6 +21,34 @@ static const std::string TAG{"UIManager"};
 
 namespace aisdk {
 namespace application {
+	static const std::string HELP_MESSAGE =
+		"+----------------------------------------------------------------------------+\n"
+		"|									Options:								  |\n"
+		"| Tap to talk: 															  |\n"
+		"|		 Press 't' and Enter followed by your query (no need for the kewword  |\n"
+		"|			'xiaokangxiaokang').											  |\n"
+		"| Stop an interaction: 													  |\n"
+		"|		 Press 's' and Enter to stop an ongoing interaction.				  |\n";
+
+static const std::string IDLE_MESSAGE =
+		"\n#############################################\n"
+		"########## NLP Client is currently IDLE! ####\n"
+		"#############################################\n";
+
+static const std::string LISTEN_MESSAGE =
+		"\n#############################################\n"
+		"##########    LISTENING          ############\n"
+		"#############################################\n";
+
+static const std::string SPEAK_MESSAGE =
+		"\n#############################################\n"
+		"##########    SPEAKING          #############\n"
+		"#############################################\n";
+
+static const std::string THINK_MESSAGE =
+		"\n#############################################\n"
+		"##########    THINKING          #############\n"
+		"#############################################\n";
 
 UIManager::UIManager():
 	m_dialogState{DialogUXStateObserverInterface::DialogUXState::IDLE} {
@@ -37,23 +65,39 @@ void UIManager::onDialogUXStateChanged(DialogUXStateObserverInterface::DialogUXS
 		});
 }
 
+void UIManager::printErrorScreen() {
+    m_executor.submit([]() { AISDK_INFO(LX("Invalid Option")); });
+}
+
+void UIManager::printHelpScreen() {
+    m_executor.submit([]() { AISDK_INFO(LX(HELP_MESSAGE)); });
+}
+
+void UIManager::microphoneOff() {
+    m_executor.submit([]() { AISDK_INFO(LX("Microphone Off!")); });
+}
+
+void UIManager::microphoneOn() {
+    m_executor.submit([this]() { printState(); });
+}
+
 void UIManager::printState() {
 	switch(m_dialogState) {
 		case DialogUXStateObserverInterface::DialogUXState::IDLE:
-			AISDK_INFO(LX("NLP Client is currently IDLE!"));
+			AISDK_INFO(LX(IDLE_MESSAGE));
 			break;
 		case DialogUXStateObserverInterface::DialogUXState::LISTENING:
-			AISDK_INFO(LX("Listening ..."));
+			AISDK_INFO(LX(LISTEN_MESSAGE));
             AISDK_INFO(LX("response wake up and aplay wakeup_9.wav "));
             system("aplay /cfg/sai_config/wakeup/wakeup_9.wav");
             //+WAKE UP  ; LED  ;
             
 			break;
 		case DialogUXStateObserverInterface::DialogUXState::THINKING:
-			AISDK_INFO(LX("Thinking ..."));
+			AISDK_INFO(LX(THINK_MESSAGE));
 			break;
 		case DialogUXStateObserverInterface::DialogUXState::SPEAKING:
-			AISDK_INFO(LX("SPEAKING ..."));
+			AISDK_INFO(LX(SPEAK_MESSAGE));
 			break;
 		case DialogUXStateObserverInterface::DialogUXState::FINISHED:
 			break;

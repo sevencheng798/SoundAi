@@ -38,6 +38,18 @@ public:
 	void onDialogUXStateChanged(DialogUXState newState) override;
 	/// @}
 
+	/// Prints the Error Message for Wrong Input.
+	void printErrorScreen();
+
+	/// Prints the help option.
+	void printHelpScreen();
+
+	/// Prints the mic off info.
+	void microphoneOff();
+
+	/// Prints the mic off info.
+	void microphoneOn();
+
 private:
 	
 	/// Prints the current state of nlp 

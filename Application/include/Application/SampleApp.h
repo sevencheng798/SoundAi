@@ -15,6 +15,7 @@
 
 #include <memory>
 #include <AudioMediaPlayer/AOWrapper.h>
+#include <KWD/GenericKeywordDetector.h>
 
 #include "Application/AIClient.h"
 #include "Application/UIManager.h"
@@ -57,7 +58,12 @@ private:
 	// The @c MediaPlayer used by @c MediaStream.
 	std::shared_ptr<mediaPlayer::ffmpeg::AOWrapper> m_alarmMediaPlayer;
 
+	/// The default ai sdk client instance.
 	std::shared_ptr<AIClient> m_aiClient;
+
+	/// The Wakeword Detector which can wake up the client using audio input.
+    std::unique_ptr<kwd::GenericKeywordDetector> m_keywordDetector;
+
 };
 
 }  // namespace application

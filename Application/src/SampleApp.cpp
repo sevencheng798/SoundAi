@@ -12,9 +12,11 @@
 
 #include <Utils/Logging/Logger.h>
 #include <Utils/DeviceInfo.h>
+#include <KWD/KeywordDetectorRegister.h>
 
+#include "Application/KeywordObserver.h"
+#include "Application/PortAudioMicrophoneWrapper.h"
 #include "Application/AIClient.h"  //tmp
-
 #include "Application/SampleApp.h"
 
 static const std::string TAG{"SampleApp"};
@@ -23,6 +25,24 @@ static const std::string TAG{"SampleApp"};
 
 namespace aisdk {
 namespace application {
+
+/// The sample rate of microphone audio data.
+static const unsigned int SAMPLE_RATE_HZ = 16000;
+
+/// The number of audio channels.
+static const unsigned int NUM_CHANNELS = 8;
+
+/// The size of each word within the stream.
+static const size_t WORD_SIZE = 2;
+
+/// The maximum number of readers of the stream.
+static const size_t MAX_READERS = 4;
+
+/// The amount of audio data to keep in the ring buffer.
+static const std::chrono::seconds AMOUNT_OF_AUDIO_DATA_IN_BUFFER = std::chrono::seconds(15);
+
+/// The size of the ring buffer.
+static const size_t BUFFER_SIZE_IN_SAMPLES = (SAMPLE_RATE_HZ*NUM_CHANNELS)*AMOUNT_OF_AUDIO_DATA_IN_BUFFER.count();
 
 std::unique_ptr<SampleApp> SampleApp::createNew() {
 	std::unique_ptr<SampleApp> instance(new SampleApp());
@@ -116,7 +136,7 @@ bool SampleApp::initialize() {
 
 	// Creating UI manager
 	auto userInterfaceManager = std::make_shared<UIManager>();
-#if 1
+
 	// Create the AIClient to service those component.
 	m_aiClient = aisdk::application::AIClient::createNew(
 		deviceInfo,
@@ -128,13 +148,55 @@ bool SampleApp::initialize() {
 		m_streamMediaPlayer,
 		{userInterfaceManager},
 		m_alarmMediaPlayer);
-#else
-	m_aiClient = aisdk::application::AIClient::createNew();
-#endif
+
 	if (!m_aiClient) {
         AISDK_ERROR(LX("Failed to create AI SDK client!"));
         return false;
     }
+	
+#if defined(KWD)
+	// Step1.
+	/*
+     * Creating the buffer (Shared Buffer Stream) that will hold user audio data. This is the main input into the SDK.
+     */
+	size_t bufferSize = utils::sharedbuffer::SharedBuffer::calculateBufferSize(
+		BUFFER_SIZE_IN_SAMPLES, WORD_SIZE, MAX_READERS);
+	AISDK_INFO(LX("INIT").d("bufferSize", bufferSize));
+	auto buffer = std::make_shared<utils::sharedbuffer::SharedBuffer::Buffer>(bufferSize);
+	std::shared_ptr<utils::sharedbuffer::SharedBuffer> sharedBufferStream = 
+						utils::sharedbuffer::SharedBuffer::create(buffer, WORD_SIZE, MAX_READERS);
+	if(!sharedBufferStream) {
+		AISDK_ERROR(LX("Failed to create Shared buffer stream!"));
+		return false;
+	}
+
+	// Step2.
+	/// Creating capture audio data from microphone.
+	std::shared_ptr<PortAudioMicrophoneWrapper> micWrapper = 
+					PortAudioMicrophoneWrapper::create(sharedBufferStream);
+	if(!micWrapper) {
+		AISDK_ERROR(LX("Failed to create PortAudioMicrophone!"));
+		return false;
+	}
+
+	// Step3.
+	// Creating wake word audio provider, if a wake-up library already exists.
+	// Currently only support SoundAi and IflyTek msc awake engine.
+    // This observer is notified any time a keyword is detected and notifies the AIClient to start recognizing.
+    auto keywordObserver =
+        std::make_shared<KeywordObserver>(m_aiClient);
+
+	m_keywordDetector = kwd::KeywordDetectorRegister::create(sharedBufferStream, {keywordObserver});
+	if(!m_keywordDetector) {
+		AISDK_ERROR(LX("Failed to create keyword detector!"));
+		return false;
+	}
+
+	// Step4.
+	// Creating the control action manager.
+	//TODO: We should need to implement an usr input interactive instance.
+	
+#endif
 
 	m_aiClient->connect();
 

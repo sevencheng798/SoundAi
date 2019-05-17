@@ -84,7 +84,8 @@ SoundAiKeywordDetector::~SoundAiKeywordDetector() {
 SoundAiKeywordDetector::SoundAiKeywordDetector(
 	std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream,
 	std::unordered_set<std::shared_ptr<dmInterface::KeyWordObserverInterface>> keywordObserver,
-	std::chrono::milliseconds maxSamplesPerPush):GenericKeywordDetector(keywordObserver),
+	std::chrono::milliseconds maxSamplesPerPush):
+		GenericKeywordDetector(keywordObserver),
 		m_isShuttingDown{false},
 		m_stream{stream},
 		m_streamReader{nullptr},

@@ -67,8 +67,9 @@ std::pair<std::unique_ptr<NLPDomain>, NLPDomain::ParseStatus> NLPDomain::create(
     struct NlpData outnlpdata;
     cJSON* json = NULL;
     GetNLPData(unparsedDomain.c_str(),&outnlpdata);
-    std::cout << "======20190328 dubuglog:NlpData_dataMsg:========>" <<outnlpdata.NlpData_dataMsg<< std::endl;
-    
+  //  std::cout << "======20190328 dubuglog:NlpData_dataMsg:========>" <<outnlpdata.NlpData_dataMsg<< std::endl;
+	AISDK_INFO(LX("Create").d("NlpData_dataMsg", outnlpdata.NlpData_dataMsg));   
+ 
     // To-Do to prase json key:value from the unparsedDomain    
         int code = outnlpdata.NlpData_code;
         std::string message = outnlpdata.NlpData_message;
@@ -181,14 +182,16 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
 
 
 NLPDomain::NLPDomain(
+	std::shared_ptr<utils::attachment::AttachmentManagerInterface> attachmentDocker,
 	const std::string &unparsedDomain,
-	const std::string &code,
+	const int code,
 	const std::string &message,
 	const std::string &query,
 	const std::string &domain,
 	const std::string &data,
 	const std::string &messageId) : 
 	NLPMessage(code, message, query, domain, data, messageId), 
+	m_attachmentDocker{attachmentDocker},
 	m_unparsedDomain{unparsedDomain}, 
 	m_messageId{messageId} {
 
@@ -196,6 +199,21 @@ NLPDomain::NLPDomain(
 
 std::string NLPDomain::getUnparsedDomain() const {
 	return m_unparsedDomain;
+}
+
+std::unique_ptr<utils::attachment::AttachmentReader>
+NLPDomain::getAttachmentReader(
+    const std::string& contentId,
+    utils::sharedbuffer::ReaderPolicy readerPolicy) const {
+	if(contentId != m_messageId) {
+		AISDK_ERROR(LX("getAttachmentReaderFailed")
+					.d("reason", "notMatchedContentId")
+					.d("contentId", contentId)
+					.d("messageId", m_messageId));
+		return nullptr;
+	}
+
+	return m_attachmentDocker->createReader(contentId, readerPolicy);
 }
 
 }  // namespace nlp
