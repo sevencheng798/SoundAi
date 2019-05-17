@@ -148,7 +148,6 @@ bool SampleApp::initialize() {
 		m_streamMediaPlayer,
 		{userInterfaceManager},
 		m_alarmMediaPlayer);
-
 	if (!m_aiClient) {
         AISDK_ERROR(LX("Failed to create AI SDK client!"));
         return false;
@@ -194,8 +193,7 @@ bool SampleApp::initialize() {
 
 	// Step4.
 	// Creating the control action manager.
-	//TODO: We should need to implement an usr input interactive instance.
-	
+	m_controlActionManager = std::make_shared<ControlActionManager>(m_aiClient, micWrapper, userInterfaceManager);
 #endif
 
 	m_aiClient->connect();

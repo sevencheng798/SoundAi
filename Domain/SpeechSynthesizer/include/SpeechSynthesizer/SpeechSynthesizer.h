@@ -139,7 +139,10 @@ private:
         std::shared_ptr<dmInterface::DomainHandlerResultInterface> result;
 		
 		/// Identifies the location of audio content.  the value will be a remote http/https location.
+		/// the variable will be removed.
 		std::string url;
+		/// The attachment reader @c AttachmentReader to read speech audio('text to speech').
+		std::unique_ptr<utils::attachment::AttachmentReader> attachmentReader;
 		
         /// A flag to indicate if the domain directive complete message has to be sent to the @c DomainSequencer.
         bool sendCompletedMessage;
@@ -368,7 +371,7 @@ private:
     /// The current trace acquired by the @c SpeechSynthesizer.
     utils::channel::FocusState m_currentFocus;
 
-	/// @c ChatDirectiveInfo instance for the @c NLPDirective currently being handled.
+	/// @c ChatDirectiveInfo instance for the @c NLPDomain currently being handled.
 	std::shared_ptr<ChatDirectiveInfo> m_currentInfo;
 
 	/// Mutex to serialize access to m_currentState, m_desiredState, and m_waitOnStateChange.

@@ -55,4 +55,4 @@ std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream,
 }
 
 }  // namespace kwd
-}  // namespace alexaClientSDK
+}  // namespace aisdk

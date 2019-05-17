@@ -19,6 +19,7 @@
 
 #include "Application/AIClient.h"
 #include "Application/UIManager.h"
+#include "Application/ControlActionManager.h"
 
 namespace aisdk {
 namespace application {
@@ -64,6 +65,8 @@ private:
 	/// The Wakeword Detector which can wake up the client using audio input.
     std::unique_ptr<kwd::GenericKeywordDetector> m_keywordDetector;
 
+	/// The instance of @c ControlActionManager to preform user request action.
+	std::shared_ptr<ControlActionManager> m_controlActionManager;
 };
 
 }  // namespace application

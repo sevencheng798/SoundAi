@@ -103,6 +103,7 @@ bool AIClient::initialize(
 		AISDK_ERROR(LX("initializeFailed").d("reason", "unableToCreateDomainSequencer"));
 		return false;
 	}
+	
 	/// Creating the @c AttachmentManager.
 	auto attachmentDocker = std::make_shared<utils::attachment::AttachmentManager>();
 	
@@ -116,6 +117,35 @@ bool AIClient::initialize(
      * Creating the Audio Track Manager
      */
     m_audioTrackManager = std::make_shared<atm::AudioTrackManager>();
+
+	if(!attachmentDocker) {
+		AISDK_ERROR(LX("initializeFailed").d("reason", "unableToCreateAttachmentDocker"));
+		return false;
+	}
+#ifdef ENABLE_SOUNDAI_ASR
+	const std::string soundAiConfigPath("/cfg/sai_config");
+	const asr::AutomaticSpeechRecognizerConfiguration config{soundAiConfigPath, 0.45};
+	m_asrEngine = asr::AutomaticSpeechRecognizerRegister::create(
+		deviceInfo, 
+		m_audioTrackManager,
+		attachmentDocker,
+		messageConsumer,
+		config);
+	if(!m_asrEngine) {
+		AISDK_ERROR(LX("initializeFailed").d("reason", "unableToCreateASREngine"));
+		return false;
+	}
+#elif ENABLE_IFLYTEK_AIUI_ASR	
+	m_asrEngine = asr::AutomaticSpeechRecognizerRegister::create(
+		deviceInfo, 
+		m_audioTrackManager,
+		attachmentDocker,
+		messageConsumer);
+	if(!m_asrEngine) {
+		AISDK_ERROR(LX("initializeFailed").d("reason", "unableToCreateASREngine"));
+		return false;
+	}
+#endif
 
 	m_asrEngine->addASRObserver(m_dialogUXStateRelay);
 
@@ -133,6 +163,7 @@ bool AIClient::initialize(
 
 	m_speechSynthesizer->addObserver(m_dialogUXStateRelay);
 
+	AISDK_DEBUG0(LX("uujjjjuuuCreateSuccess"));
 	/// To-Do Sven
 	/// Continue to add other domain commponent.
 	/// ...
