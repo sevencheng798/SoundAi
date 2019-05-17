@@ -38,10 +38,11 @@ include(build/cmake/PrepareInstall.cmake)
 add_subdirectory(AICommon)
 add_subdirectory(MediaPlayer)
 add_subdirectory(ATM)
-add_subdirectory(SndAi)
+add_subdirectory(ASR)
 add_subdirectory(KWD)
 add_subdirectory(NLP)
 add_subdirectory(Domain)
+add_subdirectory(ThirdLibrary)
 add_subdirectory(Application)
 
 # Create .pc pkg-config file
