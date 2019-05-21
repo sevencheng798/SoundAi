@@ -83,7 +83,8 @@ bool getProcCPUInfo(std::string &serial) {
 			break;
 		}
 	}
-
+	// Close file stream.
+	fin.close();
 	if(serial.empty()) 
 		return false;
 
