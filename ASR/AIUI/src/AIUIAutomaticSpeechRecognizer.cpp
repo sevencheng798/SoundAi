@@ -39,7 +39,7 @@ static const std::string CHANNEL_NAME = utils::channel::AudioTrackManagerInterfa
 /// The name of channel handler interface
 static const std::string CHANNEL_INTERFACE_NAME{"AIUIAutomaticSpeechRecognizer"};
 
-const std::chrono::milliseconds TIMEOUT_FOR_READ_CALLS = std::chrono::milliseconds(1000);
+const std::chrono::milliseconds TIMEOUT_FOR_READ_CALLS = std::chrono::milliseconds(200);
 
 /// Set Thinking to IDLE timeout time
 const auto THINKING_TIMEOUT = std::chrono::seconds{2};
@@ -557,6 +557,8 @@ void AIUIAutomaticSpeechRecognizer::sendStreamProcessing() {
 		} else if (wordsRead == Reader::Error::OVERRUN) {
 			// no-op
 			
+		} else if(wordsRead == Reader::Error::TIMEDOUT) {
+			break;
 		} else if(wordsRead > 0) {
 			/**
 			 * 申请的内存会在sdk内部释放
@@ -635,11 +637,11 @@ bool AIUIAutomaticSpeechRecognizer::executeTextToSpeech(
 		volume	音量，0-100
 		ent	引擎，默认aisound，如果需要较好的效果，可设置成xtts
 	*/
-	std::string paramStr = "vcn=xiaoyan";
+	std::string paramStr = "vcn=x_chongchong";
 	paramStr += ",speed=50";
 	paramStr += ",pitch=40";
 	paramStr += ",volume=60";
-
+	paramStr += ",ent=xtts";
 	aiui::IAIUIMessage * ttsMsg = aiui::IAIUIMessage::create(aiui::AIUIConstant::CMD_TTS,
 		aiui::AIUIConstant::START, 0, paramStr.c_str(), textData);
 
