@@ -194,7 +194,11 @@ void PortAudioMicrophoneWrapper::portAudioStreamPreprocessing(
 				//(void)*rdptr++;
 				instant = *(rdptr+1);
 				*rwptr++ = instant;
-			} else {
+			} else if(ch == 3) {
+				(void)*rdptr++;
+				instant = *(rdptr+3);
+				*rwptr++ = instant;
+			}else {
 				(void)*rdptr++;
 				*rwptr++ = SAMPLE_SILENCE;
 			}

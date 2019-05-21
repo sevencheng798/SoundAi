@@ -163,7 +163,6 @@ bool AIClient::initialize(
 
 	m_speechSynthesizer->addObserver(m_dialogUXStateRelay);
 
-	AISDK_DEBUG0(LX("uujjjjuuuCreateSuccess"));
 	/// To-Do Sven
 	/// Continue to add other domain commponent.
 	/// ...

@@ -185,7 +185,7 @@ bool SampleApp::initialize() {
     auto keywordObserver =
         std::make_shared<KeywordObserver>(m_aiClient);
 
-	m_keywordDetector = kwd::KeywordDetectorRegister::create(sharedBufferStream, {keywordObserver});
+	m_keywordDetector = kwd::KeywordDetectorRegister::create(deviceInfo, sharedBufferStream, {keywordObserver});
 	if(!m_keywordDetector) {
 		AISDK_ERROR(LX("Failed to create keyword detector!"));
 		return false;
