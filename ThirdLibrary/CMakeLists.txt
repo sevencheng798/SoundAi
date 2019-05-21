@@ -2,8 +2,10 @@
 cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 project(ThirdLibrary LANGUAGES CXX)
 
-if (ENABLE_SOUNDAI_ASR)
+if (ENABLE_SOUNDAI_ASR OR SOUNDAI_KEY_WORD_DETECTOR)
 	add_subdirectory(SoundAi)
-elseif (ENABLE_IFLYTEK_AIUI_ASR)
+endif()
+
+if (ENABLE_IFLYTEK_AIUI_ASR)
 	add_subdirectory(Iflytek)
 endif()

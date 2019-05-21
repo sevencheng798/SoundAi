@@ -1,12 +1,13 @@
-prefix=/home/sven/work/3rd/build/openssl-1.1h-am113/../../_install/openssl-1.1h-am113
+prefix=/home/sven/work/3rd/openssl-1.0.2k/../_install/openssl-1.0.2k-am113
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include
-enginesdir=${libdir}/engines-1.1
+enginesdir=${libdir}/engines
 
 Name: OpenSSL-libcrypto
 Description: OpenSSL cryptography library
-Version: 1.1.0h
+Version: 1.0.2k
+Requires: 
 Libs: -L${libdir} -lcrypto
-Libs.private: -ldl -pthread 
-Cflags: -I${includedir}
+Libs.private: -ldl
+Cflags: -I${includedir} 
