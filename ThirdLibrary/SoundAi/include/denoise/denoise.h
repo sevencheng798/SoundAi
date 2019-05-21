@@ -27,8 +27,9 @@ typedef struct sai_denoise_ctx_t sai_denoise_ctx_t;
 typedef struct {
   const char *word; /* Text of wake/hot word */
   const char *data; /* Samples of wake/hot word */
-  size_t size;      /* Total bytes of samples */
-  float angle;      /* DOA result */
+  size_t size; /* Total bytes of samples */
+  float angle; /* DOA result */
+  float score; /* Wake confidence */
 } sai_denoise_wake_t;
 
 /**
@@ -39,7 +40,8 @@ typedef struct {
  * @param[out] cfg Created config instance, NULL if failed
  * @return 0 if successful, otherwise @see sai_asp_err_t
  */
-SAI_API int32_t sai_denoise_cfg_init(const char *res_dir, sai_denoise_cfg_t **cfg);
+SAI_API int32_t sai_denoise_cfg_init(const char *res_dir,
+                                     sai_denoise_cfg_t **cfg);
 
 /**
  * Set config option.
@@ -49,7 +51,8 @@ SAI_API int32_t sai_denoise_cfg_init(const char *res_dir, sai_denoise_cfg_t **cf
  * @param opt_value Option value
  * @return 0 if successful, otherwise @see sai_asp_err_t
  */
-SAI_API int32_t sai_denoise_cfg_set_option(sai_denoise_cfg_t *cfg, const char *opt_name,
+SAI_API int32_t sai_denoise_cfg_set_option(sai_denoise_cfg_t *cfg,
+                                           const char *opt_name,
                                            const void *opt_value);
 
 /**
@@ -59,11 +62,15 @@ SAI_API int32_t sai_denoise_cfg_set_option(sai_denoise_cfg_t *cfg, const char *o
  * otherwise the worker thread would be blocked.
  *
  * @param ctx Denoise context instance
+ * @param type Denoise type
  * @param data Samples of denoised data
  * @param size Total bytes of samples
  * @param user_data User-defined data
  */
-typedef void (*sai_denoise_data_handler_pt)(sai_denoise_ctx_t *ctx, const char *data, size_t size,
+typedef void (*sai_denoise_data_handler_pt)(sai_denoise_ctx_t *ctx,
+                                            const char *type,
+                                            const char *data,
+                                            size_t size,
                                             void *user_data);
 
 /**
@@ -73,12 +80,16 @@ typedef void (*sai_denoise_data_handler_pt)(sai_denoise_ctx_t *ctx, const char *
  * otherwise the worker thread would be blocked.
  *
  * @param ctx Denoise context instance
+ * @param type Denoise event type
  * @param code Denoise event code
  * @param payload Denoise event payload instance
  * @param user_data User-defined data
  */
-typedef void (*sai_denoise_event_handler_pt)(sai_denoise_ctx_t *ctx, int32_t code,
-                                             const void *payload, void *user_data);
+typedef void (*sai_denoise_event_handler_pt)(sai_denoise_ctx_t *ctx,
+                                             const char *type,
+                                             int32_t code,
+                                             const void *payload,
+                                             void *user_data);
 /**
  * Add an data handler.
  * Multiple data handlers could be added.
@@ -89,9 +100,10 @@ typedef void (*sai_denoise_event_handler_pt)(sai_denoise_ctx_t *ctx, int32_t cod
  * @param user_data User-defined data
  * @return 0 if successful, otherwise @see sai_asp_err_t
  */
-SAI_API int32_t sai_denoise_cfg_add_data_handler(sai_denoise_cfg_t *cfg, const char *type,
-                                                 sai_denoise_data_handler_pt handler,
-                                                 void *user_data);
+SAI_API int32_t sai_denoise_cfg_add_data_handler(sai_denoise_cfg_t *cfg,
+                                                  const char *type,
+                                                  sai_denoise_data_handler_pt handler,
+                                                  void *user_data);
 
 /**
  * Add an event handler.
@@ -103,7 +115,8 @@ SAI_API int32_t sai_denoise_cfg_add_data_handler(sai_denoise_cfg_t *cfg, const c
  * @param user_data User-defined data
  * @return 0 if successful, otherwise @see sai_asp_err_t
  */
-SAI_API int32_t sai_denoise_cfg_add_event_handler(sai_denoise_cfg_t *cfg, const char *type,
+SAI_API int32_t sai_denoise_cfg_add_event_handler(sai_denoise_cfg_t *cfg,
+                                                  const char *type,
                                                   sai_denoise_event_handler_pt handler,
                                                   void *user_data);
 
@@ -122,7 +135,8 @@ SAI_API void sai_denoise_cfg_release(sai_denoise_cfg_t *cfg);
  * @return 0 if successful, otherwise @see sai_asp_err_t
  */
 
-SAI_API int32_t sai_denoise_init(const sai_denoise_cfg_t *cfg, sai_denoise_ctx_t **ctx);
+SAI_API int32_t sai_denoise_init(const sai_denoise_cfg_t *cfg,
+                                 sai_denoise_ctx_t **ctx);
 
 /**
  * Process audio samples.
@@ -133,7 +147,9 @@ SAI_API int32_t sai_denoise_init(const sai_denoise_cfg_t *cfg, sai_denoise_ctx_t
  * @param size Total bytes of input samples
  * @return 0 if successful, otherwise @see sai_asp_err_t
  */
-SAI_API int32_t sai_denoise_feed(sai_denoise_ctx_t *ctx, const char *data, size_t size);
+SAI_API int32_t sai_denoise_feed(sai_denoise_ctx_t *ctx,
+                                 const char *data,
+                                 size_t size);
 
 /**
  * Release all resources allocated for denoise instance.
@@ -153,14 +169,16 @@ SAI_API void sai_denoise_release(sai_denoise_ctx_t *ctx);
  * @param[out] angle Estimated DOA angle
  * @return 0 if successful, otherwise @see sai_asp_err_t
  */
-SAI_API int32_t sai_denoise_get_doa(sai_denoise_ctx_t *ctx, int32_t wake_len_ms, int32_t delay_ms,
+SAI_API int32_t sai_denoise_get_doa(sai_denoise_ctx_t *ctx,
+                                    int32_t wake_len_ms,
+                                    int32_t delay_ms,
                                     float *angle);
 
 /**
  * Start beaming
  *
  * @note If external wake engine is used, must be called to provide angle and
- * then `sai_denoise_data_handler_pt` will be called. If internal wake
+ * then `sai_denoise_data_handler_pt` will be called. If internal wake 
  * engine is used, this will be called automatically
  *
  * @param ctx Denoise context
@@ -187,9 +205,19 @@ SAI_API int32_t sai_denoise_stop_beam(sai_denoise_ctx_t *ctx);
  * @param flag Flag 0 disable the feature otherwise enable the feature
  * @return 0 if successful, otherwise @see sai_asp_err_t
  */
-SAI_API int32_t sai_denoise_enable_feature(sai_denoise_ctx_t *ctx, const char *feature_name,
+SAI_API int32_t sai_denoise_enable_feature(sai_denoise_ctx_t *ctx,
+                                           const char *feature_name,
                                            int32_t flag);
 
+/**
+ * Set or update license key
+ *
+ * @param ctx Denoise context
+ * @param license_key License key
+ * @return 0 if successful, otherwise @see sai_asp_err_t
+ */
+SAI_API int32_t sai_denoise_set_license_key(sai_denoise_ctx_t *ctx,
+                                            const char *license_key);
 /**
  * Get denoise version.
  *
