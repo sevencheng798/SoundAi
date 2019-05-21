@@ -11,6 +11,7 @@
  * permissions and limitations under the License.
  */
 #include <fstream>
+#include <cstring>
 #include <Utils/Logging/Logger.h>
 #include "KeywordDetector/SoundAiKeywordDetector.h"
 
@@ -34,7 +35,10 @@ static const std::string DEFAULT_CONFIG("/data/soundai/sai_config");
 
 /// Default size of underlying Sharedbuffer when created internally.
 /// This buffer is used to send denoised data to ASR Engine @c GenricAutomaticSpeechRecognizer.
-static const int DENOISE_BUFFER_DEFAULT_SIZE_IN_BYTES = 0x100000;
+static const int DENOISE_BUFFER_DEFAULT_SIZE_IN_BYTES = 0x80000;	//0x100000;
+
+/// The size of each word within the stream.
+static const size_t WORD_SIZE = 2;
 
 /// The number of hertz per kilohertz.
 static const size_t HERTZ_PER_KILOHERTZ = 1000;
@@ -49,6 +53,7 @@ static const unsigned int SOUNDAI_DENOISE_COMPATIBLE_CHANNELS = 8;
 const std::chrono::milliseconds TIMEOUT_FOR_READ_CALLS = std::chrono::milliseconds(1000);
 
 std::unique_ptr<SoundAiKeywordDetector> SoundAiKeywordDetector::create(
+	std::shared_ptr<utils::DeviceInfo> deviceInfo,
 	std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream,
 	std::unordered_set<std::shared_ptr<dmInterface::KeyWordObserverInterface>> keywordObserver,
 	std::chrono::milliseconds maxSamplesPerPush) {
@@ -56,9 +61,14 @@ std::unique_ptr<SoundAiKeywordDetector> SoundAiKeywordDetector::create(
 		AISDK_ERROR(LX("CreateFiled").d("reason", "nullStream"));
 		return nullptr;
 	}
+
+	if(!deviceInfo) {
+		AISDK_ERROR(LX("CreateFiled").d("reason", "nullDeviceInfo"));
+		return nullptr;
+	}
 	
 	auto detector = std::unique_ptr<SoundAiKeywordDetector>(
-		new SoundAiKeywordDetector(stream, keywordObserver, maxSamplesPerPush));
+		new SoundAiKeywordDetector(deviceInfo, stream, keywordObserver, maxSamplesPerPush));
 	if(!detector->init()) {
 		AISDK_ERROR(LX("CreateFailed").d("reason", "initDetectorFailed"));
 		return nullptr;
@@ -75,6 +85,8 @@ SoundAiKeywordDetector::~SoundAiKeywordDetector() {
 	}
 	// Cleanup denoise stream writer.
 	destoryDenoiseWriter();
+
+	//sai_wake_cfg_release(wk_cfg);
 	
 	if(m_denoiseContext)
 		sai_denoise_release(m_denoiseContext);
@@ -82,10 +94,12 @@ SoundAiKeywordDetector::~SoundAiKeywordDetector() {
 }
 
 SoundAiKeywordDetector::SoundAiKeywordDetector(
+	std::shared_ptr<utils::DeviceInfo> deviceInfo,
 	std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream,
 	std::unordered_set<std::shared_ptr<dmInterface::KeyWordObserverInterface>> keywordObserver,
 	std::chrono::milliseconds maxSamplesPerPush):
 		GenericKeywordDetector(keywordObserver),
+		m_deviceInfo{deviceInfo},
 		m_isShuttingDown{false},
 		m_stream{stream},
 		m_streamReader{nullptr},
@@ -95,16 +109,39 @@ SoundAiKeywordDetector::SoundAiKeywordDetector(
 			(SOUNDAI_DENOISE_COMPATIBLE_SAMPLE_RATE/HERTZ_PER_KILOHERTZ) * 
 			(SOUNDAI_DENOISE_COMPATIBLE_CHANNELS) *maxSamplesPerPush.count()),
 		m_denoiseConfig{nullptr},
+		m_wakeConfig{nullptr},
 		m_denoiseContext{nullptr} {
 
 }
 
 bool SoundAiKeywordDetector::init() {
+	std::string license;
+	std::fstream fslic(DEFAULT_CONFIG+"/license.txt");
+	if (fslic.is_open()) {
+		license = std::string((std::istreambuf_iterator<char>(fslic)), (std::istreambuf_iterator<char>()));
+		fslic.close();
+	} else {
+		AISDK_ERROR(LX("initFailed")
+				.d("reason", "failed to open files")
+				.d("LicenseFile", DEFAULT_CONFIG+"license.txt"));
+		return false;
+	}
+	
 	int errCode = sai_denoise_cfg_init(DEFAULT_CONFIG.c_str(), &m_denoiseConfig);
 	if(SAI_ASP_ERROR_SUCCESS != errCode) {
 	    AISDK_ERROR(LX("initFailed").d("reason", "sai_denoise_cfg_init"));
 		return false;
 	}
+
+	// Init wake params configuration.
+	sai_wake_cfg_init(DEFAULT_CONFIG.c_str(), &m_wakeConfig);
+	sai_denoise_cfg_set_option(m_denoiseConfig, DENOISE_CFG_OPT_WAKE_CFG, m_wakeConfig);
+
+	// Set device UUID.
+	auto UUID = m_deviceInfo->getDeviceSerialNumber();
+	AISDK_INFO(LX("init").d("license", license).d("UUID", UUID));
+	sai_denoise_cfg_set_option(m_denoiseConfig, DENOISE_CFG_OPT_UNIQUE_ID, UUID.c_str());
+	//sai_denoise_cfg_set_option(m_denoiseConfig, DENOISE_CFG_OPT_LOGGER, (const void*)userLog);
 
 	errCode = sai_denoise_cfg_add_event_handler(
 			m_denoiseConfig,
@@ -141,6 +178,12 @@ bool SoundAiKeywordDetector::init() {
 	    AISDK_ERROR(LX("initFailed").d("reason", "sai_denoise_init"));
 		return false;
 	}
+	
+	errCode = sai_denoise_set_license_key(m_denoiseContext, license.c_str());
+	if(SAI_ASP_ERROR_SUCCESS != errCode) {
+	    AISDK_ERROR(LX("initFailed").d("reason", "sai_denoise_set_license_key"));
+		return false;
+	}
 
 	// Create a @c Reader's to read data from the @c SharedBufferStream.
     m_streamReader = m_stream->createReader(Reader::Policy::BLOCKING);
@@ -164,10 +207,10 @@ bool SoundAiKeywordDetector::establishDenoiseWriter() {
      */
     if(!m_denoiseStream) {
 		size_t bufferSize = utils::sharedbuffer::SharedBuffer::calculateBufferSize(
-			DENOISE_BUFFER_DEFAULT_SIZE_IN_BYTES);
+			DENOISE_BUFFER_DEFAULT_SIZE_IN_BYTES, WORD_SIZE);
 		AISDK_INFO(LX("establishDenoiseWriter").d("bufferSize", bufferSize));
 		auto buffer = std::make_shared<utils::sharedbuffer::SharedBuffer::Buffer>(bufferSize);
-		m_denoiseStream = utils::sharedbuffer::SharedBuffer::create(buffer);
+		m_denoiseStream = utils::sharedbuffer::SharedBuffer::create(buffer, WORD_SIZE);
 		if(!m_denoiseStream) {
 			AISDK_ERROR(LX("establishDenoiseWriterFailed").d("reason", "createDenoiseStreamFailed"));
 			return false;
@@ -191,6 +234,7 @@ void SoundAiKeywordDetector::destoryDenoiseWriter() {
 
 void SoundAiKeywordDetector::handleKeywordDetectedCallback(
 	sai_denoise_ctx_t* denoiseContext,
+	const char* type,
 	int32_t code,
 	const void* payload,
 	void* userData) {
@@ -207,8 +251,10 @@ void SoundAiKeywordDetector::handleKeywordDetectedCallback(
 	SoundAiKeywordDetector *detector = static_cast<SoundAiKeywordDetector*>(userData);
 	sai_denoise_wake_t* wkload = (sai_denoise_wake_t*)payload;
 	AISDK_INFO(LX("handleKeywordDetectedCallback")
+				.d("EVENT_TYPE", type)
 				.d("keyword", wkload->word)
-				.d("angle", wkload->angle));
+				.d("angle", wkload->angle)
+				.d("score", wkload->score));
 	
 	// Notify keyword observer if detecte keyword wakeup event successfuly. defaule set beginIndex and endIndex: 0.
 	detector->notifyKeyWordObservers(detector->m_denoiseStream, "xiaokang", 0, 0);
@@ -216,23 +262,25 @@ void SoundAiKeywordDetector::handleKeywordDetectedCallback(
 
 void SoundAiKeywordDetector::handleDenoiseVADCallback(
 	sai_denoise_ctx_t* denoiseContext,
+	const char* type,
 	int32_t code,
 	const void* payload,
 	void* userData) {
 	if (!payload) {
 		return;
 	}
+	
 	int vad = *(int*)payload;
 	switch (vad) {
 		case 0:
-			AISDK_INFO(LX("handleDenoiseVADCallback").d("vad", "begin"));
+			AISDK_INFO(LX("handleDenoiseVADCallback").d("EVENT_TYPE", type).d("reason", "Begin"));
 		break;
 		case 1:
-			AISDK_INFO(LX("handleDenoiseVADCallback").d("vad", "end"));
+			AISDK_INFO(LX("handleDenoiseVADCallback").d("EVENT_TYPE", type).d("reason", "End"));
 			sai_denoise_stop_beam(denoiseContext);
 			break;
 		default:
-			AISDK_INFO(LX("handleDenoiseVADCallback").d("vad", vad));
+			AISDK_INFO(LX("handleDenoiseVADCallback").d("EVENT_TYPE", type).d("reason", "default").d("vad", vad));
 			break;
 	}
 }
@@ -278,19 +326,24 @@ static void writeToFile(int32_t id, Sai_Debug_data_Type type, const std::string&
 
 void SoundAiKeywordDetector::handleDenoiseStreamCallback(
 	sai_denoise_ctx_t* denoiseContext,
+	const char* type,
 	const char* data,
 	size_t size,
 	void* userData) {
 	SoundAiKeywordDetector *detector = static_cast<SoundAiKeywordDetector*>(userData);
+	(void)type;
 	if (!detector) {
 		AISDK_ERROR(LX("handleDenoiseStreamCallback").d("reason", "nullDetector."));
 		return;
 	}
 
 	if (data && size > 0) {
+		std::vector<int16_t> pushToBuffer(size/sizeof(int16_t));
+		auto pbuf8 = static_cast<void *>(pushToBuffer.data());
 		//AISDK_INFO(LX("handleDenoiseStreamCallback").d("size", size));
 		writeToFile(1100, Sai_Debug_ASR1, std::string(data, size));
-		detector->m_denoiseWriter->write(data, size);
+		memcpy(pbuf8, data, size);
+		detector->m_denoiseWriter->write(pushToBuffer.data(), pushToBuffer.size());
 	}
 }
 

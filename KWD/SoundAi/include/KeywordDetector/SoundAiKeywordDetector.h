@@ -21,7 +21,9 @@
 
 // SoundAi open denoise header file.
 #include <denoise/denoise.h>
+#include <denoise/wake.h>
 
+#include <Utils/DeviceInfo.h>
 #include "DMInterface/KeyWordObserverInterface.h"
 #include "KWD/GenericKeywordDetector.h"
 
@@ -44,6 +46,7 @@ public:
 	 * @Return A new @c SoundAiKeywordDetector, or @c nullptr if the operation failed.
 	 */
 	static std::unique_ptr<SoundAiKeywordDetector> create(
+		std::shared_ptr<utils::DeviceInfo> deviceInfo,
 		std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream,
 		std::unordered_set<std::shared_ptr<dmInterface::KeyWordObserverInterface>> keywordObserver,
 		std::chrono::milliseconds maxSamplesPerPush = std::chrono::milliseconds(10));
@@ -60,6 +63,7 @@ private:
 	 * @param maxSamplesPerPush The amount of data in milliseconds to push to SoundAi denoise at a time.
 	 */
 	SoundAiKeywordDetector(
+		std::shared_ptr<utils::DeviceInfo> deviceInfo,
 		std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream,
 		std::unordered_set<std::shared_ptr<dmInterface::KeyWordObserverInterface>> keywordObserver,
 		std::chrono::milliseconds maxSamplesPerPush);
@@ -87,12 +91,14 @@ private:
 	 * The callback that Denoise will issue to notify of keyword detections.
 	 * 
 	 * @param denoiseContext The denoise context callback setting.
+	 * @param type The denoise event type @c denoise_option.h
 	 * @param code The denoise event code.
 	 * @param payload The denoise event message instance.
 	 * @param userData A pointer to the user data to pass along to the callback.
 	 */
 	static void handleKeywordDetectedCallback(
 		sai_denoise_ctx_t* denoiseContext,
+		const char*  type,
 		int32_t code,
 		const void* payload,
 		void* userData);
@@ -101,12 +107,14 @@ private:
 	 * The callback that Denoise will issue to notify of vad detections.
 	 * 
 	 * @param denoiseContext The denoise context callback setting.
+	 * @param type The denoise event type @c denoise_option.h
 	 * @param code The denoise event code.
 	 * @param payload The denoise event message instance.
 	 * @param userData A pointer to the user data to pass along to the callback.
 	 */
 	static void handleDenoiseVADCallback(
 		sai_denoise_ctx_t* denoiseContext,
+		const char* type,
 		int32_t code,
 		const void* payload,
 		void* userData);
@@ -115,18 +123,23 @@ private:
 	 * The callback that Denoise will issue to notify of denoise data.
 	 * 
 	 * @param denoiseContext The denoise context callback setting.
+	 * @param type The denoise event type @c denoise_option.h.
 	 * @param data The samples data of the denoised.
 	 * @param size The total bytes of the denoised samples @c data.
 	 * @param userData A pointer to the user data to pass along to the callback.
 	 */
 	static void handleDenoiseStreamCallback(
 		sai_denoise_ctx_t* denoiseContext,
+		const char* type,
 		const char* data,
 		size_t size,
 		void* userData);
 	
 	/// The main function that reads data and feeds it into the engine.
 	void detectionLoop();
+
+	/// Device info 
+	std::shared_ptr<utils::DeviceInfo> m_deviceInfo;
 	
 	/// Indicates whether the internal main loop should keep running.
 	std::atomic<bool> m_isShuttingDown;
@@ -151,6 +164,9 @@ private:
 	
 	/// Denoise config structure used to denoise init. 
 	sai_denoise_cfg_t *m_denoiseConfig;
+
+	/// Wake config structure used to wake word init, refer to wake.h. 
+	sai_wake_cfg_t* m_wakeConfig;
 
 	/// Denoise context structure used to remain denoise context resource.
 	sai_denoise_ctx_t *m_denoiseContext;

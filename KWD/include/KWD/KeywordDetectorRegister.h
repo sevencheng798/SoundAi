@@ -15,6 +15,7 @@
 
 #include <mutex>
 #include <unordered_set>
+#include <Utils/DeviceInfo.h>
 
 //#include <Utils/SharedBuffer/BufferLayout.h>
 //#include <DMInterface/KeyWordObserverInterface.h>
@@ -39,6 +40,7 @@ public:
      * @return An @c KeywordDetector if creation success or @c nullptr if creation failed.
 	 */
 	static std::unique_ptr<GenericKeywordDetector> create(
+		std::shared_ptr<utils::DeviceInfo> deviceInfo,
 		std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream,
 		std::unordered_set<std::shared_ptr<dmInterface::KeyWordObserverInterface>> keyWordObserver);
 };

@@ -36,15 +36,16 @@ static const std::string TAG("KeywordDetectorRegister");
 #define LX(event) utils::logging::LogEntry(TAG, event)
 
 std::unique_ptr<GenericKeywordDetector> KeywordDetectorRegister::create(
-std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream,
-		std::unordered_set<std::shared_ptr<dmInterface::KeyWordObserverInterface>> keyWordObserver) {
+	std::shared_ptr<utils::DeviceInfo> deviceInfo,
+	std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream,
+	std::unordered_set<std::shared_ptr<dmInterface::KeyWordObserverInterface>> keyWordObserver) {
 	if(!stream) {
 		AISDK_ERROR(LX("CreateFailed").d("reason", "SDSIsnullptr"));
 		return nullptr;
 	}
 
 #if defined(KWD_SOUNDAI)
-	return SoundAiKeywordDetector::create(stream, keyWordObserver);
+	return SoundAiKeywordDetector::create(deviceInfo, stream, keyWordObserver);
 #elif defined(KWD_IFLYTEK)
 
 	return IflyTekKeywordDetector::create(stream, keyWordObserver);
