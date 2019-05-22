@@ -50,6 +50,12 @@ public:
 	/// Prints the mic off info.
 	void microphoneOn();
 
+    ///use for read wake up audio dir and push audio list to deque.
+    void readWakeupAudioDir(char *path, std::deque<std::string> &wakeUpAudioList);
+
+    ///response wake up and aplay audio.
+    void responseWakeUp(std::deque<std::string> wakeUpAudioList);
+
 private:
 	
 	/// Prints the current state of nlp 

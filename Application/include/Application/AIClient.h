@@ -29,7 +29,6 @@
 #include <ASR/GenericAutomaticSpeechRecognizer.h>
 #include "SpeechSynthesizer/SpeechSynthesizer.h"
 #include "ResourcesPlayer/ResourcesPlayer.h"
-
 #include "AlarmsPlayer/AlarmsPlayer.h"
 
 namespace aisdk {

@@ -27,7 +27,9 @@ namespace dialogRelay {
 DialogUXStateRelay::DialogUXStateRelay()
 	:m_currentState{DialogUXStateObserverInterface::DialogUXState::IDLE},
 	m_soundAiState{soundai::SoundAiObserverInterface::State::IDLE},
-	m_speechSynthesizerState{dmInterface::SpeechSynthesizerObserverInterface::SpeechSynthesizerState::FINISHED} {
+	m_speechSynthesizerState{dmInterface::SpeechSynthesizerObserverInterface::SpeechSynthesizerState::FINISHED},
+	m_alarmsPlayerState{dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState::FINISHED},
+	m_resourcesPlayerState{dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED} {
 
 }
 
@@ -182,7 +184,9 @@ void DialogUXStateRelay::tryEnterIdleState() {
 		// The delay ensures that ASR state is avoided from Thinking to IDLE.
 		usleep(200*1000);
 		if(m_currentState != dialogRelay::DialogUXStateObserverInterface::DialogUXState::IDLE && \
-			m_speechSynthesizerState == dmInterface::SpeechSynthesizerObserverInterface::SpeechSynthesizerState::FINISHED) {
+			m_speechSynthesizerState == dmInterface::SpeechSynthesizerObserverInterface::SpeechSynthesizerState::FINISHED && \
+			m_alarmsPlayerState == dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState::FINISHED && \
+			m_resourcesPlayerState == dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED) {
 			setState(dialogRelay::DialogUXStateObserverInterface::DialogUXState::IDLE);
 		}
 	});

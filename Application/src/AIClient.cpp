@@ -228,7 +228,7 @@ bool AIClient::initialize(
 	if (!m_domainSequencer->addDomainHandler(m_alarmsPlayer)) {
 	AISDK_ERROR(LX("initializeFailed")
 					.d("reason", "unableToRegisterDomainHandler")
-					.d("domainHandler", "m_alarmMediaPlayer"));
+					.d("domainHandler", "AlarmMediaPlayer"));
 	return false;
 	}
 #endif    

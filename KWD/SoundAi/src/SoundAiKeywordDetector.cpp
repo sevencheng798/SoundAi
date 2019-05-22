@@ -207,10 +207,10 @@ bool SoundAiKeywordDetector::establishDenoiseWriter() {
      */
     if(!m_denoiseStream) {
 		size_t bufferSize = utils::sharedbuffer::SharedBuffer::calculateBufferSize(
-			DENOISE_BUFFER_DEFAULT_SIZE_IN_BYTES, WORD_SIZE);
+			DENOISE_BUFFER_DEFAULT_SIZE_IN_BYTES, WORD_SIZE, 2);
 		AISDK_INFO(LX("establishDenoiseWriter").d("bufferSize", bufferSize));
 		auto buffer = std::make_shared<utils::sharedbuffer::SharedBuffer::Buffer>(bufferSize);
-		m_denoiseStream = utils::sharedbuffer::SharedBuffer::create(buffer, WORD_SIZE);
+		m_denoiseStream = utils::sharedbuffer::SharedBuffer::create(buffer, WORD_SIZE, 2);
 		if(!m_denoiseStream) {
 			AISDK_ERROR(LX("establishDenoiseWriterFailed").d("reason", "createDenoiseStreamFailed"));
 			return false;

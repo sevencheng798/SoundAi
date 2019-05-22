@@ -120,7 +120,7 @@ private:
     /**
      * This class has all the data that is needed to process @c Chat(url_tts) directives.
      */
-    class ChatDirectiveInfo {
+    class ResourcesDirectiveInfo {
     public:
 		
         /**
@@ -128,7 +128,7 @@ private:
          *
          * @param directiveInfo The @c DirectiveInfo.
          */
-		ChatDirectiveInfo(std::shared_ptr<DirectiveInfo> directiveInfo);
+		ResourcesDirectiveInfo(std::shared_ptr<DirectiveInfo> directiveInfo);
 
 		/// Release Chat specific resources.
         void clear();
@@ -143,6 +143,10 @@ private:
 		std::string url;
 
         std::deque<std::string> audioList;
+
+		/// The attachment reader @c AttachmentReader to read speech audio('text to speech').
+		std::unique_ptr<utils::attachment::AttachmentReader> attachmentReader;
+
         
         /// A flag to indicate if the domain directive complete message has to be sent to the @c DomainSequencer.
         bool sendCompletedMessage;
@@ -160,7 +164,7 @@ private:
 
     /**
      * Initializes the @c ResourcesPlayer.
-     * Adds the @c SpeechSynthesizer as an observer of the speech player.
+     * Adds the @c ResourcesPlayer as an observer of the speech player.
      */
     void init();
 
@@ -169,7 +173,7 @@ private:
      *
      * @param info The directive to pre-handle and the associated data.
      */
-    void executePreHandleAfterValidation(std::shared_ptr<ChatDirectiveInfo> info);
+    void executePreHandleAfterValidation(std::shared_ptr<ResourcesDirectiveInfo> info);
 
     /**
      * Handle a ResourcesPlayer.Chat directive (on the @c m_executor threadpool).  This starts a request for
@@ -177,7 +181,7 @@ private:
      *
      * @param info The directive to handle and the associated data.
      */
-    void executeHandleAfterValidation(std::shared_ptr<ChatDirectiveInfo> info);
+    void executeHandleAfterValidation(std::shared_ptr<ResourcesDirectiveInfo> info);
 
     /**
      * Pre-handle a ResourcesPlayer.Chat directive (on the @c m_executor thread). This starts a request parse.
@@ -248,7 +252,7 @@ private:
      * Set the desired state the @c ResourcesPlayer needs to transition to based on the @c newTrace.
      * @c m_mutex must be acquired before calling this function.
      *
-     * @param newTrace The new track focus of the @c SpeechSynthesizer.
+     * @param newTrace The new track focus of the @c ResourcesPlayer.
      */
     void setDesiredStateLocked(utils::channel::FocusState newTrace);
 
@@ -258,7 +262,7 @@ private:
      *
      * @param info The @c DirectiveInfo instance to make current (defaults to @c nullptr).
      */
-	void resetCurrentInfo(std::shared_ptr<ChatDirectiveInfo> info = nullptr);
+	void resetCurrentInfo(std::shared_ptr<ResourcesDirectiveInfo> info = nullptr);
 
     /**
      * Send the handling completed notification to @c domainRouter and clean up the resources of @c m_currentInfo.
@@ -272,7 +276,7 @@ private:
      * @param message The error message to include in the ExceptionEncountered message.
      */
 	void reportExceptionFailed(
-		std::shared_ptr<ChatDirectiveInfo> info,
+		std::shared_ptr<ResourcesDirectiveInfo> info,
         const std::string& message);
 
     /**
@@ -287,47 +291,47 @@ private:
     void resetMediaSourceId();
 
     /**
-     * Verify a pointer to a well formed @c ChatDirectiveInfo.
+     * Verify a pointer to a well formed @c ResourcesDirectiveInfo.
      *
      * @param caller Name of the method making the call, for logging.
      * @param info The @c DirectiveInfo to test.
      * @param checkResult Check if the @c DomainHandlerResultInterface is not a @c nullptr in the @c DirectiveInfo.
-     * @return A @c ChatDirectiveInfo if it is well formed, otherwise @c nullptr.
+     * @return A @c ResourcesDirectiveInfo if it is well formed, otherwise @c nullptr.
      */
-    std::shared_ptr<ChatDirectiveInfo> validateInfo(
+    std::shared_ptr<ResourcesDirectiveInfo> validateInfo(
         const std::string& caller,
         std::shared_ptr<DirectiveInfo> info,
         bool checkResult = true);
 
     /**
-     * Find the @c ChatDirectiveInfo instance (if any) for the specified @c messageId.
+     * Find the @c ResourcesDirectiveInfo instance (if any) for the specified @c messageId.
      *
-     * @param messageId The messageId value to find @c ChatDirectiveInfo instance.
-     * @return The @c ChatDirectiveInfo instance for @c messageId.
+     * @param messageId The messageId value to find @c ResourcesDirectiveInfo instance.
+     * @return The @c ResourcesDirectiveInfo instance for @c messageId.
      */
-    std::shared_ptr<ChatDirectiveInfo> getChatDirectiveInfo(const std::string& messageId);
+    std::shared_ptr<ResourcesDirectiveInfo> getResourcesDirectiveInfo(const std::string& messageId);
 
     /**
      * Checks if the @c messageId is already present in the map. If its not present, adds an entry to the map.
      *
      * @param messageId The @c messageId value to add to the @c m_chatDirectiveInfoMap
-     * @param info The @c ChatDirectiveInfo corresponding to the @c messageId to add.
-     * @return @c true if @c messageId to @c ChatDirectiveInfo mapping was added. @c false if entry already exists
+     * @param info The @c ResourcesDirectiveInfo corresponding to the @c messageId to add.
+     * @return @c true if @c messageId to @c ResourcesDirectiveInfo mapping was added. @c false if entry already exists
      * for the @c messageId.
      */
-    bool setChatDirectiveInfo(
+    bool setResourcesDirectiveInfo(
         const std::string& messageId,
-        std::shared_ptr<ResourcesPlayer::ChatDirectiveInfo> info);
+        std::shared_ptr<ResourcesPlayer::ResourcesDirectiveInfo> info);
 
     /**
-     * Adds the @c ChatDirectiveInfo to the @c m_chatInfoQueue.
+     * Adds the @c ResourcesDirectiveInfo to the @c m_chatInfoQueue.
      *
-     * @param info The @c ChatDirectiveInfo to add to the @c m_chatInfoQueue.
+     * @param info The @c ResourcesDirectiveInfo to add to the @c m_chatInfoQueue.
      */
-    void addToDirectiveQueue(std::shared_ptr<ChatDirectiveInfo> info);
+    void addToDirectiveQueue(std::shared_ptr<ResourcesDirectiveInfo> info);
 
     /**
-     * Removes the @c ChatDirectiveInfo corresponding to the @c messageId from the @c m_chatDirectiveInfoMap.
+     * Removes the @c ResourcesDirectiveInfo corresponding to the @c messageId from the @c m_chatDirectiveInfoMap.
      *
      * @param messageId The @c messageId to remove.
      */
@@ -357,43 +361,43 @@ private:
     std::unordered_set<std::shared_ptr<dmInterface::ResourcesPlayerObserverInterface>> m_observers;
 
     /**
-     * The current state of the @c SpeechSynthesizer. @c m_mutex must be acquired before reading or writing the
+     * The current state of the @c ResourcesPlayer. @c m_mutex must be acquired before reading or writing the
      * @c m_currentState.
      */
     dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState m_currentState;
 
     /**
-     * The state the @c SpeechSynthesizer must transition to. @c m_mutex must be acquired before reading or writing
+     * The state the @c ResourcesPlayer must transition to. @c m_mutex must be acquired before reading or writing
      * the @c m_desiredState.
      */
     dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState m_desiredState;
 
-    /// The current trace acquired by the @c SpeechSynthesizer.
+    /// The current trace acquired by the @c ResourcesPlayer.
     utils::channel::FocusState m_currentFocus;
 
-	/// @c ChatDirectiveInfo instance for the @c AVSDirective currently being handled.
-	std::shared_ptr<ChatDirectiveInfo> m_currentInfo;
+	/// @c ResourcesDirectiveInfo instance for the @c AVSDirective currently being handled.
+	std::shared_ptr<ResourcesDirectiveInfo> m_currentInfo;
 
 	/// Mutex to serialize access to m_currentState, m_desiredState, and m_waitOnStateChange.
 	std::mutex m_mutex;
 
-	/// A flag to keep track of if @c SpeechSynthesizer has called @c Stop() already or not.
+	/// A flag to keep track of if @c ResourcesPlayer has called @c Stop() already or not.
 	bool m_isAlreadyStopping;
 
 	/// Condition variable to wake @c onFocusChanged() once the state transition to desired state is complete.
 	std::condition_variable m_waitOnStateChange;
 	
-    /// Map of message Id to @c ChatDirectiveInfo.
-    std::unordered_map<std::string, std::shared_ptr<ChatDirectiveInfo>> m_chatDirectiveInfoMap;
+    /// Map of message Id to @c ResourcesDirectiveInfo.
+    std::unordered_map<std::string, std::shared_ptr<ResourcesDirectiveInfo>> m_chatDirectiveInfoMap;
 
     /**
-     * Mutex to protect @c messageId to @c ChatDirectiveInfo mapping. This mutex must be acquired before accessing
+     * Mutex to protect @c messageId to @c ResourcesDirectiveInfo mapping. This mutex must be acquired before accessing
      * or modifying the m_chatDirectiveInfoMap
      */
     std::mutex m_chatDirectiveInfoMutex;
 
     /// Queue which holds the directives to be processed.
-    std::deque<std::shared_ptr<ChatDirectiveInfo>> m_chatInfoQueue;
+    std::deque<std::shared_ptr<ResourcesDirectiveInfo>> m_chatInfoQueue;
 
     /// Serializes access to @c m_chatInfoQueue
     std::mutex m_chatInfoQueueMutex;

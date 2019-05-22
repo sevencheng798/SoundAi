@@ -143,6 +143,9 @@ private:
 		std::string url;
 
         std::deque<std::string> audioList;
+		/// The attachment reader @c AttachmentReader to read speech audio('text to speech').
+		std::unique_ptr<utils::attachment::AttachmentReader> attachmentReader;
+
         
         /// A flag to indicate if the domain directive complete message has to be sent to the @c DomainSequencer.
         bool sendCompletedMessage;
@@ -312,24 +315,24 @@ private:
      * @param messageId The messageId value to find @c AlarmDirectiveInfo instance.
      * @return The @c AlarmDirectiveInfo instance for @c messageId.
      */
-    std::shared_ptr<AlarmDirectiveInfo> getChatDirectiveInfo(const std::string& messageId);
+    std::shared_ptr<AlarmDirectiveInfo> getAlarmDirectiveInfo(const std::string& messageId);
 
     /**
      * Checks if the @c messageId is already present in the map. If its not present, adds an entry to the map.
      *
-     * @param messageId The @c messageId value to add to the @c m_chatDirectiveInfoMap
-     * @param info The @c ChatDirectiveInfo corresponding to the @c messageId to add.
-     * @return @c true if @c messageId to @c ChatDirectiveInfo mapping was added. @c false if entry already exists
+     * @param messageId The @c messageId value to add to the @c m_alarmDirectiveInfoMap
+     * @param info The @c AlarmDirectiveInfo corresponding to the @c messageId to add.
+     * @return @c true if @c messageId to @c AlarmDirectiveInfo mapping was added. @c false if entry already exists
      * for the @c messageId.
      */
-    bool setChatDirectiveInfo(
+    bool setAlarmDirectiveInfo(
         const std::string& messageId,
         std::shared_ptr<AlarmsPlayer::AlarmDirectiveInfo> info);
 
     /**
-     * Adds the @c ChatDirectiveInfo to the @c m_chatInfoQueue.
+     * Adds the @c AlarmDirectiveInfo to the @c m_chatInfoQueue.
      *
-     * @param info The @c ChatDirectiveInfo to add to the @c m_chatInfoQueue.
+     * @param info The @c AlarmDirectiveInfo to add to the @c m_chatInfoQueue.
      */
     void addToDirectiveQueue(std::shared_ptr<AlarmDirectiveInfo> info);
 
@@ -364,18 +367,18 @@ private:
     std::unordered_set<std::shared_ptr<dmInterface::AlarmsPlayerObserverInterface>> m_observers;
 
     /**
-     * The current state of the @c SpeechSynthesizer. @c m_mutex must be acquired before reading or writing the
+     * The current state of the @c AlarmsPlayer. @c m_mutex must be acquired before reading or writing the
      * @c m_currentState.
      */
     dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState m_currentState;
 
     /**
-     * The state the @c SpeechSynthesizer must transition to. @c m_mutex must be acquired before reading or writing
+     * The state the @c AlarmsPlayer must transition to. @c m_mutex must be acquired before reading or writing
      * the @c m_desiredState.
      */
     dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState m_desiredState;
 
-    /// The current trace acquired by the @c SpeechSynthesizer.
+    /// The current trace acquired by the @c AlarmsPlayer.
     utils::channel::FocusState m_currentFocus;
 
 	/// @c AlarmDirectiveInfo instance for the @c AVSDirective currently being handled.
@@ -384,7 +387,7 @@ private:
 	/// Mutex to serialize access to m_currentState, m_desiredState, and m_waitOnStateChange.
 	std::mutex m_mutex;
 
-	/// A flag to keep track of if @c SpeechSynthesizer has called @c Stop() already or not.
+	/// A flag to keep track of if @c AlarmsPlayer has called @c Stop() already or not.
 	bool m_isAlreadyStopping;
 
 	/// Condition variable to wake @c onFocusChanged() once the state transition to desired state is complete.

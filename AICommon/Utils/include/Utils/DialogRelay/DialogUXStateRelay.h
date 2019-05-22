@@ -106,11 +106,13 @@ private:
 	/// Contains the current state of the @c SpeechSynthesizer as reported by @c SpeechSynthesizerObserverInterface
     dmInterface::SpeechSynthesizerObserverInterface::SpeechSynthesizerState m_speechSynthesizerState;
 
+    /// Contains the current state of the @c AlarmsPlayer as reported by @c AlarmsPlayerObserverInterface
+    dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState m_alarmsPlayerState;
+
     /// Contains the current state of the @c ResourcesPlayer as reported by @c ResourcesPlayerObserverInterface
     dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState m_resourcesPlayerState;
 
-    /// Contains the current state of the @c AlarmsPlayer as reported by @c AlarmsPlayerObserverInterface
-    dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState m_alarmsPlayerState;
+
 };
 
 }	// namespace dialogRelay

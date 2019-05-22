@@ -250,6 +250,7 @@ AlarmsPlayer::AlarmDirectiveInfo::AlarmDirectiveInfo(
 }
 	
 void AlarmsPlayer::AlarmDirectiveInfo::clear() {
+    attachmentReader.reset();
     sendCompletedMessage = false;
 }
 
@@ -540,10 +541,10 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
       else
       {
          json_answer = cJSON_GetObjectItem(json_data, "answer");
-         json_tts_url = cJSON_GetObjectItem(json_data, "tts_url");
+       //  json_tts_url = cJSON_GetObjectItem(json_data, "tts_url");
          json_isMultiDialog = cJSON_GetObjectItem(json_data, "isMultiDialog");
          AISDK_INFO(LX("json_data").d("json_answer", json_answer->valuestring));
-         AISDK_INFO(LX("json_data").d("json_tts_url", json_tts_url->valuestring));
+      //   AISDK_INFO(LX("json_data").d("json_tts_url", json_tts_url->valuestring));
       
          //parameters  
          json_parameters = cJSON_GetObjectItem(json_data, "parameters"); 
@@ -736,7 +737,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           }
 
       }
-       ttsurllist.push_back(json_tts_url->valuestring);
+    //   ttsurllist.push_back(json_tts_url->valuestring);
       
 }
 
@@ -748,6 +749,8 @@ void testsqlites();
 void AlarmsPlayer::executePreHandleAfterValidation(std::shared_ptr<AlarmDirectiveInfo> info) {
 	/// To-Do parse tts url and insert chatInfo map
     /// add by wx @201904
+   
+#ifdef ENABLE_SOUNDAI_ASR
      auto nlpDomain = info->directive;
      auto dateMessage = nlpDomain->getData();
      std::cout << "dateMessage =  " << dateMessage.c_str() << std::endl;
@@ -761,14 +764,28 @@ void AlarmsPlayer::executePreHandleAfterValidation(std::shared_ptr<AlarmDirectiv
      
      AISDK_INFO(LX("alarmplayer").d("当前播放内容:", info->url ));
 
-     //TEST DEMO
-     //testsqlites();
+#else
+        auto nlpDomain = info->directive;
+        auto dateMessage = nlpDomain->getData();
+        std::cout << "dateMessage =  " << dateMessage.c_str() << std::endl;
 
-    if (!setChatDirectiveInfo(info->directive->getMessageId(), info)) {
-        AISDK_ERROR(LX("executePreHandleFailed").d("reason:prehandleCalledTwiceOnSameDirective:messageId:", info->directive->getMessageId()));
+        cJSON* json = NULL, *json_data = NULL;
+        (void )json;
+        (void )json_data;
+        json_data = cJSON_Parse(dateMessage.c_str());
+        AnalysisNlpDataForAlarmsPlayer(json_data, TTS_URL_LIST);
+
+        cJSON_Delete(json_data);  
+
+        info->attachmentReader = info->directive->getAttachmentReader(
+                info->directive->getMessageId(), utils::sharedbuffer::ReaderPolicy::BLOCKING);
+    
+#endif
+    if (!setAlarmDirectiveInfo(info->directive->getMessageId(), info)) {
+		AISDK_ERROR(LX("executePreHandleFailed")
+					.d("reason", "prehandleCalledTwiceOnSameDirective")
+					.d("messageId", info->directive->getMessageId()));
     }
-     while (!TTS_URL_LIST.empty()) TTS_URL_LIST.pop_back();
-     cJSON_Delete(json_data);  
 }
 
 void AlarmsPlayer::executeHandleAfterValidation(std::shared_ptr<AlarmDirectiveInfo> info) {
@@ -961,6 +978,7 @@ void AlarmsPlayer::executePlaybackError(const utils::mediaPlayer::ErrorType& typ
 
 }
 
+/*
 void AlarmsPlayer::startPlaying() {
 	std::cout << "startPlaying" << std::endl;
     m_mediaSourceId = m_speechPlayer->setSource(m_currentInfo->url, DEFAULT_OFFSET);
@@ -990,6 +1008,51 @@ void AlarmsPlayer::stopPlaying() {
     }
      std::cout << "=======================here：stopPlaying=========." << std::endl; 
 }
+*/
+
+void AlarmsPlayer::startPlaying() {
+	AISDK_INFO(LX("startPlaying"));
+	#ifndef ENABLE_SOUNDAI_ASR
+	/// The following params must be set fix point.
+	const utils::AudioFormat format{
+						.encoding = aisdk::utils::AudioFormat::Encoding::LPCM,
+					   .endianness = aisdk::utils::AudioFormat::Endianness::LITTLE,
+					   .sampleRateHz = 16000,	
+					   .sampleSizeInBits = 16,
+					   .numChannels = 1,	
+					   .dataSigned = true
+	};
+	
+    m_mediaSourceId = m_speechPlayer->setSource(std::move(m_currentInfo->attachmentReader), &format);
+	#else
+	m_mediaSourceId = m_speechPlayer->setSource(m_currentInfo->url);
+	#endif
+    if (MediaPlayerInterface::ERROR == m_mediaSourceId) {
+		AISDK_ERROR(LX("startPlayingFailed").d("reason", "setSourceFailed"));
+        executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "playFailed");
+    } else if (!m_speechPlayer->play(m_mediaSourceId)) {
+        executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "playFailed");
+    } else {
+        // Execution of play is successful.
+        m_isAlreadyStopping = false;
+    }
+}
+
+
+void AlarmsPlayer::stopPlaying() {
+	AISDK_INFO(LX("stopPlaying"));
+    if (MediaPlayerInterface::ERROR == m_mediaSourceId) {
+		AISDK_ERROR(LX("stopPlayingFailed").d("reason", "invalidMediaSourceId").d("mediaSourceId", m_mediaSourceId));
+    } else if (m_isAlreadyStopping) {
+		AISDK_WARN(LX("stopPlayingIgnored").d("reason", "isAlreadyStopping"));
+    } else if (!m_speechPlayer->stop(m_mediaSourceId)) {
+        executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "stopFailed");
+    } else {
+        // Execution of stop is successful.
+        m_isAlreadyStopping = true;
+    }
+}
+
 
 void AlarmsPlayer::setCurrentStateLocked(
 	AlarmsPlayerObserverInterface::AlarmsPlayerState newState) {
@@ -1078,7 +1141,7 @@ std::shared_ptr<AlarmsPlayer::AlarmDirectiveInfo> AlarmsPlayer::validateInfo(
         return nullptr;
     }
 
-    auto chatDirInfo = getChatDirectiveInfo(info->directive->getMessageId());
+    auto chatDirInfo = getAlarmDirectiveInfo(info->directive->getMessageId());
     if (chatDirInfo) {
         return chatDirInfo;
     }
@@ -1089,7 +1152,7 @@ std::shared_ptr<AlarmsPlayer::AlarmDirectiveInfo> AlarmsPlayer::validateInfo(
 
 }
 
-std::shared_ptr<AlarmsPlayer::AlarmDirectiveInfo> AlarmsPlayer::getChatDirectiveInfo(const std::string& messageId) {
+std::shared_ptr<AlarmsPlayer::AlarmDirectiveInfo> AlarmsPlayer::getAlarmDirectiveInfo(const std::string& messageId) {
     std::lock_guard<std::mutex> lock(m_chatDirectiveInfoMutex);
     auto it = m_chatDirectiveInfoMap.find(messageId);
     if (it != m_chatDirectiveInfoMap.end()) {
@@ -1098,7 +1161,7 @@ std::shared_ptr<AlarmsPlayer::AlarmDirectiveInfo> AlarmsPlayer::getChatDirective
     return nullptr;
 }
 
-bool AlarmsPlayer::setChatDirectiveInfo(
+bool AlarmsPlayer::setAlarmDirectiveInfo(
 	const std::string& messageId,
 	std::shared_ptr<AlarmsPlayer::AlarmDirectiveInfo> info) {
 	std::lock_guard<std::mutex> lock(m_chatDirectiveInfoMutex);
