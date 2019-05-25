@@ -18,6 +18,7 @@
 #include <string>
 #include <unordered_set>
 #include <deque>
+#include <sqlite3.h>
 
 #include <Utils/Channel/ChannelObserverInterface.h>
 #include <Utils/Channel/AudioTrackManagerInterface.h>
@@ -28,6 +29,8 @@
 #include <Utils/SafeShutdown.h>
 #include <DMInterface/AlarmsPlayerObserverInterface.h>
 #include <NLP/DomainProxy.h>
+#include <ASR/GenericAutomaticSpeechRecognizer.h>
+#include <Utils/Attachment/AttachmentManagerInterface.h>
 
 namespace aisdk {
 namespace domain {
@@ -57,6 +60,8 @@ public:
      */
     static std::shared_ptr<AlarmsPlayer> create(
         std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> mediaPlayer,
+        std::shared_ptr<utils::attachment::AttachmentManagerInterface> ttsDocker,
+	    std::shared_ptr<asr::GenericAutomaticSpeechRecognizer> asrEngine,
         std::shared_ptr<utils::channel::AudioTrackManagerInterface> trackManager,
         std::shared_ptr<utils::dialogRelay::DialogUXStateRelay> dialogUXStateRelay);
 
@@ -159,6 +164,8 @@ private:
 	 */
 	AlarmsPlayer(
 		std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> mediaPlayer,
+		std::shared_ptr<utils::attachment::AttachmentManagerInterface> ttsDocker,
+	    std::shared_ptr<asr::GenericAutomaticSpeechRecognizer> asrEngine,
 		std::shared_ptr<utils::channel::AudioTrackManagerInterface> trackManager);
 
     /**
@@ -351,11 +358,23 @@ private:
     void executeOnDialogUXStateChanged(
         utils::dialogRelay::DialogUXStateObserverInterface::DialogUXState newState);
 
+    unsigned int getMorningTime(); 
+
+    void CheckAlarmList(sqlite3 *db);
+
+    void CheckRepeatAlarmList(sqlite3 *db);
+
 	/// The name of DomainHandler identifies which @c DomainHandlerInterface operates on.
 	std::string m_handlerName;
 	
 	/// MediaPlayerInterface instance to send tts audio to MediaPlayer interface and playback.
 	std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> m_speechPlayer;
+
+    ///
+    std::shared_ptr<utils::attachment::AttachmentManagerInterface> m_ttsDocker;
+
+    ///
+	std::shared_ptr<asr::GenericAutomaticSpeechRecognizer> m_asrEngine;
 
 	/// AudioTrackManagerInterface instance to acqurie the channel.
 	std::shared_ptr<utils::channel::AudioTrackManagerInterface> m_trackManager;

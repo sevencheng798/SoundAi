@@ -65,6 +65,8 @@ std::deque<std::string> REPEAT_ALARM_LIST;
 
 std::shared_ptr<AlarmsPlayer> AlarmsPlayer::create(
 	std::shared_ptr<MediaPlayerInterface> mediaPlayer,
+	std::shared_ptr<utils::attachment::AttachmentManagerInterface> ttsDocker,
+	std::shared_ptr<asr::GenericAutomaticSpeechRecognizer> asrEngine,
 	std::shared_ptr<AudioTrackManagerInterface> trackManager,
 	std::shared_ptr<utils::dialogRelay::DialogUXStateRelay> dialogUXStateRelay){
 	if(!mediaPlayer){
@@ -83,7 +85,7 @@ std::shared_ptr<AlarmsPlayer> AlarmsPlayer::create(
 		return nullptr;
 	}
 
-	auto instance = std::shared_ptr<AlarmsPlayer>(new AlarmsPlayer(mediaPlayer, trackManager));
+	auto instance = std::shared_ptr<AlarmsPlayer>(new AlarmsPlayer(mediaPlayer, ttsDocker, asrEngine, trackManager));
 	if(!instance){
         AISDK_ERROR(LX("AlarmsPlayerCreationFailed").d("reason: ", "NewAlarmsPlayerFailed"));
 		return nullptr;
@@ -256,11 +258,15 @@ void AlarmsPlayer::AlarmDirectiveInfo::clear() {
 
 AlarmsPlayer::AlarmsPlayer(
 	std::shared_ptr<MediaPlayerInterface> mediaPlayer,
+    std::shared_ptr<utils::attachment::AttachmentManagerInterface> ttsDocker,
+	std::shared_ptr<asr::GenericAutomaticSpeechRecognizer> asrEngine,
 	std::shared_ptr<AudioTrackManagerInterface> trackManager) :
 	DomainProxy{SPEECHNAME},
 	SafeShutdown{SPEECHNAME},
 	m_handlerName{SPEECHNAME},
 	m_speechPlayer{mediaPlayer},
+	m_ttsDocker{ttsDocker},
+	m_asrEngine{asrEngine},
 	m_trackManager{trackManager},
 	m_mediaSourceId{MediaPlayerInterface::ERROR},
 	m_currentState{AlarmsPlayerObserverInterface::AlarmsPlayerState::FINISHED},
@@ -269,13 +275,8 @@ AlarmsPlayer::AlarmsPlayer(
 	m_isAlreadyStopping{false} {
 }
 
-void CheckRepeatAlarmListTEST(sqlite3 *db);
-void CheckRepeatAlarmList(sqlite3 *db);
-void CheckAlarmList(sqlite3 *db);
-unsigned int getMorningTime();
 
-
-unsigned int getMorningTime() 
+unsigned int AlarmsPlayer::getMorningTime() 
 {  
     time_t t = time(NULL); 
     struct tm * tm= localtime(&t);  
@@ -284,15 +285,19 @@ unsigned int getMorningTime()
     tm->tm_sec = 0;  
     return  mktime(tm);  
 }  
-
     
-void CheckAlarmList(sqlite3 *db)
+void AlarmsPlayer::CheckAlarmList(sqlite3 *db)
 {
     int nrow;
     int ncolumn;
     char *zErrMsg =NULL;
     char **azResult=NULL;
     char deleteAlarmTime[512];
+    int nrowContent;
+    int ncolumnContent;
+    char *zErrMsgContent =NULL;
+    char **azResultContent=NULL;
+    char deleteAlarmContent[512];
 
     char const *alarmSql= "select *from alarm;";
     sqlite3_get_table( db , alarmSql , &azResult , &nrow , &ncolumn , &zErrMsg );
@@ -300,13 +305,9 @@ void CheckAlarmList(sqlite3 *db)
 
     if((nrow >= 1) && (ncolumn != 0))
     {
-    char const *minsql = "select min(timestamp) from alarm;";
-    sqlite3_get_table( db , minsql , &azResult , &nrow , &ncolumn , &zErrMsg );
+        char const *minsql = "select min(timestamp) from alarm;";
+        sqlite3_get_table( db , minsql , &azResult , &nrow , &ncolumn , &zErrMsg );
     
-//    for(int i=0;i<(nrow+1)*ncolumn;i++)
-//        {
-//       AISDK_INFO(LX("Alarms time").d("i", i).d("azResult[i]", azResult[i]));
-//        } 
         AISDK_INFO(LX("CheckAlarmList").d("min(timestamp) from alarm:", azResult[nrow*ncolumn]));        
         long int alarmtimesec = (long int)(atoll(azResult[nrow*ncolumn])/1000);   //long long int --> long int;
         struct tm *alarmp;
@@ -319,17 +320,37 @@ void CheckAlarmList(sqlite3 *db)
         time(&timesec);
         p = localtime(&timesec);         
         printf("AlarmsPlayer:sqliteThreadHander::current system time:%d-%d-%d %d:%d:%d\n", 1900+p->tm_year, 1+p->tm_mon, p->tm_mday, p->tm_hour, p->tm_min, p->tm_sec);
-       // AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander::current system time", timesec));           
 
 
         if((timesec/60) == (alarmtimesec/60))  
         {
-          for(int i = 0; i < 3; i++) 
+         sprintf(deleteAlarmContent, "select content from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
+         sqlite3_get_table( db , deleteAlarmContent , &azResultContent , &nrowContent , &ncolumnContent , &zErrMsgContent );
+         AISDK_INFO(LX("deleteAlarmContent").d("select content from alarm where timestamp", azResultContent[nrowContent*ncolumnContent]));        
+         std::string currentContent = azResultContent[nrowContent*ncolumnContent];
+            
+          for(int i = 0; i < 1; i++) //'i' use for set repeat times;
            {
            AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
-           //test
-           //to do something 
-           system("cvlc /cfg/sai_config/alarm.mp3 --play-and-exit");
+           
+           std::string contentId{"1234567"};
+           auto writer = m_ttsDocker->createWriter(contentId);
+           auto reader = m_ttsDocker->createReader(contentId, utils::sharedbuffer::ReaderPolicy::BLOCKING);
+           AISDK_INFO(LX("deleteAlarmContent").d("currentContent", currentContent));
+           m_asrEngine->acquireTextToSpeech(currentContent, std::move(writer));
+           
+           utils::AudioFormat format {
+           .encoding = aisdk::utils::AudioFormat::Encoding::LPCM,
+           .endianness = aisdk::utils::AudioFormat::Endianness::LITTLE,
+           .sampleRateHz = 16000,
+           .sampleSizeInBits = 16,
+           .numChannels = 1,
+           .dataSigned = true
+           };
+           
+           auto sourceId = m_speechPlayer->setSource(std::move(reader), &format);
+           m_speechPlayer->play(sourceId);
+          // system("cvlc /cfg/sai_config/alarm.mp3 --play-and-exit");
            }
          sprintf(deleteAlarmTime, "delete from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
          sqlite3_exec( db , deleteAlarmTime , NULL , NULL , &zErrMsg );
@@ -348,77 +369,20 @@ void CheckAlarmList(sqlite3 *db)
 
         }
 
-
 }
 
 
-void CheckRepeatAlarmList(sqlite3 *db)
+void AlarmsPlayer::CheckRepeatAlarmList(sqlite3 *db)
 {
     int nrow;
     int ncolumn;
     char *zErrMsg =NULL;
     char **azResult=NULL;
-   // int whetherExecuted = 0 ;    
-
-    char const *alarmSql_repeat ="select *from alarmList_repeat;";
-    sqlite3_get_table( db , alarmSql_repeat , &azResult , &nrow , &ncolumn , &zErrMsg );
-    AISDK_INFO(LX("CheckRepeatAlarmList").d("alarmList_repeat::nrow", nrow).d(" ncolumn", ncolumn));
-
-     if((nrow >= 1) && (ncolumn != 0))
-        {
-        char const *minsql_repeat = "select min(timestamp_day) from alarmList_repeat;";
-        sqlite3_get_table( db , minsql_repeat , &azResult , &nrow , &ncolumn , &zErrMsg );
-
-        for(int i=0;i<(nrow+1)*ncolumn;i++)
-         {
-           AISDK_INFO(LX("alarmList_repeat time").d("i", i).d("azResult[i]", azResult[i]));
-         }         
-        std::cout << "AlarmsPlayer:: min(timestamp_day) from alarmList_repeat:: " << azResult[nrow*ncolumn] << std::endl;
-
-        long int alarmtimesec =(long int)( getMorningTime()+ (atoll(azResult[nrow*ncolumn])/1000));
-
-        struct tm *alarmp_repeat;
-        alarmp_repeat = localtime(&alarmtimesec);
-        printf("AlarmsPlayer:sqliteThreadHander::first alarmp_repeat time:%d-%d-%d %d:%d:%d\n", 1900+alarmp_repeat->tm_year, 1+alarmp_repeat->tm_mon, alarmp_repeat->tm_mday, alarmp_repeat->tm_hour, alarmp_repeat->tm_min, alarmp_repeat->tm_sec);
-
-
-        //current time
-        time_t timesec;
-        struct tm *p;
-        time(&timesec);
-        p = localtime(&timesec);         
-        printf("AlarmsPlayer:sqliteThreadHander::current system time:%d-%d-%d %d:%d:%d\n", 1900+p->tm_year, 1+p->tm_mon, p->tm_mday, p->tm_hour, p->tm_min, p->tm_sec);
-        AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander::current system time", timesec));           
-         
-          
-       if((timesec/60) == (alarmtimesec/60))  
-       {
-          for(int i = 0; i < 3; i++) 
-           {
-           AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
-           //test
-           //to do something 
-           system("cvlc /cfg/sai_config/alarm.mp3 --play-and-exit");
-           }
-       }
-       else 
-       {
-         AISDK_INFO(LX("sqliteThreadHander").d("CheckRepeatAlarmList", "waiting for repeat time alarm!"));
-       }
-       
-       }
-
-
-}
-
-
-
-void CheckRepeatAlarmListTEST(sqlite3 *db)
-{
-    int nrow;
-    int ncolumn;
-    char *zErrMsg =NULL;
-    char **azResult=NULL;
+    int nrowContent;
+    int ncolumnContent;
+    char *zErrMsgContent =NULL;
+    char **azResultContent=NULL;
+    char deleteAlarmContent[512];
 
     char const *alarmSql_repeat ="select *from alarmList_repeat;";    
     sqlite3_get_table( db , alarmSql_repeat , &azResult , &nrow , &ncolumn , &zErrMsg );
@@ -439,14 +403,36 @@ void CheckRepeatAlarmListTEST(sqlite3 *db)
         alarmp_repeat = localtime(&alarmtimesec);
         printf("AlarmsPlayer:CheckRepeatAlarmList::repeat time: %d:%d:%d\n", alarmp_repeat->tm_hour, alarmp_repeat->tm_min, alarmp_repeat->tm_sec);
 
+        sprintf(deleteAlarmContent, "select content from alarmList_repeat where timestamp_day = %s;" ,azResult[i]);
+        sqlite3_get_table( db , deleteAlarmContent , &azResultContent , &nrowContent , &ncolumnContent , &zErrMsgContent );
+        //AISDK_INFO(LX("deleteAlarmContent").d("select content from alarm where timestamp_day", azResultContent[nrowContent*ncolumnContent]));        
+        std::string currentContent = azResultContent[nrowContent*ncolumnContent];
+
         if((timesec/20) == (alarmtimesec/20))  
-         {
-            for(int i = 0; i < 3; i++) 
+         {         
+
+            for(int i = 0; i < 1; i++) 
              {
              AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
              //test
-             //to do something 
-             system("cvlc /cfg/sai_config/alarm.mp3 --play-and-exit");
+             std::string contentId{"987654321"};
+             auto writer = m_ttsDocker->createWriter(contentId);
+             auto reader = m_ttsDocker->createReader(contentId, utils::sharedbuffer::ReaderPolicy::BLOCKING);
+             AISDK_INFO(LX("deleteAlarmContent").d("currentContent", currentContent));
+             m_asrEngine->acquireTextToSpeech(currentContent, std::move(writer));
+             
+             utils::AudioFormat format {
+             .encoding = aisdk::utils::AudioFormat::Encoding::LPCM,
+             .endianness = aisdk::utils::AudioFormat::Endianness::LITTLE,
+             .sampleRateHz = 16000,
+             .sampleSizeInBits = 16,
+             .numChannels = 1,
+             .dataSigned = true
+             };
+             
+             auto sourceId = m_speechPlayer->setSource(std::move(reader), &format);
+             m_speechPlayer->play(sourceId);
+             
              }
          }
         
@@ -454,8 +440,6 @@ void CheckRepeatAlarmListTEST(sqlite3 *db)
     }
 
 }
-
-
 
 
 void AlarmsPlayer::sqliteThreadHander()
@@ -472,14 +456,12 @@ void AlarmsPlayer::sqliteThreadHander()
         exit(1);
         }
         CheckAlarmList(db);
-       // CheckRepeatAlarmList(db);
-        CheckRepeatAlarmListTEST(db);
+        CheckRepeatAlarmList(db);
         sqlite3_close(db);
         sleep(10);
     }
     
 }
-
 
 
 void AlarmsPlayer::init() {
@@ -632,7 +614,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           struct tm *p;
           p = localtime(&timesec);
 
-          sprintf(content, "重复闹钟：现在是北京时间%d点%d分，您有一个提醒时间到了",   p->tm_hour, p->tm_min);
+          sprintf(content, "循环闹钟：现在是北京时间%d点%d分，您有一个提醒时间到了",   p->tm_hour, p->tm_min);
 
           json_event = cJSON_GetObjectItem(json_parameters, "event");  
           AISDK_INFO(LX("json_parameters").d("json_event", json_event->valuestring));
@@ -774,7 +756,6 @@ void AlarmsPlayer::executePreHandleAfterValidation(std::shared_ptr<AlarmDirectiv
         (void )json_data;
         json_data = cJSON_Parse(dateMessage.c_str());
         AnalysisNlpDataForAlarmsPlayer(json_data, TTS_URL_LIST);
-
         cJSON_Delete(json_data);  
 
         info->attachmentReader = info->directive->getAttachmentReader(
@@ -811,7 +792,6 @@ void AlarmsPlayer::executePreHandle(std::shared_ptr<DirectiveInfo> info) {
 void AlarmsPlayer::executeHandle(std::shared_ptr<DirectiveInfo> info) {
     AISDK_INFO(LX("executeHandle").d("messageId: ", info->directive->getMessageId() ));
     auto chatInfo = validateInfo("executeHandle", info);
-     AISDK_INFO(LX("===========executeHandle").d("chatInfo=========: ", chatInfo->url));
     if (!chatInfo) {
         AISDK_ERROR(LX("executeHandleFailed").d("reason", "invalidDirectiveInfo"));
         return;
@@ -978,38 +958,6 @@ void AlarmsPlayer::executePlaybackError(const utils::mediaPlayer::ErrorType& typ
 
 }
 
-/*
-void AlarmsPlayer::startPlaying() {
-	std::cout << "startPlaying" << std::endl;
-    m_mediaSourceId = m_speechPlayer->setSource(m_currentInfo->url, DEFAULT_OFFSET);
-    if (MediaPlayerInterface::ERROR == m_mediaSourceId) {
-        AISDK_ERROR(LX("startPlayingFailed").d("reason", "setSourceFailed."));
-        executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "playFailed");
-    } else if (!m_speechPlayer->play(m_mediaSourceId)) {
-        executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "playFailed");
-    } else {
-        // Execution of play is successful.
-        m_isAlreadyStopping = false;
-    }
-    	std::cout << "=======================here：startplaying=========." << std::endl;  
-}
-
-void AlarmsPlayer::stopPlaying() {
-	std::cout << "stopPlaying" << std::endl;
-    if (MediaPlayerInterface::ERROR == m_mediaSourceId) {
-        AISDK_ERROR(LX("stopPlayingFailed").d("reason:invalidMediaSourceId:mediaSourceId:", m_mediaSourceId));
-    } else if (m_isAlreadyStopping) {
-		std::cout << "stopPlayingIgnored:reason:isAlreadyStopping." << std::endl;
-    } else if (!m_speechPlayer->stop(m_mediaSourceId)) {
-        executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "stopFailed");
-    } else {
-        // Execution of stop is successful.
-        m_isAlreadyStopping = true;
-    }
-     std::cout << "=======================here：stopPlaying=========." << std::endl; 
-}
-*/
-
 void AlarmsPlayer::startPlaying() {
 	AISDK_INFO(LX("startPlaying"));
 	#ifndef ENABLE_SOUNDAI_ASR
@@ -1175,7 +1123,6 @@ bool AlarmsPlayer::setAlarmDirectiveInfo(
 
 void AlarmsPlayer::addToDirectiveQueue(std::shared_ptr<AlarmDirectiveInfo> info) {
     std::lock_guard<std::mutex> lock(m_chatInfoQueueMutex);
-     AISDK_INFO(LX("========================iamamama-"));
 
     if (m_chatInfoQueue.empty()) {
         m_chatInfoQueue.push_back(info);

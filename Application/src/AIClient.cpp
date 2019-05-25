@@ -106,7 +106,10 @@ bool AIClient::initialize(
 	
 	/// Creating the @c AttachmentManager.
 	auto attachmentDocker = std::make_shared<utils::attachment::AttachmentManager>();
-	
+
+    /// Creating the @c AttachmentManager for tts and text.
+    auto ttsDocker = std::make_shared<utils::attachment::AttachmentManager>();
+    
 	/// Creating the domain messageinterpreter.
 	auto messageInterpreter = std::make_shared<nlp::MessageInterpreter>(m_domainSequencer, attachmentDocker);
 
@@ -191,6 +194,8 @@ bool AIClient::initialize(
       *///add by wx @190401
       m_alarmsPlayer = domain::alarmsPlayer::AlarmsPlayer::create(
           alarmMediaPlayer,
+          ttsDocker,
+          m_asrEngine,
           m_audioTrackManager,
           m_dialogUXStateRelay);
       if (!m_alarmsPlayer) {
