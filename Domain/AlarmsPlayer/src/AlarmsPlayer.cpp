@@ -356,7 +356,7 @@ void AlarmsPlayer::CheckAlarmList(sqlite3 *db)
          sqlite3_exec( db , deleteAlarmTime , NULL , NULL , &zErrMsg );
          sqlite3_free(zErrMsg);
         }
-        else if((timesec/60) > (alarmtimesec/60))
+        else if((timesec/15) > (alarmtimesec/15))
         { 
          sprintf(deleteAlarmTime, "delete from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
          sqlite3_exec( db , deleteAlarmTime , NULL , NULL , &zErrMsg );

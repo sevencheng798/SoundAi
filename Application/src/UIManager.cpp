@@ -15,7 +15,8 @@
 #include <Utils/Logging/Logger.h>
 
 #include "Application/UIManager.h"
-#include<dirent.h>
+#include <dirent.h>
+
 
 static const std::string TAG{"UIManager"};
 #define LX(event) aisdk::utils::logging::LogEntry(TAG, event)
@@ -23,6 +24,9 @@ static const std::string TAG{"UIManager"};
 char wakeUpAudioPath[] = "/cfg/sai_config/wakeup" ;
 //to check the read audio dir time when starting up or wake up; 
 int flag_Time_read_audioDir = 0; 
+
+//use for send msg to ipc.
+struct MqSndInfo m_mqSndInfo;
 
 namespace aisdk {
 namespace application {
@@ -62,6 +66,44 @@ UIManager::UIManager():
 	m_dialogState{DialogUXStateObserverInterface::DialogUXState::IDLE} {
 
 }
+
+int UIManager::creatMsg(MqSndInfo mqSndInfo){
+        MQ_SND_INFO_T snd_info;
+        ssize_t ret = 0;
+        char* tmp = NULL;
+        memset(&snd_info, 0x00, sizeof(MQ_SND_INFO_T));
+        tmp = (char*)malloc(sizeof(char)*255);
+
+        if (NULL != tmp)
+        {
+            memset(tmp, 0x00, sizeof(char)*255);
+            // snprintf(tmp, sizeof(char)* 255, "");
+        }
+        snd_info.msg_info.msg_type = GM_MSG_SAMPLE;
+        snd_info.msg_info.sub_msg_info.sub_id = mqSndInfo.msg_info.sub_msg_info.sub_id;
+        snd_info.msg_info.sub_msg_info.status = mqSndInfo.msg_info.sub_msg_info.status;
+        memcpy(snd_info.msg_info.sub_msg_info.content, tmp, sizeof(char)* 255);
+        snd_info.msg_info.sub_msg_info.content_len = sizeof(char) * 255;
+        snd_info.msg_info.sub_msg_info.iparam = 0xffffffff;
+        snd_info.mq_flag = IPC_NOWAIT;
+
+        AISDK_INFO(LX("IPC::creatMsg")
+            .d("msg_type ",GM_MSG_SAMPLE)
+            .d("mode ",mqSndInfo.msg_info.sub_msg_info.sub_id)
+            .d("status ",mqSndInfo.msg_info.sub_msg_info.status));
+        ret = mq_send(&snd_info);
+        if (0 > ret)
+        {
+            return -1;
+        }
+        
+        free(tmp);
+        tmp = NULL;
+
+        return 0;
+
+}
+
 
 void UIManager::onDialogUXStateChanged(DialogUXStateObserverInterface::DialogUXState newState) {
 	m_executor.submit([this, newState]() {
@@ -132,25 +174,40 @@ void UIManager::printState() {
      while (!WAKEUP_AUDIO_LIST.empty()) WAKEUP_AUDIO_LIST.pop_back();
      readWakeupAudioDir(wakeUpAudioPath,WAKEUP_AUDIO_LIST);
      }
+     
+     memset(&m_mqSndInfo, 0x00, sizeof(m_mqSndInfo));
 
 	switch(m_dialogState) {
 		case DialogUXStateObserverInterface::DialogUXState::IDLE:
+            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_MUTE;
+            m_mqSndInfo.msg_info.sub_msg_info.status = 0;
+            creatMsg(m_mqSndInfo);
 			AISDK_INFO(LX(IDLE_MESSAGE));
 			break;
 		case DialogUXStateObserverInterface::DialogUXState::LISTENING:
 			AISDK_INFO(LX(LISTEN_MESSAGE));
+            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_WAKEUP;
+            m_mqSndInfo.msg_info.sub_msg_info.status = 1;
+            creatMsg(m_mqSndInfo);
             responseWakeUp(WAKEUP_AUDIO_LIST);
             //+WAKE UP  ; LED  ;
 			break;
 		case DialogUXStateObserverInterface::DialogUXState::THINKING:
+            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_WAKEUP;
+            m_mqSndInfo.msg_info.sub_msg_info.status = 0;
+            creatMsg(m_mqSndInfo);
 			AISDK_INFO(LX(THINK_MESSAGE));
 			break;
 		case DialogUXStateObserverInterface::DialogUXState::SPEAKING:
+            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_TTS;
+            m_mqSndInfo.msg_info.sub_msg_info.status = 1;
+            creatMsg(m_mqSndInfo);
 			AISDK_INFO(LX(SPEAK_MESSAGE));
 			break;
 		case DialogUXStateObserverInterface::DialogUXState::FINISHED:
 			break;
 	}
+    
 }
 
 } // namespace application

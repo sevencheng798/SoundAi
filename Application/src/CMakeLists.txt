@@ -10,6 +10,7 @@ list(APPEND SampleApp_SOURCES
 # For AM113 to set the path.
 link_directories(${JSONCPP_LIB_PATH})
 link_directories(${SQLITE3_LIB_PATH})
+link_directories(${ThirdLibrary_SOURCES_DIR}/Open3rd/lib)
 
 add_executable(SampleApp ${SampleApp_SOURCES})
 
@@ -34,6 +35,7 @@ target_link_libraries(SampleApp
 		ao
 		asound
 		sqlite3
+		msgq
 		jsoncpp
 		z)
 		

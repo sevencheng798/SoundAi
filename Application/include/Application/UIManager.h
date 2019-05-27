@@ -15,6 +15,8 @@
 
 #include <Utils/DialogRelay/DialogUXStateObserverInterface.h>
 #include <Utils/Threading/Executor.h>
+#include "Application/mq_api.h"
+
 
 namespace aisdk {
 namespace application {
@@ -33,6 +35,11 @@ public:
      */
 	UIManager();
 
+    ///use for ipc communication(key, led, event and so on);
+    // int creatMsg(int argc, char* argv[]);
+   // int creatMsg(e_LED_MODE mode, int status);
+    int creatMsg(MqSndInfo mqSndInfo);
+    
 	/// @name DialogUXStateObserverInterface methods
 	/// @{
 	void onDialogUXStateChanged(DialogUXState newState) override;
@@ -64,6 +71,8 @@ private:
 	/// The current dialog UX state of the SDK
     DialogUXState m_dialogState;
 
+    ///creatMsg msg id;
+    int m_msgId; 
 	/// An internal executor thread pool that performs execution task sequentially.
     utils::threading::Executor m_executor;
 };
