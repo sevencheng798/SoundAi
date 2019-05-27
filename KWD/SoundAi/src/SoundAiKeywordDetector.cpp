@@ -40,6 +40,9 @@ static const int DENOISE_BUFFER_DEFAULT_SIZE_IN_BYTES = 0x80000;	//0x100000;
 /// The size of each word within the stream.
 static const size_t WORD_SIZE = 2;
 
+/// The number of reader for denoised stream.
+static const size_t MAX_DENOISE_READER = 2;
+
 /// The number of hertz per kilohertz.
 static const size_t HERTZ_PER_KILOHERTZ = 1000;
 
@@ -123,7 +126,7 @@ bool SoundAiKeywordDetector::init() {
 	} else {
 		AISDK_ERROR(LX("initFailed")
 				.d("reason", "failed to open files")
-				.d("LicenseFile", DEFAULT_CONFIG+"license.txt"));
+				.d("LicenseFile", DEFAULT_CONFIG+"/license.txt"));
 		return false;
 	}
 	
@@ -152,7 +155,7 @@ bool SoundAiKeywordDetector::init() {
 	    AISDK_ERROR(LX("initFailed").d("reason", "add_data_handlerWAKECB"));
 		return false;
 	}
-	
+#if 0	
 	errCode = sai_denoise_cfg_add_event_handler(
 			m_denoiseConfig,
 			DENOISE_EVENT_TYPE_VAD,
@@ -162,7 +165,7 @@ bool SoundAiKeywordDetector::init() {
 	    AISDK_ERROR(LX("initFailed").d("reason", "add_data_handlerVAD"));
 		return false;
 	}
-
+#endif
 	errCode = sai_denoise_cfg_add_data_handler(
 			m_denoiseConfig, 
 			DENOISE_DATA_TYPE_ASR,
@@ -207,10 +210,10 @@ bool SoundAiKeywordDetector::establishDenoiseWriter() {
      */
     if(!m_denoiseStream) {
 		size_t bufferSize = utils::sharedbuffer::SharedBuffer::calculateBufferSize(
-			DENOISE_BUFFER_DEFAULT_SIZE_IN_BYTES, WORD_SIZE, 2);
+			DENOISE_BUFFER_DEFAULT_SIZE_IN_BYTES, WORD_SIZE, MAX_DENOISE_READER);
 		AISDK_INFO(LX("establishDenoiseWriter").d("bufferSize", bufferSize));
 		auto buffer = std::make_shared<utils::sharedbuffer::SharedBuffer::Buffer>(bufferSize);
-		m_denoiseStream = utils::sharedbuffer::SharedBuffer::create(buffer, WORD_SIZE, 2);
+		m_denoiseStream = utils::sharedbuffer::SharedBuffer::create(buffer, WORD_SIZE, MAX_DENOISE_READER);
 		if(!m_denoiseStream) {
 			AISDK_ERROR(LX("establishDenoiseWriterFailed").d("reason", "createDenoiseStreamFailed"));
 			return false;
@@ -341,7 +344,8 @@ void SoundAiKeywordDetector::handleDenoiseStreamCallback(
 		std::vector<int16_t> pushToBuffer(size/sizeof(int16_t));
 		auto pbuf8 = static_cast<void *>(pushToBuffer.data());
 		//AISDK_INFO(LX("handleDenoiseStreamCallback").d("size", size));
-		writeToFile(1100, Sai_Debug_ASR1, std::string(data, size));
+		// This is debug save, we should disable it in release version.
+		//writeToFile(1100, Sai_Debug_ASR1, std::string(data, size));
 		memcpy(pbuf8, data, size);
 		detector->m_denoiseWriter->write(pushToBuffer.data(), pushToBuffer.size());
 	}
