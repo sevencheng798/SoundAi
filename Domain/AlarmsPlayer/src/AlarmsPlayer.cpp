@@ -276,6 +276,46 @@ AlarmsPlayer::AlarmsPlayer(
 }
 
 
+/* Create random UUID */
+/* @param uuid[37] - buffer to be filled with the uuid string */
+const char* AlarmsPlayer::CreateRandomUuid(char *uuid)
+{
+    const char *c = "89ab";
+    char *p = uuid;
+    int n;
+    for( n = 0; n < 16; ++n )
+    {
+        int b = rand()%255;
+        switch( n )
+        {
+            case 6:
+                sprintf(p, "4%x", b%15 );
+            break;
+            case 8:
+                sprintf(p, "%c%x", c[rand()%strlen(c)], b%15 );
+            break;
+            default:
+                sprintf(p, "%02x", b);
+            break;
+        }
+
+        p += 2;
+        switch( n )
+        {
+            case 3:
+            case 5:
+            case 7:
+            case 9:
+                *p++ = '-';
+                break;
+        }
+    }
+    *p = 0;
+    return uuid;
+}
+
+
+
 unsigned int AlarmsPlayer::getMorningTime() 
 {  
     time_t t = time(NULL); 
@@ -333,7 +373,8 @@ void AlarmsPlayer::CheckAlarmList(sqlite3 *db)
            {
            AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
            
-           std::string contentId{"1234567"};
+           char contentId[37];
+           CreateRandomUuid(contentId);
            auto writer = m_ttsDocker->createWriter(contentId);
            auto reader = m_ttsDocker->createReader(contentId, utils::sharedbuffer::ReaderPolicy::BLOCKING);
            AISDK_INFO(LX("deleteAlarmContent").d("currentContent", currentContent));
@@ -350,7 +391,6 @@ void AlarmsPlayer::CheckAlarmList(sqlite3 *db)
            
            auto sourceId = m_speechPlayer->setSource(std::move(reader), &format);
            m_speechPlayer->play(sourceId);
-          // system("cvlc /cfg/sai_config/alarm.mp3 --play-and-exit");
            }
          sprintf(deleteAlarmTime, "delete from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
          sqlite3_exec( db , deleteAlarmTime , NULL , NULL , &zErrMsg );
@@ -414,8 +454,9 @@ void AlarmsPlayer::CheckRepeatAlarmList(sqlite3 *db)
             for(int i = 0; i < 1; i++) 
              {
              AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
-             //test
-             std::string contentId{"987654321"};
+
+             char contentId[37];
+             CreateRandomUuid(contentId);
              auto writer = m_ttsDocker->createWriter(contentId);
              auto reader = m_ttsDocker->createReader(contentId, utils::sharedbuffer::ReaderPolicy::BLOCKING);
              AISDK_INFO(LX("deleteAlarmContent").d("currentContent", currentContent));
@@ -447,6 +488,7 @@ void AlarmsPlayer::sqliteThreadHander()
     sqlite3 *db=NULL;
     int len;
 
+
     while(1){
         len = sqlite3_open("alarm.db",&db);
         if( len )
@@ -455,6 +497,8 @@ void AlarmsPlayer::sqliteThreadHander()
         sqlite3_close(db);
         exit(1);
         }
+
+
         CheckAlarmList(db);
         CheckRepeatAlarmList(db);
         sqlite3_close(db);
@@ -492,7 +536,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
      char evt_type[64];
      int action_type = 0;
      int loop_mask = 0;
-     char content[512];
+     char content[1024];
      
     cJSON* json = NULL,
     *json_data = NULL, *json_tts_url = NULL, *json_isMultiDialog = NULL, *json_answer = NULL,
@@ -523,10 +567,8 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
       else
       {
          json_answer = cJSON_GetObjectItem(json_data, "answer");
-       //  json_tts_url = cJSON_GetObjectItem(json_data, "tts_url");
          json_isMultiDialog = cJSON_GetObjectItem(json_data, "isMultiDialog");
          AISDK_INFO(LX("json_data").d("json_answer", json_answer->valuestring));
-      //   AISDK_INFO(LX("json_data").d("json_tts_url", json_tts_url->valuestring));
       
          //parameters  
          json_parameters = cJSON_GetObjectItem(json_data, "parameters"); 
@@ -540,8 +582,6 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           if(json_repeat != NULL)
           //repeat alarm
           {
-          AISDK_INFO(LX("-------repeat alarm----------------i'm here !!!!---------------"));
-
             int array_size = cJSON_GetArraySize(json_repeat);
             std::cout << "repeat_alarm_list size : " <<array_size << std::endl;
             int i = 0;
@@ -614,11 +654,16 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           struct tm *p;
           p = localtime(&timesec);
 
-          sprintf(content, "循环闹钟：现在是北京时间%d点%d分，您有一个提醒时间到了",   p->tm_hour, p->tm_min);
-
           json_event = cJSON_GetObjectItem(json_parameters, "event");  
           AISDK_INFO(LX("json_parameters").d("json_event", json_event->valuestring));
           sprintf(evt_type,"%s", json_event->valuestring);
+          if(json_event != NULL){ 
+              sprintf(content, "重复闹钟：现在是北京时间%d点%d分，您有一个提醒%s时间到了",   p->tm_hour, p->tm_min, evt_type);
+          }
+          else
+          {
+              sprintf(content, "重复闹钟：现在是北京时间%d点%d分，您有一个提醒时间到了",   p->tm_hour, p->tm_min);
+          }
           action_type = 1;
           loop_mask = 1;
           
@@ -637,14 +682,31 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           printf("%ld \n", timesec);
           struct tm *p ;
           p = localtime(&timesec);
-          
-          //AISDK_INFO(LX("SET ALARM").d("set alarm time:", asctime(p)));
-          sprintf(content, "现在是北京时间%d年%d月%d日%d点%d分，您有一个提醒时间到了", 1900+p->tm_year, 1+p->tm_mon, p->tm_mday, p->tm_hour, p->tm_min);
-          AISDK_INFO(LX("Set Alarm Time:").d("content:", content));
 
           json_event = cJSON_GetObjectItem(json_parameters, "event");  
           AISDK_INFO(LX("json_parameters").d("json_event", json_event->valuestring));
           sprintf(evt_type,"%s", json_event->valuestring);
+
+          //AISDK_INFO(LX("SET ALARM").d("set alarm time:", asctime(p)));
+          if(json_event != NULL){
+              sprintf(content, "现在是北京时间%d年%d月%d日%d点%d分，您有一个提醒%s时间到了",
+                1900+p->tm_year,
+                1+p->tm_mon,
+                p->tm_mday, 
+                p->tm_hour, 
+                p->tm_min,
+                evt_type);
+          }
+          else{
+              sprintf(content, "现在是北京时间%d年%d月%d日%d点%d分，您有一个提醒时间到了",
+                1900+p->tm_year,
+                1+p->tm_mon,
+                p->tm_mday, 
+                p->tm_hour, 
+                p->tm_min);
+          }
+          
+          AISDK_INFO(LX("Set Alarm Time:").d("content:", content));
           action_type = 1;
           loop_mask = 0;
           sprintf(alarmSql, "INSERT INTO 'alarm'VALUES(%lld, '%s', %d, %d, '%s');" ,timestamp ,evt_type ,action_type ,loop_mask ,content);
@@ -707,7 +769,6 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           {
              AISDK_INFO(LX("AnalysisNlpDataForAlarmsPlayer").d("OPERATION:","UPDATE"));   
              //add operation
-             //...
              //...
           }
           

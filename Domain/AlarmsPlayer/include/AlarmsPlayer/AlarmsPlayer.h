@@ -357,11 +357,13 @@ private:
      */
     void executeOnDialogUXStateChanged(
         utils::dialogRelay::DialogUXStateObserverInterface::DialogUXState newState);
-
+    ///
+    const char* CreateRandomUuid(char *uuid);
+    ///
     unsigned int getMorningTime(); 
-
+    ///
     void CheckAlarmList(sqlite3 *db);
-
+    ///
     void CheckRepeatAlarmList(sqlite3 *db);
 
 	/// The name of DomainHandler identifies which @c DomainHandlerInterface operates on.
