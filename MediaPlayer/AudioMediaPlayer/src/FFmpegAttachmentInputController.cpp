@@ -43,7 +43,7 @@ using namespace utils::attachment;
 using namespace utils;
 
 /// Timeout for read operations.
-static const std::chrono::milliseconds READ_TIMEOUT{500};
+static const std::chrono::milliseconds READ_TIMEOUT{1000};
 
 /// Buffers will be the size of a regular page.
 static constexpr int BUFFER_SIZE{4096};
@@ -112,7 +112,7 @@ int FFmpegAttachmentInputController::read(uint8_t* buffer, int bufferSize) {
         case AttachmentReader::ReadStatus::OK_WOULDBLOCK:
         case AttachmentReader::ReadStatus::OK_TIMEDOUT:
             AISDK_DEBUG3(LX(__func__).d("status", readStatus).d("readSize", readSize));
-            return readSize ? readSize : AVERROR(EAGAIN);
+            return readSize ? readSize : AVERROR_EOF;
         case AttachmentReader::ReadStatus::CLOSED:
             AISDK_DEBUG5(LX(__func__).m("Found EOF"));
             return AVERROR_EOF;
