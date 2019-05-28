@@ -31,7 +31,7 @@ namespace kwd {
 using namespace utils::sharedbuffer;
 
 /// The string of paraments default configure path.
-static const std::string DEFAULT_CONFIG("/data/soundai/sai_config");
+static const std::string DEFAULT_CONFIG("/cfg/sai_config");
 
 /// Default size of underlying Sharedbuffer when created internally.
 /// This buffer is used to send denoised data to ASR Engine @c GenricAutomaticSpeechRecognizer.
