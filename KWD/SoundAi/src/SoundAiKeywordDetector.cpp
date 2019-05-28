@@ -327,8 +327,8 @@ static void writeToFile(int32_t id, Sai_Debug_data_Type type, const std::string&
 	}
 	fs.close();
 }
-
 #endif
+
 void SoundAiKeywordDetector::handleDenoiseStreamCallback(
 	sai_denoise_ctx_t* denoiseContext,
 	const char* type,
