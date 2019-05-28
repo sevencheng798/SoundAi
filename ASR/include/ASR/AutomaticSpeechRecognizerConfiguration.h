@@ -52,9 +52,9 @@ public:
      */
 	AutomaticSpeechRecognizerConfiguration(
 		const std::string &appId = "5c3d4427",
-		const std::string &aiuiConfigFile = "/data/soundai/AIUI/cfg/aiui.cfg",
-		const std::string &aiuiDir = "/data/soundai/AIUI/",
-		const std::string &aiuiLogDir = "/data/soundai/AIUI/log/"):
+		const std::string &aiuiConfigFile = "/cfg/AIUI/cfg/aiui.cfg",
+		const std::string &aiuiDir = "/cfg/AIUI/",
+		const std::string &aiuiLogDir = "/cfg/AIUI/log/"):
 		m_threshold{0},
 		m_aiuiAppId{appId},
 		m_aiuiConfigFile{aiuiConfigFile},
