@@ -490,7 +490,7 @@ void AlarmsPlayer::sqliteThreadHander()
 
 
     while(1){
-        len = sqlite3_open("alarm.db",&db);
+        len = sqlite3_open("/data/alarm.db",&db);
         if( len )
         {
         fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
@@ -616,7 +616,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           }
 
            /* 打开数据库 */
-            len = sqlite3_open("alarm.db",&db);
+            len = sqlite3_open("/data/alarm.db",&db);
             if( len )
             {
                 //fprintf函数格式化输出错误信息到指定的stderr文件流中  
