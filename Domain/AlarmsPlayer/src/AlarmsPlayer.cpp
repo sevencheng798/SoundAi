@@ -646,6 +646,10 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           if(json_repeat != NULL)
           //repeat alarm
           {
+          json_event = cJSON_GetObjectItem(json_parameters, "event");  
+          AISDK_INFO(LX("json_parameters").d("json_event", json_event->valuestring));
+          sprintf(evt_type,"%s", json_event->valuestring);
+          
           repeat_timestamp_day = atoll(json_repeat_timestamp_day->valuestring);      
           AISDK_INFO(LX("repeat_timestamp_day").d("value:", repeat_timestamp_day));
 
@@ -654,9 +658,6 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           struct tm *p;
           p = localtime(&timesec);
 
-          json_event = cJSON_GetObjectItem(json_parameters, "event");  
-          AISDK_INFO(LX("json_parameters").d("json_event", json_event->valuestring));
-          sprintf(evt_type,"%s", json_event->valuestring);
           if(json_event != NULL){ 
               sprintf(content, "重复闹钟：现在是北京时间%d点%d分，您有一个提醒%s时间到了",   p->tm_hour, p->tm_min, evt_type);
           }
@@ -674,7 +675,11 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           }
           else
           //one time alarm
-          {    
+          {  
+          json_event = cJSON_GetObjectItem(json_parameters, "event");  
+          AISDK_INFO(LX("json_parameters").d("json_event", json_event->valuestring));
+          sprintf(evt_type,"%s", json_event->valuestring);
+          
           timestamp = atoll(json_timestamp->valuestring);    //把字符串转换成长长整型数（64位）long long atoll(const char *nptr);
           AISDK_INFO(LX("timestamp").d("value:", timestamp));
           
@@ -682,10 +687,6 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           printf("%ld \n", timesec);
           struct tm *p ;
           p = localtime(&timesec);
-
-          json_event = cJSON_GetObjectItem(json_parameters, "event");  
-          AISDK_INFO(LX("json_parameters").d("json_event", json_event->valuestring));
-          sprintf(evt_type,"%s", json_event->valuestring);
 
           //AISDK_INFO(LX("SET ALARM").d("set alarm time:", asctime(p)));
           if(json_event != NULL){
