@@ -60,7 +60,13 @@ void SampleApp::run() {
 	/// ...
 	/// ...
 	/// ...
-	getchar();
+   /**
+    * This is a temporary operation in order to blocking in master thread. - @fix me
+	*/ 
+	while(1) {
+		std::this_thread::sleep_for (std::chrono::seconds(1));
+	}
+//	getchar();
 }
 
 SampleApp::~SampleApp() {
