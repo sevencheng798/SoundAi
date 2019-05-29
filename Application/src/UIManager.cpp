@@ -142,7 +142,7 @@ void UIManager::readWakeupAudioDir(char *path, std::deque<std::string> &wakeUpAu
     while (NULL != (ent=readdir(pDir)))
     {
     //printf("reclen=%d    type=%d\t", ent->d_reclen, ent->d_type);
-     if ((ent->d_reclen==24)&&(ent->d_type==8))
+     if ((ent->d_reclen != 0 )&&(ent->d_type==8))
      {    
          AISDK_INFO(LX("readWakeupAudioDir").d("WAKEUP_AUDIO_LIST ",ent->d_name));
          wakeUpAudioList.push_back(ent->d_name);
