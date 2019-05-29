@@ -61,7 +61,7 @@ public:
     void readWakeupAudioDir(char *path, std::deque<std::string> &wakeUpAudioList);
 
     ///response wake up and aplay audio.
-    void responseWakeUp(std::deque<std::string> wakeUpAudioList);
+    int responseWakeUp(std::deque<std::string> wakeUpAudioList);
 
 private:
 	

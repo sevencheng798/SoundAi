@@ -150,11 +150,15 @@ void UIManager::readWakeupAudioDir(char *path, std::deque<std::string> &wakeUpAu
     }    
 }
 
-void UIManager::responseWakeUp(std::deque<std::string> wakeUpAudioList)
+int UIManager::responseWakeUp(std::deque<std::string> wakeUpAudioList)
 {  
     char operationText[512];
     int i ;
-    if(flag_Time_read_audioDir < (int)(wakeUpAudioList.size()) ){
+    if(0 == (int)(wakeUpAudioList.size())){
+        AISDK_ERROR(LX("responseWakeUp").d("reason", "cfg/soundai/wakeup = NULL"));
+        return 0;
+    }
+    else if(flag_Time_read_audioDir < (int)(wakeUpAudioList.size()) ){
        i =  flag_Time_read_audioDir;
        flag_Time_read_audioDir ++;
     }
@@ -165,13 +169,14 @@ void UIManager::responseWakeUp(std::deque<std::string> wakeUpAudioList)
      sprintf(operationText, "aplay /cfg/sai_config/wakeup/%s ",  wakeUpAudioList.at(i).c_str() );    
      AISDK_INFO(LX("responseWakeUp").d("current operation text", operationText ));    
      system(operationText);
+     return 1;
 }   
 
 void UIManager::printState() {
      if(flag_Time_read_audioDir == 0)
      {
-    //clear reque list data;
-     while (!WAKEUP_AUDIO_LIST.empty()) WAKEUP_AUDIO_LIST.pop_back();
+     //while (!WAKEUP_AUDIO_LIST.empty()) WAKEUP_AUDIO_LIST.pop_back();
+     WAKEUP_AUDIO_LIST.clear();
      readWakeupAudioDir(wakeUpAudioPath,WAKEUP_AUDIO_LIST);
      }
      
