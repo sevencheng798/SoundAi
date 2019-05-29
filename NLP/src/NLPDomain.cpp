@@ -140,7 +140,7 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
     }
 
     //music,audio,listenBook,news,FM,story,joke
-    if(strcmp(json_domain->valuestring, "music")== 0 
+    else if(strcmp(json_domain->valuestring, "music")== 0 
        ||strcmp(json_domain->valuestring, "audio")== 0
        ||strcmp(json_domain->valuestring, "listenBook")== 0
        ||strcmp(json_domain->valuestring, "news")== 0
@@ -153,15 +153,22 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
     }
        
     //alarm,schedule
-       if(strcmp(json_domain->valuestring, "alarm")== 0 
+     else if(strcmp(json_domain->valuestring, "alarm")== 0 
            ||strcmp(json_domain->valuestring, "schedule")== 0)
        {
        nlpdata->NlpData_domain = "AlarmsPlayer";
        AISDK_INFO(LX("domain").d("domain", "AlarmsPlayer"));
        }
 
+    else
+    {
+    nlpdata->NlpData_domain = "SpeechSynthesizer";
+    AISDK_INFO(LX("domain").d("domain", "others unknow"));
+    }
+
+    #if 0
     //volume,playcontrol
-       if(strcmp(json_domain->valuestring, "volume")== 0 
+      if(strcmp(json_domain->valuestring, "volume")== 0 
            ||strcmp(json_domain->valuestring, "playcontrol")== 0)
        {
        nlpdata->NlpData_domain = "PlayControl";
@@ -174,6 +181,7 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
        nlpdata->NlpData_domain = "CustomizationManger";
        AISDK_INFO(LX("domain").d("domain", "CustomizationManger"));
        }
+     #endif  
 
        AISDK_INFO(LX("i'm here!!!-领域分类nlp domain:").d("domain:", nlpdata->NlpData_domain));
   // cJSON_Delete(json);  //释放内存
