@@ -184,7 +184,7 @@ void UIManager::printState() {
 
 	switch(m_dialogState) {
 		case DialogUXStateObserverInterface::DialogUXState::IDLE:
-            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_MUTE;
+            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_TTS;
             m_mqSndInfo.msg_info.sub_msg_info.status = 0;
             creatMsg(m_mqSndInfo);
 			AISDK_INFO(LX(IDLE_MESSAGE));
