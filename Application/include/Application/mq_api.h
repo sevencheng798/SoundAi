@@ -37,7 +37,7 @@ typedef enum {
 
 typedef enum {
     // status mode
-    LED_MODE_MUTE = LED_COLOR_OFF + 1,
+    LED_MODE_MUTE = 1,
     LED_MODE_NET_CUSTOM,
     LED_MODE_NET_CONNECT,   // once time
 
@@ -57,7 +57,7 @@ typedef enum {
 }e_LED_MODE;
 
 typedef enum {
-	KEY_EVT_VOL_UP = 1,
+	KEY_EVT_VOL_UP = LED_MODE_INVALID + 1,
 	KEY_EVT_VOL_DOWN,
 	KEY_EVT_MUTE,
 	KEY_EVT_PAUSE_AND_RESUME,
