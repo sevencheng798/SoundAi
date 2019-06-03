@@ -57,7 +57,7 @@ typedef enum {
 }e_LED_MODE;
 
 typedef enum {
-	KEY_EVT_VOL_UP = LED_MODE_INVALID + 1,
+	KEY_EVT_VOL_UP = 1,
 	KEY_EVT_VOL_DOWN,
 	KEY_EVT_MUTE,
 	KEY_EVT_PAUSE_AND_RESUME,
