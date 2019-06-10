@@ -106,7 +106,7 @@ public:
 	void removeObserver(std::shared_ptr<dmInterface::ResourcesPlayerObserverInterface> observer);
 
 	/// Get the name of the execution DomainHandler. 
-	std::string getHandlerName() const override;
+	std::unordered_set<std::string> getHandlerName() const override;
 	
 protected:
 	
@@ -346,7 +346,7 @@ private:
         utils::dialogRelay::DialogUXStateObserverInterface::DialogUXState newState);
 
 	/// The name of DomainHandler identifies which @c DomainHandlerInterface operates on.
-	std::string m_handlerName;
+	std::unordered_set<std::string> m_handlerName;
 	
 	/// MediaPlayerInterface instance to send tts audio to MediaPlayer interface and playback.
 	std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> m_speechPlayer;

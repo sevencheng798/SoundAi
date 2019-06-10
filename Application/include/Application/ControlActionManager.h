@@ -52,8 +52,8 @@ public:
 
     /**
      * Toggles the microphone state if the Sample App was built with wakeword. When the microphone is turned off, the
-     * app enters a privacy mode in which it stops recording audio data from the microphone, thus disabling Alexa waking
-     * up due to wake word. Note however that hold-to-talk and tap-to-talk modes will still work by recording
+     * app enters a privacy mode in which it stops recording audio data from the microphone, thus disabling 'xiaokangxiaokang'
+     * waking up due to wake word. Note however that hold-to-talk and tap-to-talk modes will still work by recording
      * microphone data temporarily until a user initiated interacion is complete. If this app was built without wakeword
      * then this will do nothing as the microphone is already off.
      */

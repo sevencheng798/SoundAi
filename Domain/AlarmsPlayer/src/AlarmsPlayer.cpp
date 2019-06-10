@@ -206,7 +206,7 @@ void AlarmsPlayer::removeObserver(std::shared_ptr<AlarmsPlayerObserverInterface>
     m_executor.submit([this, observer]() { m_observers.erase(observer); }).wait();
 }
 
-std::string AlarmsPlayer::getHandlerName() const {
+std::unordered_set<std::string> AlarmsPlayer::getHandlerName() const {
 	return m_handlerName;
 }
 
@@ -241,6 +241,7 @@ void AlarmsPlayer::doShutdown() {
     m_waitOnStateChange.notify_one();
     m_trackManager.reset();
     m_observers.clear();
+	m_handlerName.clear();
 
 }
 

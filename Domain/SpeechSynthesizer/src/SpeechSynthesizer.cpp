@@ -188,9 +188,10 @@ void SpeechSynthesizer::removeObserver(std::shared_ptr<SpeechSynthesizerObserver
     m_executor.submit([this, observer]() { m_observers.erase(observer); }).wait();
 }
 
-std::string SpeechSynthesizer::getHandlerName() const {
+std::unordered_set<std::string> SpeechSynthesizer::getHandlerName() const {
 	return m_handlerName;
 }
+
 
 void SpeechSynthesizer::doShutdown() {
 	AISDK_INFO(LX("doShutdown").d("reason", "destory"));
@@ -223,7 +224,7 @@ void SpeechSynthesizer::doShutdown() {
     m_waitOnStateChange.notify_one();
     m_trackManager.reset();
     m_observers.clear();
-
+	m_handlerName.clear();
 }
 
 SpeechSynthesizer::ChatDirectiveInfo::ChatDirectiveInfo(

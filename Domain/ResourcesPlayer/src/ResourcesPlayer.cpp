@@ -204,7 +204,7 @@ void ResourcesPlayer::removeObserver(std::shared_ptr<ResourcesPlayerObserverInte
     m_executor.submit([this, observer]() { m_observers.erase(observer); }).wait();
 }
 
-std::string ResourcesPlayer::getHandlerName() const {
+std::unordered_set<std::string> ResourcesPlayer::getHandlerName() const {
 	return m_handlerName;
 }
 
@@ -239,7 +239,7 @@ void ResourcesPlayer::doShutdown() {
     m_waitOnStateChange.notify_one();
     m_trackManager.reset();
     m_observers.clear();
-
+	m_handlerName.clear();
 }
 
 ResourcesPlayer::ResourcesDirectiveInfo::ResourcesDirectiveInfo(
