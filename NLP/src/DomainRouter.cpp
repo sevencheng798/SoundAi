@@ -39,23 +39,26 @@ bool DomainRouter::addDomainHandler( std::shared_ptr<dmInterface::DomainHandlerI
 		return false;
 	}
 
-	auto name = handler->getHandlerName();
-	auto it = m_configuration.find(name);
-	if(it != m_configuration.end()) {
-		AISDK_WARN(LX("addDomainHandlerFailed")
-			.d("reason", "alreadySet")
+	auto configure = handler->getHandlerName();
+	for(auto name : configure) {
+		auto it = m_configuration.find(name);
+		if(it != m_configuration.end()) {
+			AISDK_WARN(LX("addDomainHandlerFailed")
+				.d("reason", "alreadySet")
+				.d("domainName", name)
+				.d("handler", handler.get()));
+			
+			return false;
+		}
+
+		m_configuration[name] = handler;
+		AISDK_DEBUG5(LX("addDomainHandler")
+			.d("action", "added")
 			.d("domainName", name)
 			.d("handler", handler.get()));
-		
-		return false;
+
 	}
-
-	m_configuration[name] = handler;
-	AISDK_DEBUG5(LX("addDomainHandler")
-		.d("action", "added")
-		.d("domainName", name)
-		.d("handler", handler.get()));
-
+	
 	return true;
 }
 
@@ -65,19 +68,21 @@ bool DomainRouter::removeDomainHandlerLocked(std::shared_ptr<dmInterface::Domain
 		return false;
 	}
 
-	auto name = handler->getHandlerName();
-	auto it = m_configuration.find(name);
-	if(it == m_configuration.end()) {
-		AISDK_ERROR(LX("removeDomainHandlerLockedFailed").d("reason", "notFound").d("name", name));
-		return false;
-	}
+	auto configure = handler->getHandlerName();
+	for(auto name : configure) {
+		auto it = m_configuration.find(name);
+		if(it == m_configuration.end()) {
+			AISDK_ERROR(LX("removeDomainHandlerLockedFailed").d("reason", "notFound").d("name", name));
+			return false;
+		}
 
-	//
-	m_configuration.erase(name);
-	AISDK_DEBUG5(LX("removeDomainHandlerLocked")
-		.d("action", "removed")
-		.d("domainName", name)
-		.d("handler", handler.get()));
+		//
+		m_configuration.erase(name);
+		AISDK_DEBUG5(LX("removeDomainHandlerLocked")
+			.d("action", "removed")
+			.d("domainName", name)
+			.d("handler", handler.get()));
+	}
 	
 	return true;
 }

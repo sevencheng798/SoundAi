@@ -88,7 +88,7 @@ void DomainProcessor::shutdown() {
 	if(m_processingThread.joinable())
 		m_processingThread.join();
 
-	// Should clear mpa space - temp mark.
+	// Should clear map space - temp mark.
 	m_handlingQueue.clear();
 }
 

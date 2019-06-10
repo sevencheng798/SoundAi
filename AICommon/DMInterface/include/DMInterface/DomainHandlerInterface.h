@@ -15,6 +15,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 
 #include "NLP/NLPDomain.h"
 #include "DomainHandlerResultInterface.h"
@@ -80,7 +81,7 @@ public:
 	 *
 	 *@return @c The name of handler.
 	 */
-	virtual std::string getHandlerName() const = 0;
+	virtual std::unordered_set<std::string> getHandlerName() const = 0;
 };
 
 }  // namespace dmInterface
