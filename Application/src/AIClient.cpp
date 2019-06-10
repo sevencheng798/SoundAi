@@ -165,12 +165,6 @@ bool AIClient::initialize(
     }
 
 	m_speechSynthesizer->addObserver(m_dialogUXStateRelay);
-
-	/// To-Do Sven
-	/// Continue to add other domain commponent.
-	/// ...
-	/// ...
-	/// ...
 	
    /*
     * Creating the ResourcesPlayer. This is the commponent that deals with to play Resources domain.
@@ -206,7 +200,13 @@ bool AIClient::initialize(
       m_alarmsPlayer->addObserver(m_dialogUXStateRelay);
       
       AISDK_INFO(LX("initializeSucessed").d("reason", "CreateAlarmsPlayer============here!!!!!!!!"));
-#endif    
+#endif
+   
+	// TODO: Continue to add other domain commponent.
+	/// ...
+	/// ...
+	/// ... 
+	
 	/*
 	 * The following statements show how to register domain relay commponent to the domain directive sequencer.
 	 */
@@ -216,9 +216,7 @@ bool AIClient::initialize(
 						.d("domainHandler", "SpeechSynthesizer"));
 		return false;
 	}
-
-	/// To-Do Sven
-	/// Continue to add other domain commponent.
+	
 	if (!m_domainSequencer->addDomainHandler(m_resourcesPlayer)) {
 		AISDK_ERROR(LX("initializeFailed")
 						.d("reason", "unableToRegisterDomainHandler")
@@ -236,7 +234,20 @@ bool AIClient::initialize(
 					.d("domainHandler", "AlarmMediaPlayer"));
 	return false;
 	}
-#endif    
+#endif
+  
+	// TODO: Continue to add other domain commponent.
+	/// ...
+	/// ...
+	/// ...
+	
+	/**
+	 * This method is the playback control interface. Users can control PLAY and 
+	 * PAUSE when a Button is pressed on a physical button. Which modules need to
+	 * be controlled should be added into @c m_playbackRouter.
+	 */
+	m_playbackRouter.insert(m_speechSynthesizer);
+	// TODO: Continue to add other playback commponent.
 	/// ...
 	/// ...
 
@@ -263,6 +274,11 @@ void AIClient::disconnect() {
 #ifdef ENABLE_SOUNDAI_ASR
 	m_asrEngine->stop();
 #endif	
+}
+
+void AIClient::buttonPressed() {
+	for(auto router : m_playbackRouter)
+		router->buttonPressedPlayback();
 }
 
 AIClient::~AIClient() {

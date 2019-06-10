@@ -5,6 +5,7 @@ list(APPEND SampleApp_SOURCES
 	Main.cpp SampleApp.cpp UIManager.cpp AIClient.cpp
 	PortAudioMicrophoneWrapper.cpp
 	ControlActionManager.cpp
+	InputControlInteraction.cpp
 	KeywordObserver.cpp)
 
 # For AM113 to set the path.

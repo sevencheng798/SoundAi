@@ -34,13 +34,16 @@ namespace application {
 std::deque<std::string> WAKEUP_AUDIO_LIST; 
 
 static const std::string HELP_MESSAGE =
-		"+----------------------------------------------------------------------------+\n"
-		"|									Options:								  |\n"
-		"| Tap to talk: 															  |\n"
-		"|		 Press 't' and Enter followed by your query (no need for the kewword  |\n"
-		"|			'xiaokangxiaokang').											  |\n"
-		"| Stop an interaction: 													  |\n"
-		"|		 Press 's' and Enter to stop an ongoing interaction.				  |\n";
+		"\n+----------------------------------------------------------------------------+\n"
+		"|                              Options:                                      |\n"
+		"| Info:                                                                      |\n"
+        "|       Press 'i' followed by Enter at any time to see the help screen.      |\n"
+        "| Microphone off:                                                            |\n"
+        "|       Press 'm' and Enter to turn on and off the microphone.               |\n"
+		"| Playback to control:                                                       |\n"
+		"|        Press 'p' and Enter to PLAY and PAUSE state                         |\n"
+		"| Stop an interaction:                                                       |\n"
+		"|        Press 's' and Enter to stop an ongoing interaction.                 |\n";
 
 static const std::string IDLE_MESSAGE =
 		"\n#############################################\n"
@@ -124,6 +127,7 @@ void UIManager::printHelpScreen() {
 }
 
 void UIManager::microphoneOff() {
+	// TODO: LED to indicate.
     m_executor.submit([]() { AISDK_INFO(LX("Microphone Off!")); });
 }
 

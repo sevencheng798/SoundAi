@@ -55,18 +55,12 @@ std::unique_ptr<SampleApp> SampleApp::createNew() {
 }
 
 void SampleApp::run() {
-	/// We need an operation to listen for user input events or push-button events.
-	/// To-Do Sven
+	// TODO: We need an operation to listen for user input events or push-button events.
 	/// ...
 	/// ...
 	/// ...
-   /**
-    * This is a temporary operation in order to blocking in master thread. - @fix me
-	*/ 
-	while(1) {
-		std::this_thread::sleep_for (std::chrono::seconds(1));
-	}
-//	getchar();
+	m_userInputControler->run();
+
 }
 
 SampleApp::~SampleApp() {
@@ -200,6 +194,12 @@ bool SampleApp::initialize() {
 	// Step4.
 	// Creating the control action manager.
 	m_controlActionManager = std::make_shared<ControlActionManager>(m_aiClient, micWrapper, userInterfaceManager);
+
+	m_userInputControler = InputControlInteraction::create(m_controlActionManager);
+	if(!m_userInputControler) {
+		AISDK_ERROR(LX("Failed to create InputControlInteraction!"));
+		return false;
+	}
 #endif
 
 	m_aiClient->connect();

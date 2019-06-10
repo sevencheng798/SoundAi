@@ -20,6 +20,7 @@
 #include "Application/AIClient.h"
 #include "Application/UIManager.h"
 #include "Application/ControlActionManager.h"
+#include "Application/InputControlInteraction.h"
 
 namespace aisdk {
 namespace application {
@@ -67,6 +68,9 @@ private:
 
 	/// The instance of @c ControlActionManager to preform user request action.
 	std::shared_ptr<ControlActionManager> m_controlActionManager;
+
+    /// The @c InputControlInteraction which controls the client.
+    std::shared_ptr<InputControlInteraction> m_userInputControler;
 };
 
 }  // namespace application

@@ -23,6 +23,7 @@
 /// Stream buffer .
 #include <Utils/SharedBuffer/SharedBuffer.h>
 #include <DMInterface/DomainSequencerInterface.h>
+#include <DMInterface/PlaybackRouterInterface.h>
 
 #include "AudioTrackManager/AudioTrackManager.h"
 
@@ -69,6 +70,10 @@ public:
 	 * Stop service to allow the client to initiate disconnect sai sdk.
 	 */
 	void disconnect();
+	/**
+	 * This method can be called by the client when a Button is pressed on a physical button or on the GUI.
+	 */
+	void buttonPressed();
 	
     /**
      * Destructor.
@@ -104,6 +109,9 @@ private:
 	/// The AudioTrack manager for audio channel player.
 	std::shared_ptr<atm::AudioTrackManager> m_audioTrackManager;
 
+	/// A unsortedset contain mediaplayer keyed by @c Type.
+	std::unordered_set<std::shared_ptr<dmInterface::PlaybackRouterInterface>> m_playbackRouter;
+	
 	/// The speech synthesizer.
 	std::shared_ptr<domain::speechSynthesizer::SpeechSynthesizer> m_speechSynthesizer;
 
