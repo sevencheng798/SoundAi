@@ -53,6 +53,10 @@ void ControlActionManager::microphoneToggle() {
     });	
 }
 
+void ControlActionManager::playbackControl() {
+    m_executor.submit([this]() { m_client->buttonPressed(); });
+}
+
 void ControlActionManager::tap() {
 
 }

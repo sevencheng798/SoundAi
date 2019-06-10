@@ -59,6 +59,12 @@ public:
      */
     void microphoneToggle();
 
+	/**
+	 * Toggles the playback control state. When the SampleApp is playing, the app enters a stop state. if the SampleApp is playing mediastream,
+	 *  the app enters a pause state, otherwise enters a resume/play state.
+	 */
+    void playbackControl();
+	
     /**
      * Should be called whenever a user presses and releases the tap button.
      */
