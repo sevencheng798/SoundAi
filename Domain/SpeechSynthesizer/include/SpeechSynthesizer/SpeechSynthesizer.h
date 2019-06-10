@@ -25,6 +25,7 @@
 #include <Utils/MediaPlayer/MediaPlayerInterface.h>
 #include <Utils/MediaPlayer/MediaPlayerObserverInterface.h>
 #include <Utils/SafeShutdown.h>
+#include <DMInterface/PlaybackRouterInterface.h>
 #include <DMInterface/SpeechSynthesizerObserverInterface.h>
 #include <NLP/DomainProxy.h>
 
@@ -41,7 +42,8 @@ class SpeechSynthesizer
 		: public nlp::DomainProxy
 		, public utils::SafeShutdown
 		, public utils::mediaPlayer::MediaPlayerObserverInterface
-		, public utils::dialogRelay::DialogUXStateObserverInterface		
+		, public utils::dialogRelay::DialogUXStateObserverInterface
+		, public dmInterface::PlaybackRouterInterface
 		, public std::enable_shared_from_this<SpeechSynthesizer> {
 public:
 	
@@ -110,6 +112,11 @@ public:
 	std::unordered_set<std::string> getHandlerName() const override;
 	/// @}
 
+	/// @name PlaybackRouterInterface method.
+	/// @{
+    /// Stop playing speech audio.
+    void buttonPressedPlayback() override;
+	/// }
 	
 protected:
 	

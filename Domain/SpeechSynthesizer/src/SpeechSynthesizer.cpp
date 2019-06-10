@@ -192,6 +192,21 @@ std::unordered_set<std::string> SpeechSynthesizer::getHandlerName() const {
 	return m_handlerName;
 }
 
+void SpeechSynthesizer::buttonPressedPlayback() {
+	//auto stopTask = 
+	
+	m_executor.submit( [this]() {
+	    std::unique_lock<std::mutex> lock(m_mutex);
+	    if (SpeechSynthesizerObserverInterface::SpeechSynthesizerState::FINISHED != m_desiredState) {
+	        m_desiredState = SpeechSynthesizerObserverInterface::SpeechSynthesizerState::FINISHED;
+	        if (SpeechSynthesizerObserverInterface::SpeechSynthesizerState::PLAYING == m_currentState ||
+	            SpeechSynthesizerObserverInterface::SpeechSynthesizerState::GAINING_FOCUS == m_currentState) {
+	            lock.unlock();
+	            stopPlaying();
+	        }
+	    }
+	});
+}
 
 void SpeechSynthesizer::doShutdown() {
 	AISDK_INFO(LX("doShutdown").d("reason", "destory"));
