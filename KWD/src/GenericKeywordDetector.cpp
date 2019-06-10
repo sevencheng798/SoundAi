@@ -70,7 +70,7 @@ ssize_t GenericKeywordDetector::readFromStream(
     ssize_t wordsRead = reader->read(buf, nWords, timeout);
     // Stream has been closed
     if (wordsRead == 0) {
-        AISDK_DEBUG(LX("readFromStream").d("event", "streamClosed"));
+        AISDK_DEBUG1(LX("readFromStream").d("event", "streamClosed"));
         if (errorOccurred) {
             *errorOccurred = true;
         }
@@ -91,7 +91,7 @@ ssize_t GenericKeywordDetector::readFromStream(
                 reader->seek(0, Reader::Reference::BEFORE_WRITER);
                 break;
             case Reader::Error::TIMEDOUT:
-                AISDK_INFO(LX("readFromStreamFailed").d("reason", "readerTimeOut"));
+                AISDK_DEBUG1(LX("readFromStreamFailed").d("reason", "readerTimeOut"));
                 break;
             default:
                 // We should never get this since we are using a Blocking Reader.
