@@ -76,7 +76,9 @@ std::pair<std::unique_ptr<NLPDomain>, NLPDomain::ParseStatus> NLPDomain::create(
         std::string query = outnlpdata.NlpData_query;
         std::string domain = outnlpdata.NlpData_domain;
         //char *dataMsg = cJSON_Print(json_data);
-        std::string data = outnlpdata.NlpData_dataMsg;
+		std::string data;
+		if(outnlpdata.NlpData_dataMsg)
+        data = outnlpdata.NlpData_dataMsg;
 
 #if 1
 	result.first = std::unique_ptr<NLPDomain>(
@@ -158,9 +160,9 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
        {
        nlpdata->NlpData_domain = "AlarmsPlayer";
        AISDK_INFO(LX("domain").d("domain", "AlarmsPlayer"));
-       }
-
-    else
+       } else if(strcmp(json_domain->valuestring, "ExpectSpeech")== 0) {
+		nlpdata->NlpData_domain = "ExpectSpeech";
+    } else
     {
     nlpdata->NlpData_domain = "SpeechSynthesizer";
     AISDK_INFO(LX("domain").d("domain", "others unknow"));

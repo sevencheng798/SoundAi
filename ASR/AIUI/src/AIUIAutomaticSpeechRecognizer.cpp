@@ -31,10 +31,25 @@ namespace asr {
 namespace aiuiEngine {
 	
 using namespace utils::sharedbuffer;
-using ObserverInterface = utils::soundai::SoundAiObserverInterface;
 
 /// The name of the @c AudioTrackManager channel used by the @c SpeechSynthesizer.
 static const std::string CHANNEL_NAME = utils::channel::AudioTrackManagerInterface::DIALOG_CHANNEL_NAME;
+
+// The name of alarm domain.
+static const std::string DOMAIN_ALARM{"alarm"};
+
+// The name of schedule domain.
+static const std::string DOMAIN_SCHEDULE{"schedule"};
+
+// The name of playcontrol domain.
+static const std::string DOMAIN_PLAYCONTROL{"playcontrol"};
+
+// A name of expectSpeech be used to match directive handle.
+static const std::string EXPECT_SPEECH{"ExpectSpeech"};
+// Used within generate ExpectSpeech ID().
+static const std::string MESSAGE_ID_COMBINING_SUBSTRING = "expectspeech";
+
+static const char *DOMAIN_EXPECT_SPEECH_FORMAT = "{\"code\":200, \"message\":\"OK\", \"query\":\"\", \"domain\":\"ExpectSpeech\"}";
 
 /// The name of channel handler interface
 static const std::string CHANNEL_INTERFACE_NAME{"AIUIAutomaticSpeechRecognizer"};
@@ -42,14 +57,14 @@ static const std::string CHANNEL_INTERFACE_NAME{"AIUIAutomaticSpeechRecognizer"}
 const std::chrono::milliseconds TIMEOUT_FOR_READ_CALLS = std::chrono::milliseconds(200);
 
 /// Set Thinking to IDLE timeout time
-const auto THINKING_TIMEOUT = std::chrono::seconds{2};
+const auto THINKING_TIMEOUT = std::chrono::seconds{4};
 
 /**
  * Set Listening to IDLE timeout time.
  * When the listening state is entered, the ASR engine still cannot receive or recognize 
  * the vaild speech. we should take timeout strategy to quit recognizer state.
  */
-const auto ASR_TIMEOUT = std::chrono::seconds{5};
+const auto ASR_TIMEOUT = std::chrono::seconds{10};
 
 // #define TTS_RECORD
 #ifdef TTS_RECORD
@@ -150,10 +165,23 @@ void AIUIAutomaticSpeechRecognizer::handleEventStateWorking() {
 
 void AIUIAutomaticSpeechRecognizer::handleEventVadBegin() {
 	m_timeoutForListeningTimer.stop();
+	if(!m_timeoutForThinkingTimer.isActive()) {
+		if(!m_timeoutForThinkingTimer.start(
+			THINKING_TIMEOUT,
+			std::bind(&AIUIAutomaticSpeechRecognizer::transitionFromThinkingTimedOut, this))
+			.valid()) {
+			AISDK_ERROR(LX("handleEventVadBegin").d("reason", "failedToStartTransitionFromThinkingTimedOut"));
+		}
+	}
 }
 
 void AIUIAutomaticSpeechRecognizer::handleEventResultNLP(const std::string unparsedIntent) {
-	AISDK_DEBUG5(LX("handleEventResultNLP").d("reason", "entry").d("unparsedIntent", unparsedIntent));
+	// AISDK_DEBUG5(LX("handleEventResultNLP").d("reason", "entry").d("unparsedIntent", unparsedIntent));
+	// The state should is RECOGNIZING or EXPECT SPEECH.
+	if(ObserverInterface::State::RECOGNIZING != getState() && \
+	 ObserverInterface::State::EXPECTING_SPEECH != getState())
+		return;
+	
 	m_executor.submit([this, unparsedIntent]() {
 		return executeNLPResult(unparsedIntent);
 	});
@@ -178,9 +206,13 @@ void AIUIAutomaticSpeechRecognizer::handleEventResultTTS(const std::string info,
 	});
 }
 
-void AIUIAutomaticSpeechRecognizer::handleEventResultIAT() {
-	//AISDK_DEBUG5(LX("handleEventResultIAT").d("reason", "entry"));
+void AIUIAutomaticSpeechRecognizer::handleEventResultIAT(const std::string unparsedIntent) {
+	AISDK_DEBUG5(LX("handleEventResultIAT")
+		.d("reason", "entry")
+		.d("intentLength", unparsedIntent.length())
+		.d("intent", unparsedIntent));
 	// no-op
+
 }
 
 void AIUIAutomaticSpeechRecognizer::onTrackChanged(utils::channel::FocusState newTrace) {
@@ -188,6 +220,43 @@ void AIUIAutomaticSpeechRecognizer::onTrackChanged(utils::channel::FocusState ne
 	m_executor.submit([this, newTrace]() {
 		return executeOnTracKChanged(newTrace);
 	});
+}
+
+void AIUIAutomaticSpeechRecognizer::onDeregistered() {
+	// Maybe should use thread.
+	executeResetState();
+}
+
+void AIUIAutomaticSpeechRecognizer::preHandleDirective(std::shared_ptr<DirectiveInfo> info) {
+	// default no-op
+}
+
+void AIUIAutomaticSpeechRecognizer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
+    if (!info) {
+        AISDK_ERROR(LX("handleDirectiveFailed").d("reason", "nullDirectiveInfo"));
+        return;
+    }
+
+	if (info->directive->getDomain() == EXPECT_SPEECH) {
+		m_executor.submit([this, info]() { executeExpectSpeech(info); });
+    } else {
+        if (info->result) {
+            info->result->setFailed("unknownDomainDirective");
+        }
+        AISDK_ERROR(LX("handleDirectiveFailed")
+                        .d("reason", "unknownDomainDirective")
+                        .d("domain", info->directive->getDomain()));
+    }
+
+}
+
+void AIUIAutomaticSpeechRecognizer::cancelDirective(std::shared_ptr<DirectiveInfo> info) {
+	removeDirective(info);
+}
+
+void AIUIAutomaticSpeechRecognizer::removeDirective(std::shared_ptr<DirectiveInfo> info) {
+	if(info->directive && info->result)
+		nlp::DomainProxy::removeDirective(info->directive->getMessageId());
 }
 
 void AIUIAutomaticSpeechRecognizer::terminate() {
@@ -298,10 +367,44 @@ bool AIUIAutomaticSpeechRecognizer::init() {
 	return true;
 }
 
+void AIUIAutomaticSpeechRecognizer::executeExpectSpeech(std::shared_ptr<DirectiveInfo> info) {
+    if (info && info->isCancelled) {
+        AISDK_DEBUG(LX("expectSpeechIgnored").d("reason", "isCancelled"));
+        return ;
+    }
+	auto state = getState();
+    if (state != ObserverInterface::State::IDLE && state != ObserverInterface::State::BUSY) {
+        static const char* errorMessage = "ExpectSpeech only allowed in IDLE or BUSY state.";
+        if (info->result) {
+            info->result->setFailed(errorMessage);
+        }
+        removeDirective(info);
+        AISDK_ERROR(LX("executeExpectSpeechFailed")
+                        .d("reason", "invalidState")
+                        .d("expectedState", "IDLE/BUSY")
+                        .d("state", state));
+        return;
+    }
+
+	if (info->result) {
+		info->result->setCompleted();
+	}
+	removeDirective(info);
+
+	if(m_audioProvider) {
+		auto startWithNewData = true;
+		auto reader = m_audioProvider->createReader(Reader::Policy::NONBLOCKING, startWithNewData);
+		auto begin = reader->tell();
+		executeRecognize(m_audioProvider, begin, INVALID_INDEX, ObserverInterface::State::EXPECTING_SPEECH);
+	}
+	
+}
+
 bool AIUIAutomaticSpeechRecognizer::executeRecognize(
 	std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream,
     utils::sharedbuffer::SharedBuffer::Index begin,
-    utils::sharedbuffer::SharedBuffer::Index keywordEnd) {
+    utils::sharedbuffer::SharedBuffer::Index keywordEnd,
+    ObserverInterface::State state) {
 
 	// If this is a barge-in, verify that it is permitted.
 	auto currentState = getState();
@@ -324,11 +427,7 @@ bool AIUIAutomaticSpeechRecognizer::executeRecognize(
 			AISDK_ERROR(LX("executeRecognizeFailed").d("reason", "Barge-in is not permitted while busy"));
 			return false;
 	}
-	// Creating new @c Reader.
-	m_reader = stream->createReader(Reader::Policy::BLOCKING);
-	// Seek keyword begin position.
-	m_reader->seek(begin);
-
+	
 	// Accique channel prority.
 	if (!m_trackManager->acquireChannel(CHANNEL_NAME, shared_from_this(), CHANNEL_INTERFACE_NAME)) {
 		AISDK_ERROR(LX("executeRecognizeFailed").d("reason", "Unable to acquire channel"));
@@ -342,12 +441,21 @@ bool AIUIAutomaticSpeechRecognizer::executeRecognize(
 	// Should ensure writer already close.
 	closeActiveAttachmentWriter();
 
+	// Formally update state now.
+	setVaildVad(false);
+	setState(state);
+	
 	if(m_readerThread.joinable()) {
 		m_readerThread.join();
 	}
-	// Formally update state now.
-	setVaildVad(false);
-	setState(ObserverInterface::State::RECOGNIZING);
+
+	// Creating new @c Reader.
+	m_reader = stream->createReader(Reader::Policy::BLOCKING);
+	// Seek keyword begin position.
+	m_reader->seek(0, Reader::Reference::BEFORE_WRITER);
+	
+    // Record provider as the last-used Audio Provider so it can be used in the event of an ExpectSpeech domain.
+	m_audioProvider = stream;
 
 	/**
 	 * It must be ensured that there is a timeout mechanism when there is no response for 
@@ -372,7 +480,7 @@ bool AIUIAutomaticSpeechRecognizer::executeNLPResult(const std::string unparsedI
 		AISDK_ERROR(LX("executeNLPResultFailed").d("reason", "parseInfoError"));
 		return false;
 	}
-
+#if 0
 	if(!m_timeoutForThinkingTimer.isActive()) {
 		if(!m_timeoutForThinkingTimer.start(
 			THINKING_TIMEOUT,
@@ -381,7 +489,7 @@ bool AIUIAutomaticSpeechRecognizer::executeNLPResult(const std::string unparsedI
 			AISDK_ERROR(LX("executeNLPResult").d("reason", "failedToStartTransitionFromThinkingTimedOut"));
 		}
 	}
-
+#endif
 	Json::Value intent = root["intent"];
 	std::string  sid = intent["sid"].asString();
 	if(sid.empty()) {
@@ -397,6 +505,49 @@ bool AIUIAutomaticSpeechRecognizer::executeNLPResult(const std::string unparsedI
 	return true;
 }
 
+void AIUIAutomaticSpeechRecognizer::intentRepackingConsumeMessage(const std::string &intent) {
+	Json::CharReaderBuilder readerBuilder;
+	JSONCPP_STRING errs;
+	Json::Value root;
+	std::unique_ptr<Json::CharReader> const reader(readerBuilder.newCharReader());	
+	// Start parsing.
+	if (!reader->parse(intent.c_str(), intent.c_str()+intent.length(), &root, &errs)) {
+		AISDK_ERROR(LX("intentRepackingConsumeMessageFailed").d("reason", "parseIntentError").d("intent", intent));
+		return;
+	}
+
+	// Parsing domain node.
+	std::string domain = root["domain"].asString();
+	if(domain.empty()) {
+		AISDK_ERROR(LX("executeTPPResultFailed").d("reason", "notFoundDomainNode."));
+		 return;
+	}
+
+	bool repacking = false;
+	// Compare domain whether is equal.
+	if(domain == DOMAIN_ALARM || domain == DOMAIN_SCHEDULE || domain == DOMAIN_PLAYCONTROL) {
+		repacking = true;
+	} else {
+		Json::Value data = root["data"];
+		std::string audio_url = data["audio_list"][0]["audio_url"].asString();
+		if(!audio_url.empty()) {
+			repacking = true;
+		}
+	}
+
+	// Should repacking to consume message.
+	if(repacking) {
+		Json::StreamWriterBuilder writerBuilder;
+		std::unique_ptr<Json::StreamWriter> writer(writerBuilder.newStreamWriter());
+		std::ostringstream os;
+		root["domain"] = "chat";
+		writer->write(root, &os);
+		// AISDK_DEBUG5(LX("intentRepackingConsumeMessage").d("newIntent", os.str()));
+		m_messageConsumer->consumeMessage(m_sessionId, os.str());
+	}
+
+}
+
 bool AIUIAutomaticSpeechRecognizer::executeTPPResult(
 	const std::string intent,
 	std::shared_ptr<utils::attachment::AttachmentWriter> writer) {
@@ -404,10 +555,10 @@ bool AIUIAutomaticSpeechRecognizer::executeTPPResult(
 	JSONCPP_STRING errs;
 	Json::Value root;
 	std::unique_ptr<Json::CharReader> const reader(readerBuilder.newCharReader());	
-	AISDK_DEBUG5(LX("executeTPPResult").d("reason", "entry").d("intent", intent));
+	AISDK_DEBUG(LX("executeTPPResult").d("reason", "entry").d("intent", intent));
 	// Start parsing.
 	if (!reader->parse(intent.c_str(), intent.c_str()+intent.length(), &root, &errs)) {
-		AISDK_ERROR(LX("handleEventResultTPP").d("reason", "parseIntentError").d("intent", intent));
+		AISDK_ERROR(LX("handleEventResultTPPFailed").d("reason", "parseIntentError").d("intent", intent));
 		return false;
 	}
 
@@ -415,10 +566,18 @@ bool AIUIAutomaticSpeechRecognizer::executeTPPResult(
 	Json::Value empty;
 	Json::Value answer = data.get("answer", empty);
 	if(answer.empty()) {
-		AISDK_ERROR(LX("executeTPPResultFailed").d("reason", "don'tFoundAnswer."));
+		AISDK_ERROR(LX("executeTPPResultFailed").d("reason", "notFoundAnswerNode."));
 		 return false;
 	}
 
+	// The BUSY state will be allowed to continue working.
+	if(ObserverInterface::State::BUSY != getState())
+		return false;
+
+	auto expectSpeech = data["session"].asBool();
+
+	// We should close the last writer before starting a new write.
+	closeActiveAttachmentWriter();
 	if(m_attachmentDocker && !m_attachmentWriter) {
 		// Default Policy is NONBLOCKING.
 		m_attachmentWriter = m_attachmentDocker->createWriter(m_sessionId);
@@ -431,10 +590,19 @@ bool AIUIAutomaticSpeechRecognizer::executeTPPResult(
 
 	m_timeoutForThinkingTimer.stop();
 	std::string text(answer.asString());
-	AISDK_DEBUG0(LX("executeTPPResult").d("text", text));
-	executeTextToSpeech(text, writer);
+	AISDK_INFO(LX("executeTPPResult").d("text", text));
+	executeTextToSpeech(text);
 
+	intentRepackingConsumeMessage(intent);
+	
 	m_messageConsumer->consumeMessage(m_sessionId, intent);
+	if(expectSpeech) {
+		AISDK_DEBUG0(LX("executeTPPResult").d("expectSpeech", expectSpeech?"true":"false"));
+		std::stringstream expectSpeech;
+		expectSpeech << DOMAIN_EXPECT_SPEECH_FORMAT;
+		AISDK_DEBUG5(LX("executeTPPResult").d("ExpectSpeech", expectSpeech.str()));
+		m_messageConsumer->consumeMessage(MESSAGE_ID_COMBINING_SUBSTRING+m_sessionId, expectSpeech.str());
+	}
 	
 	return true;
 }
@@ -500,7 +668,7 @@ bool AIUIAutomaticSpeechRecognizer::executeTTSResult(const std::string info, con
 	//AISDK_DEBUG0(LX("executeTTSResult").d("dts", dts));
 	std::string errorinfo = content["error"].asString();
 	if(dts == 2 && errorinfo == "AIUI DATA NULL") {
-		AISDK_ERROR(LX("executeTTSResultFailed").d("reason", errorinfo));
+		AISDK_DEBUG5(LX("executeTTSResult").d("reason", errorinfo));
 	} else if (3 == dts) {
 		AISDK_INFO(LX("executeTTSResult").d("dts", dts).d("expected", "Reserve"));
 	#ifdef TTS_RECORD

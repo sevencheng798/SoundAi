@@ -21,14 +21,23 @@
 #include <Utils/SharedBuffer/SharedBuffer.h>
 #include <Utils/Attachment/AttachmentManagerInterface.h>
 #include <Utils/SoundAi/SoundAiObserverInterface.h>
+#include <NLP/DomainProxy.h>
 
 namespace aisdk {
 namespace asr {
 // A class that create a new ASR @c AutomaticSpeechRecognizer.
-class GenericAutomaticSpeechRecognizer : public utils::SafeShutdown {
+class GenericAutomaticSpeechRecognizer 
+	: public nlp::DomainProxy
+	, public utils::SafeShutdown {
 public:
 	/// A reserved @c Index value which is considered invalid.
     static const auto INVALID_INDEX = std::numeric_limits<utils::sharedbuffer::SharedBuffer::Index>::max();
+
+	/// @name DomainProxy method;
+	/// {
+	std::unordered_set<std::string> getHandlerName() const override;
+	/// }
+	
     /**
      * Adds the specified observer to the list of observers to notify of ASR events.
      * @param asrObserver The observer to add.
@@ -81,7 +90,7 @@ public:
 	 */
 	virtual std::future<bool> acquireTextToSpeech(
 		const std::string text,
-		std::shared_ptr<utils::attachment::AttachmentWriter> writer) = 0;
+		std::shared_ptr<utils::attachment::AttachmentWriter> writer = nullptr) = 0;
 
 	/**
 	 * This function asks the ASR engine @c GenericAutomaticSpeechRecognizer to terminate an active TTS interaction.
@@ -149,6 +158,9 @@ private:
      * usage.
      */
     std::unordered_set<std::shared_ptr<utils::soundai::SoundAiObserverInterface>> m_asrObservers;
+		
+	/// The name of DomainHandler identifies which @c DomainHandlerInterface operates on.
+	std::unordered_set<std::string> m_handlerName;
 
 	/// The current state of the @c SoundAiObserverInterface.
     utils::soundai::SoundAiObserverInterface::State m_state;

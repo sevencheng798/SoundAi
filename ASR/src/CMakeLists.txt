@@ -32,7 +32,7 @@ include_directories(ASR
 	"${SOUNDAI_ASR_INCLUDE_DIR}")
 endif()
 
-target_link_libraries(ASR AICommon)
+target_link_libraries(ASR AICommon NLP)
 
 # install target
 asdk_install()

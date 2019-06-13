@@ -27,6 +27,10 @@ static const std::string TAG("GenericAutomaticSpeechRecognizer");
  */
 #define LX(event) utils::logging::LogEntry(TAG, event)
 
+std::unordered_set<std::string> GenericAutomaticSpeechRecognizer::getHandlerName() const {
+	return m_handlerName;
+}
+
 void GenericAutomaticSpeechRecognizer::addASRObserver(
 	std::shared_ptr<utils::soundai::SoundAiObserverInterface> asrObserver) {
 	std::lock_guard<std::mutex> lock(m_asrObserversMutex);
@@ -41,8 +45,10 @@ void GenericAutomaticSpeechRecognizer::removeASRObserver(
 
 GenericAutomaticSpeechRecognizer::GenericAutomaticSpeechRecognizer(
     std::unordered_set<std::shared_ptr<utils::soundai::SoundAiObserverInterface>> asrObservers):
+	DomainProxy{"GenericAutomaticSpeechRecognizer"},
     SafeShutdown{"GenericAutomaticSpeechRecognizer"},
     m_asrObservers{asrObservers},
+    m_handlerName{"ExpectSpeech"},
 	m_state{utils::soundai::SoundAiObserverInterface::State::IDLE} {
 
 }
@@ -59,7 +65,7 @@ ssize_t GenericAutomaticSpeechRecognizer::readFromStream(
     ssize_t wordsRead = reader->read(buf, nWords, timeout);
     // Stream has been closed
     if (wordsRead == 0) {
-        AISDK_DEBUG(LX("readFromStream").d("event", "streamClosed"));
+        AISDK_DEBUG1(LX("readFromStream").d("event", "streamClosed"));
         if (errorOccurred) {
             *errorOccurred = true;
         }

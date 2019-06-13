@@ -52,7 +52,7 @@ public:
 	/**
 	 * Handle the action specified by the nlp result in @c IAIUIEvent.
 	 */
-	virtual void handleEventResultIAT() = 0;
+	virtual void handleEventResultIAT(const std::string unparsedIntent) = 0;
 
 };
 

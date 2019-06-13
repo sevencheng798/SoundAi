@@ -37,13 +37,14 @@ namespace asr {
 namespace aiuiEngine {
 // A class asr that iflytek aiui to implements the ASR function.
 class AIUIAutomaticSpeechRecognizer
-	: public utils::channel::ChannelObserverInterface
-	, public GenericAutomaticSpeechRecognizer
+	: public GenericAutomaticSpeechRecognizer
 	, public AIUIASRListenerObserverInterface
 	, public AIUIASRListener
 	, public std::enable_shared_from_this<AIUIAutomaticSpeechRecognizer> {
 	
 public:
+	using ObserverInterface = utils::soundai::SoundAiObserverInterface;
+	
 	/// Values that express the result of receive a text to speech. 
 	enum class TTSDataWriteStatus {
         /// The most recent chunk of data was received ok.
@@ -80,7 +81,7 @@ public:
         utils::sharedbuffer::SharedBuffer::Index keywordEnd = INVALID_INDEX) override;
 	std::future<bool> acquireTextToSpeech(
 		std::string text,
-		std::shared_ptr<utils::attachment::AttachmentWriter> writer) override;
+		std::shared_ptr<utils::attachment::AttachmentWriter> writer = nullptr) override;
 	bool cancelTextToSpeech() override;
 	/// }
 
@@ -92,7 +93,7 @@ public:
 	void handleEventResultNLP(const std::string unparsedIntent) override;
 	void handleEventResultTPP(const std::string unparsedIntent) override;
 	void handleEventResultTTS(const std::string info, const std::string data) override;
-	void handleEventResultIAT() override;
+	void handleEventResultIAT(const std::string unparsedIntent) override;
 	/// @}
 
 	/// @name ChannelObserverInterface method.
@@ -100,6 +101,14 @@ public:
 	void onTrackChanged(utils::channel::FocusState newTrace) override;
 	/// @}
 
+	/// @name DomainProxy/DomainHandlerInterface method.
+	/// @{
+	/// DomainHandlerInterface we need to definition the base class pure-virturl functions.
+	void onDeregistered() override;
+	void preHandleDirective(std::shared_ptr<DirectiveInfo> info) override;
+	void handleDirective(std::shared_ptr<DirectiveInfo> info) override;
+	void cancelDirective(std::shared_ptr<DirectiveInfo> info) override;
+	/// @}
 	/**
      * A utility function to close the currently active attachment writer, if there is one.
      */
@@ -110,6 +119,14 @@ public:
 	 */
 	~AIUIAutomaticSpeechRecognizer();
 protected:
+	
+    /**
+     * Remove a @c NLPDomain from the map of message IDs to DirectiveInfo instances.
+     *
+     * @param info The @c DirectiveInfo containing the @c NLPDomain whose message ID is to be removed.
+     */
+    void removeDirective(std::shared_ptr<DirectiveInfo> info);
+
 	/// @name AutomaticSpeechRecognizer
 	/// @{
 	void terminate() override;
@@ -143,6 +160,14 @@ private:
 	 * The function to notify and destory tinkingTimer thread.
 	 */
 	// void resetThinkingTimeoutTimer();
+
+	/**
+     * This function handles a EXPECT_SPEECH domain.
+     *
+     * @param info The @c DirectiveInfo containing the @c NLPDomain and the @c DomainHandlerResultInterface.
+     */
+    void executeExpectSpeech(std::shared_ptr<DirectiveInfo> info);
+	
 	/**
 	 * The function to implement notify a recgnize event and initiate acquire user speech to send.
 	 *
@@ -154,7 +179,8 @@ private:
 	bool executeRecognize(
 		std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream,
         utils::sharedbuffer::SharedBuffer::Index begin,
-        utils::sharedbuffer::SharedBuffer::Index keywordEnd);
+        utils::sharedbuffer::SharedBuffer::Index keywordEnd,
+        ObserverInterface::State state = ObserverInterface::State::RECOGNIZING);
 
 	/**
 	 * The function to implement text to speech.
@@ -174,6 +200,14 @@ private:
 	 */
 	bool executeNLPResult(const std::string unparsedIntent);
 	/**
+	 * The function that repacking nlp domain message and sent to consume modules.
+	 * Because some domain classifications are confusing, we should reclassify them here.
+     *
+	 * @params intent The unparsed intent from TPP type.
+	 */
+	void intentRepackingConsumeMessage(const std::string &intent);
+		
+	/**
 	 * The function to implement text to speech.
 	 * @params intent The unparsed intent(answer) JSON string from AIUI Cloud.
 	 * @params writer The @c Writer used to writing stream stored to a sharedbuffer.
@@ -182,6 +216,16 @@ private:
 	bool executeTPPResult(
 		const std::string intent,
 		std::shared_ptr<utils::attachment::AttachmentWriter> writer = nullptr);
+	
+    /**
+     * Utility function to encapsulate the logic required to write data to an attachment.
+     *
+     * @param buffer The data to be written to the attachment.
+     * @param size The size of the data to be written to the attachment.
+     * @return A value expressing the final status @c TTSDataWriteStatus of the write operation.
+     */
+    TTSDataWriteStatus writeDataToAttachment(const char* buffer, size_t size);
+
 	/**
 	 * The function that receive speech data after text conversion.
 	 * @params info The info of @c onEvent() content from event.getInfo().
@@ -211,18 +255,13 @@ private:
 	void sendStreamProcessing();
 
     /**
-     * Utility function to encapsulate the logic required to write data to an attachment.
-     *
-     * @param buffer The data to be written to the attachment.
-     * @param size The size of the data to be written to the attachment.
-     * @return A value expressing the final status @c TTSDataWriteStatus of the write operation.
+     * Transitions the internal state from THINKING to IDLE.
      */
-    TTSDataWriteStatus writeDataToAttachment(const char* buffer, size_t size);
+	void transitionFromThinkingTimedOut();
 
 	/**
-	 *
-	 */
-	void transitionFromThinkingTimedOut();
+     * Transitions the internal state from LISENING to IDLE.
+     */
 	void transitionFromListeningTimedOut();
 
 	/**
@@ -264,6 +303,10 @@ private:
 	// The special sessionId for each interaction.
 	std::string m_sessionId;
 
+    /// The last @c SharedBuffer used in an @c executeRecognize(); will be used for ExpectSpeech domain.
+	std::shared_ptr<utils::sharedbuffer::SharedBuffer> m_audioProvider;
+
+	/// The reader which is currently being used to stream audio for a Recognize event.
 	std::shared_ptr<utils::sharedbuffer::Reader> m_reader;
 
 	/// The current @c AttachmentWriter.

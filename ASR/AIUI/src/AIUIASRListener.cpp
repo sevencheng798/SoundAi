@@ -73,12 +73,15 @@ void AIUIASRListener::onEvent(const aiui::IAIUIEvent& event) const {
 		switch (event.getArg1()) {
 		case aiui::AIUIConstant::VAD_BOS:
 			AISDK_INFO(LX("EVENT_VAD").d("state", "VAD_BOS"));
-			if(m_listenerObserver) {
-				m_listenerObserver->handleEventVadBegin();
-			}
+		//	if(m_listenerObserver) {
+		//		m_listenerObserver->handleEventVadBegin();
+		//	}
 			break;
 		case aiui::AIUIConstant::VAD_EOS:
 			AISDK_INFO(LX("EVENT_VAD").d("state", "VAD_EOS"));
+			if(m_listenerObserver) {
+				m_listenerObserver->handleEventVadBegin();
+			}
 			break;
 		case aiui::AIUIConstant::VAD_VOL:
 			break;
@@ -134,7 +137,10 @@ void AIUIASRListener::onEvent(const aiui::IAIUIEvent& event) const {
 			if(m_listenerObserver)
 				m_listenerObserver->handleEventResultNLP(resultStr);
 
-		} else { // iat
+		} else if (sub == "iat") { // iat
+			if(m_listenerObserver)
+				m_listenerObserver->handleEventResultIAT(resultStr);
+		} else {
 			AISDK_DEBUG5(LX("EVENT_RESULT").d("getBinary", resultStr));
 		}
 	}
