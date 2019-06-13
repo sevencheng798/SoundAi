@@ -195,10 +195,10 @@ void UIManager::printState() {
 			break;
 		case DialogUXStateObserverInterface::DialogUXState::LISTENING:
 			AISDK_INFO(LX(LISTEN_MESSAGE));
+            responseWakeUp(WAKEUP_AUDIO_LIST);
             m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_WAKEUP;
             m_mqSndInfo.msg_info.sub_msg_info.status = 1;
             creatMsg(m_mqSndInfo);
-            responseWakeUp(WAKEUP_AUDIO_LIST);
             //+WAKE UP  ; LED  ;
 			break;
 		case DialogUXStateObserverInterface::DialogUXState::LISTEN_EXPECTING:

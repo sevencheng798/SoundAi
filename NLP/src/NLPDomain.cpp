@@ -160,10 +160,16 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
        {
        nlpdata->NlpData_domain = "AlarmsPlayer";
        AISDK_INFO(LX("domain").d("domain", "AlarmsPlayer"));
-       } else if(strcmp(json_domain->valuestring, "ExpectSpeech")== 0) {
+       }      //playcontrol
+     else if(strcmp(json_domain->valuestring, "playcontrol")== 0)
+       {
+       nlpdata->NlpData_domain = "PlayControl";
+       AISDK_INFO(LX("domain").d("domain", "PlayControl"));
+       }    
+	 else if(strcmp(json_domain->valuestring, "ExpectSpeech")== 0) {
 		nlpdata->NlpData_domain = "ExpectSpeech";
-    } else
-    {
+       }
+     else{
     nlpdata->NlpData_domain = "SpeechSynthesizer";
     AISDK_INFO(LX("domain").d("domain", "others unknow"));
     }

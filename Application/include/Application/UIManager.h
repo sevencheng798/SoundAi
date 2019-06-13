@@ -39,7 +39,8 @@ public:
     // int creatMsg(int argc, char* argv[]);
    // int creatMsg(e_LED_MODE mode, int status);
     int creatMsg(MqSndInfo mqSndInfo);
-    
+
+    int reveiceMsg(MqRecvInfo &mqRecvinfo);
 	/// @name DialogUXStateObserverInterface methods
 	/// @{
 	void onDialogUXStateChanged(DialogUXState newState) override;

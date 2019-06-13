@@ -16,6 +16,7 @@
 #include <memory>
 
 #include "Application/ControlActionManager.h"
+#include "Application/mq_api.h"
 
 namespace aisdk {
 namespace application {
@@ -32,6 +33,7 @@ public:
     static std::unique_ptr<InputControlInteraction> create(
         std::shared_ptr<ControlActionManager> controlActionManager);
 
+    int reveiceMsg(MqRecvInfo &mqRecvinfo);
     /**
      * Begins the interaction between the Sample App and other processer. This should only be called at startup.
      */

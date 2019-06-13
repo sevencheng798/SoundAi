@@ -119,12 +119,21 @@ void DialogUXStateRelay::onStateChanged(dmInterface::SpeechSynthesizerObserverIn
 void DialogUXStateRelay::onStateChanged(dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState state) {
 	std::cout << "ResourcesPlayer onStateChanged: " << state << std::endl;
     m_resourcesPlayerState = state;
-
+#if 0
     m_executor.submit([this, state]() {
         switch (state) {
             case dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING:
                 setState(DialogUXStateObserverInterface::DialogUXState::SPEAKING);
                 return;
+    //add @190611
+    #if 1        
+         //  case dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState::PAUSED:
+         //       setState(DialogUXStateObserverInterface::DialogUXState::IDLE);
+         //       return;
+         //  case dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState::STOPPED:
+          //      setState(DialogUXStateObserverInterface::DialogUXState::IDLE);
+          //      return;
+    #endif       
             case dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED:
                  m_executor.submit([this]() {
 			        if (m_currentState != DialogUXStateObserverInterface::DialogUXState::IDLE &&
@@ -141,7 +150,7 @@ void DialogUXStateRelay::onStateChanged(dmInterface::ResourcesPlayerObserverInte
         }
 		std::cout << "unknownResourcesPlayerState" << std::endl;
     });
-
+#endif
 }
 
 

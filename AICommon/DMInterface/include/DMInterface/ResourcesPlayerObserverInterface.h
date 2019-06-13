@@ -27,17 +27,26 @@ public:
      */
     enum class ResourcesPlayerState {
         /// In this state, the @c ResourcesPlayer is playing back the speech.
+        IDLE,
+        
+
         PLAYING,
 
+
+        PAUSED,
+
+
+        STOPPED,
+
         /// In this state, the @c ResourcesPlayer is idle and not playing speech.
-        FINISHED,
+        FINISHED
 
         /// In this state, the @c ResourcesPlayer is gaining the channel trace while still not playing anything
-        GAINING_FOCUS,
+        //GAINING_FOCUS,
        // IDLE,
 
         /// In this state, the @c ResourcesPlayer is losing the channel trace but not yet considered @c FINISHED
-        LOSING_FOCUS
+       // LOSING_FOCUS
         //PAUSE
     };
 
@@ -65,18 +74,27 @@ inline std::ostream& operator<<(
     std::ostream& stream,
     const ResourcesPlayerObserverInterface::ResourcesPlayerState state) {
     switch (state) {
+        case ResourcesPlayerObserverInterface::ResourcesPlayerState::IDLE:
+           stream << "IDLE";
+           break;
         case ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING:
             stream << "PLAYING";
+            break;
+        case ResourcesPlayerObserverInterface::ResourcesPlayerState::PAUSED:
+            stream << "PAUSED";
+            break;
+        case ResourcesPlayerObserverInterface::ResourcesPlayerState::STOPPED:
+            stream << "STOPPED";
             break;
         case ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED:
             stream << "FINISHED";
             break;
-        case ResourcesPlayerObserverInterface::ResourcesPlayerState::GAINING_FOCUS:
-            stream << "GAINING_FOCUS";
-            break;
-        case ResourcesPlayerObserverInterface::ResourcesPlayerState::LOSING_FOCUS:
-            stream << "LOSING_FOCUS";
-            break;
+ //       case ResourcesPlayerObserverInterface::ResourcesPlayerState::GAINING_FOCUS:
+ //           stream << "GAINING_FOCUS";
+ //           break;
+ //       case ResourcesPlayerObserverInterface::ResourcesPlayerState::LOSING_FOCUS:
+ //           stream << "LOSING_FOCUS";
+ //           break;
     }
     return stream;
 }

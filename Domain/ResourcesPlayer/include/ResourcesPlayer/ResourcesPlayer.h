@@ -26,8 +26,11 @@
 #include <Utils/MediaPlayer/MediaPlayerInterface.h>
 #include <Utils/MediaPlayer/MediaPlayerObserverInterface.h>
 #include <Utils/SafeShutdown.h>
+#include <DMInterface/PlaybackRouterInterface.h>
 #include <DMInterface/ResourcesPlayerObserverInterface.h>
 #include <NLP/DomainProxy.h>
+#include <Utils/cJSON.h>
+
 
 namespace aisdk {
 namespace domain {
@@ -42,10 +45,11 @@ class ResourcesPlayer
 		: public nlp::DomainProxy
 		, public utils::SafeShutdown
 		, public utils::mediaPlayer::MediaPlayerObserverInterface
-		, public utils::dialogRelay::DialogUXStateObserverInterface		
+		, public dmInterface::PlaybackRouterInterface
 		, public std::enable_shared_from_this<ResourcesPlayer> {
 public:
-	
+
+
     /**
      * Create a new @c ResourcesPlayer instance.
      *
@@ -85,14 +89,15 @@ public:
 	void onPlaybackFinished(SourceId id) override;
 	
 	void onPlaybackError(SourceId id, const utils::mediaPlayer::ErrorType& type, std::string error) override;
-	
+
+    void onPlaybackPaused(SourceId id) override;
+
+    void onPlaybackResumed(SourceId id) override;
+    
 	void onPlaybackStopped(SourceId id) override;
 	 /// @}
+     
 
-	/// @name DialogUXStateObserverInterface method.
-	/// @{
-	 void onDialogUXStateChanged(DialogUXState newState) override;
-	/// @}
 
 	/*
 	 * Add an observer to ResourcesPlayer.
@@ -107,9 +112,14 @@ public:
 
 	/// Get the name of the execution DomainHandler. 
 	std::unordered_set<std::string> getHandlerName() const override;
-	
+
+    /// @name PlaybackRouterInterface method.
+	/// @{
+    /// Stop playing speech audio.
+    void buttonPressedPlayback() override;
+        
 protected:
-	
+
 	/// @name SafeShutdown method.
 	/// @{
 	void doShutdown() override;
@@ -143,10 +153,6 @@ private:
 		std::string url;
 
         std::deque<std::string> audioList;
-
-		/// The attachment reader @c AttachmentReader to read speech audio('text to speech').
-		std::unique_ptr<utils::attachment::AttachmentReader> attachmentReader;
-
         
         /// A flag to indicate if the domain directive complete message has to be sent to the @c DomainSequencer.
         bool sendCompletedMessage;
@@ -168,6 +174,14 @@ private:
      */
     void init();
 
+
+    ///
+    void AnalysisNlpDataForResourcesPlayer(cJSON          * datain , std::deque<std::string> &audiourllist );
+
+    ///
+    void AnalysisNlpDataForPlayControl(std::shared_ptr<DirectiveInfo> info, std::string &operation );
+
+    
     /**
      * Pre-handle a ResourcesPlayer.Chat directive (on the @c m_executor threadpool) to parse own keys and values.
      *
@@ -212,21 +226,36 @@ private:
      */
     void executeStateChange();
 
+
+    ///
+    void executeTrackChanged(utils::channel::FocusState newTrace);
     /**
      * Handle (on the @c m_executor threadpool) notification that speech playback has started.
      */
     void executePlaybackStarted();
 
+
+    void executePlaybackStopped();
     /**
      * Handle (on the @c m_executor threadpool) notification that speech playback has finished.
      */
     void executePlaybackFinished();
+
+
+    void executePlaybackPaused();
+
+
+    void executePlaybackResumed();
+
 
     /**
      * Handle (on the @c m_executor threadpool) notification that speech playback encountered an error.
      *
      * @param error Text describing the nature of the error.
      */
+    ///
+    void playNextItem();
+    
     void executePlaybackError(const utils::mediaPlayer::ErrorType& type, std::string error);
 
     /**
@@ -402,6 +431,12 @@ private:
     /// Serializes access to @c m_chatInfoQueue
     std::mutex m_chatInfoQueueMutex;
 
+    /// Current operation state to playcontrol.
+   // State m_currentOperationState;
+    
+    /// The attachment reader @c AttachmentReader to read speech audio('text to speech').
+    std::unique_ptr<utils::attachment::AttachmentReader> m_attachmentReader;
+    
 	/// An internal thread pool which queues up operations from asynchronous API calls
 	utils::threading::Executor m_executor;
 

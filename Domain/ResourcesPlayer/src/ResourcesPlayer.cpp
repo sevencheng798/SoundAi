@@ -14,11 +14,8 @@
 
 #include "ResourcesPlayer/ResourcesPlayer.h"
 
-//nclude <Utils/cJSON.h>
 // jsoncpp ver-1.8.3
 #include <json/json.h>
-
-
 
 #include "string.h"
 
@@ -41,7 +38,7 @@ using namespace utils::channel;
 using namespace dmInterface;
 
 /// The name of the @c AudioTrackManager channel used by the @c resourcesPlayer.
-static const std::string CHANNEL_NAME = AudioTrackManagerInterface::DIALOG_CHANNEL_NAME;
+static const std::string CHANNEL_NAME = AudioTrackManagerInterface::MEDIA_CHANNEL_NAME;
 
 /// The name of DomainProxy and SpeechChat handler interface
 //static const std::string SPEECHCHAT{"SpeechChat"};
@@ -50,13 +47,16 @@ static const std::string CHANNEL_NAME = AudioTrackManagerInterface::DIALOG_CHANN
 static const std::string SPEECHNAME{"ResourcesPlayer"};
 
 /// The duration to wait for a state change in @c onTrackChanged before failing.
-static const std::chrono::seconds STATE_CHANGE_TIMEOUT{5};
+static const std::chrono::seconds STATE_CHANGE_TIMEOUT{3};
 
 /// The duration to start playing offset position.
 static const std::chrono::milliseconds DEFAULT_OFFSET{0};
 
 //add deque for store audio_list;
 std::deque<std::string> AUDIO_URL_LIST; 
+
+///add for use store play control state; enable = 1;unable = 0;
+int flag_playControl_pause = 0; 
 
 
 std::shared_ptr<ResourcesPlayer> ResourcesPlayer::create(
@@ -86,7 +86,6 @@ std::shared_ptr<ResourcesPlayer> ResourcesPlayer::create(
 	}
 	instance->init();
 
-	dialogUXStateRelay->addObserver(instance);
 
 	return instance;
 }
@@ -102,7 +101,80 @@ void ResourcesPlayer::preHandleDirective(std::shared_ptr<DirectiveInfo> info) {
 
 void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
     AISDK_INFO(LX("handleDirective").d("messageId: ",  info->directive->getMessageId()));
-    m_executor.submit([this, info]() { executeHandle(info); });
+
+    if(info->directive->getDomain() == SPEECHNAME ){
+        m_executor.submit([this, info]() { executeHandle(info); });
+
+    }else if(info->directive->getDomain() == "PlayControl" ){
+
+        //add @20190612
+        std::string operation;
+        AnalysisNlpDataForPlayControl(info, operation);
+     
+        if( operation == "PAUSE"){
+             std::this_thread::sleep_for( std::chrono::microseconds(100));
+             
+            //setCurrentStateLocked(ResourcesPlayerObserverInterface::ResourcesPlayerState::STOPPED);
+              flag_playControl_pause = 1;
+              if( !m_speechPlayer->pause(m_mediaSourceId)){
+                 AISDK_ERROR(LX("executeTrackChanged").d("pause","failed"));
+              } 
+       
+              info->result->setCompleted();  
+        }else if(operation == "STOP" ){
+              flag_playControl_pause = 1;
+              if( !m_speechPlayer->pause(m_mediaSourceId)){
+                  AISDK_ERROR(LX("executeTrackChanged").d("pause","failed"));
+              }  
+              
+              info->result->setCompleted();  
+        }else if(operation == "CONTINUE" ){
+              flag_playControl_pause = 0;
+              if( !m_speechPlayer->resume(m_mediaSourceId)){
+                  AISDK_ERROR(LX("executeTrackChanged").d("resume","failed"));
+              }  
+              
+              info->result->setCompleted();  
+        }else if(operation == "NEXT"){
+
+#if 0        
+               flag_playControl_pause = 0;
+              if(!AUDIO_URL_LIST.empty()){
+                  AUDIO_URL_LIST.pop_front();
+          if( !m_speechPlayer->stop(m_mediaSourceId)){
+                  AISDK_ERROR(LX("executeTrackChanged").d("stop","failed"));
+              }
+                  m_mediaSourceId = m_speechPlayer->setSource(AUDIO_URL_LIST.at(0));
+              }
+              if( !m_speechPlayer->play(m_mediaSourceId)){
+                  AISDK_ERROR(LX("executeTrackChanged").d("NEXT","failed"));
+              }  
+#endif     
+              info->result->setCompleted();  
+              
+        }else if(operation == "SWITCH"){
+        
+                    AISDK_ERROR(LX("executeTrackChanged").d("SWITCH","failed"));
+    
+        }else if(operation == "PREVIOUS"){
+        
+                    AISDK_ERROR(LX("executeTrackChanged").d("PREVIOUS","failed"));
+    
+        }else if(operation == "SINGLE_LOOP"){
+        
+                    AISDK_ERROR(LX("executeTrackChanged").d("SINGLE_LOOP","failed"));
+    
+        }else{
+               AISDK_ERROR(LX("executeTrackChanged").d("operation","mull"));
+    
+               info->result->setCompleted();  
+        }
+
+
+           
+    }
+    
+ 
 }
 
 void ResourcesPlayer::cancelDirective(std::shared_ptr<DirectiveInfo> info) {
@@ -112,40 +184,59 @@ void ResourcesPlayer::cancelDirective(std::shared_ptr<DirectiveInfo> info) {
 
 void ResourcesPlayer::onTrackChanged(FocusState newTrace) {
     AISDK_INFO(LX("onTrackChanged").d("newTrace: ", newTrace));
-    std::unique_lock<std::mutex> lock(m_mutex);
-    m_currentFocus = newTrace;
-    setDesiredStateLocked(newTrace);
-    if (m_currentState == m_desiredState) {
-        return;
-    }
-	
+    m_executor.submit([this, newTrace]() { executeTrackChanged(newTrace); });
+
     // Set intermediate state to avoid being considered idle
     switch (newTrace) {
         case FocusState::FOREGROUND:
-            setCurrentStateLocked(ResourcesPlayerObserverInterface::ResourcesPlayerState::GAINING_FOCUS);
-            break;
+            return;
         case FocusState::BACKGROUND:
-            setCurrentStateLocked(ResourcesPlayerObserverInterface::ResourcesPlayerState::LOSING_FOCUS);
+        {
+             auto predicate = [this](){ 
+                switch (m_currentState) {
+                    case  ResourcesPlayerObserverInterface::ResourcesPlayerState::IDLE:
+                    case  ResourcesPlayerObserverInterface::ResourcesPlayerState::PAUSED:
+                    case  ResourcesPlayerObserverInterface::ResourcesPlayerState::STOPPED: 
+                    case  ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED: 
+                    return true;
+                    case  ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING:
+                    return false;
+                    default: 
+                    return false; 
+                }
+             };
+             // Block until we achieve the desired state.
+             std::unique_lock<std::mutex> lock(m_mutex);
+             if ( !m_waitOnStateChange.wait_for( lock, STATE_CHANGE_TIMEOUT, predicate) ){
+                 AISDK_ERROR(LX("onTrackChangedTimeout"));
+             }
+        }
             break;
         case FocusState::NONE:
-            // We do not care of other track focus states yet
+        {
+             auto predicate = [this](){ 
+                switch (m_currentState) {
+                    case  ResourcesPlayerObserverInterface::ResourcesPlayerState::IDLE:
+                    case  ResourcesPlayerObserverInterface::ResourcesPlayerState::STOPPED:
+                    case  ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED: 
+                    return true;
+                    case  ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING:
+                    case  ResourcesPlayerObserverInterface::ResourcesPlayerState::PAUSED:  
+                    return false;
+                    default: 
+                    return false; 
+                }
+             };
+             // Block until we achieve the desired state.
+             std::unique_lock<std::mutex> lock(m_mutex);
+             if ( !m_waitOnStateChange.wait_for( lock, STATE_CHANGE_TIMEOUT, predicate)) {
+                 AISDK_ERROR(LX("onTrackChangedTimeout"));
+             }
+        }    
             break;
     }
 
-	auto messageId = (m_currentInfo && m_currentInfo->directive) ? m_currentInfo->directive->getMessageId() : "";
-    m_executor.submit([this]() { executeStateChange(); });
 
-	// Block until we achieve the desired state.
-    if (m_waitOnStateChange.wait_for(
-            lock, STATE_CHANGE_TIMEOUT, [this]() { return m_currentState == m_desiredState; })) {
-            AISDK_INFO(LX("onTrackChangedSuccess"));
-    } else {
-            AISDK_INFO(LX("onFocusChangeFailed").d("reason:stateChangeTimeout:messageId:", messageId));
-        if (m_currentInfo) {
-            lock.unlock();
-			reportExceptionFailed(m_currentInfo, "stateChangeTimeout");
-        }
-    }
 }
 
 void ResourcesPlayer::onPlaybackStarted(SourceId id) {
@@ -180,6 +271,41 @@ void ResourcesPlayer::onPlaybackFinished(SourceId id) {
     }
 }
 
+
+void ResourcesPlayer::onPlaybackPaused(SourceId id){
+    AISDK_INFO(LX("ResourcesPlayeronPlaybackPaused").d("callbackSourceId：", id));
+    if (id != m_mediaSourceId) {
+        AISDK_ERROR(LX("queueingExecutePlaybackPausedFailed")
+                    .d("reason", "mismatchSourceId")
+                    .d("callbackSourceId", id)
+                    .d("sourceId", m_mediaSourceId));
+        m_executor.submit([this] {
+            executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "executePlaybackPausedFailed");
+        });
+    } else {
+        m_executor.submit([this]() { executePlaybackPaused(); });
+    }
+
+}
+
+
+void ResourcesPlayer::onPlaybackResumed(SourceId id){
+    AISDK_INFO(LX("ResourcesPlayeronPlaybackResumed").d("callbackSourceId：", id));
+    if (id != m_mediaSourceId) {
+        AISDK_ERROR(LX("queueingExecutePlaybackResumedFailed")
+                    .d("reason", "mismatchSourceId")
+                    .d("callbackSourceId", id)
+                    .d("sourceId", m_mediaSourceId));
+        m_executor.submit([this] {
+            executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "executePlaybackResumedFailed");
+        });
+    } else {
+        m_executor.submit([this]() { executePlaybackResumed(); });
+    }
+
+}
+
+
 void ResourcesPlayer::onPlaybackError(
 	SourceId id,
 	const utils::mediaPlayer::ErrorType& type,
@@ -189,9 +315,11 @@ void ResourcesPlayer::onPlaybackError(
     m_executor.submit([this, type, error]() { executePlaybackError(type, error); });
 }
 
+
 void ResourcesPlayer::onPlaybackStopped(SourceId id) {
 	AISDK_INFO(LX("onPlaybackStopped").d("callbackSourceId", id));
-    onPlaybackFinished(id);
+    m_executor.submit([this]() { executePlaybackStopped(); });
+
 }
 
 void ResourcesPlayer::addObserver(std::shared_ptr<ResourcesPlayerObserverInterface> observer) {
@@ -206,6 +334,37 @@ void ResourcesPlayer::removeObserver(std::shared_ptr<ResourcesPlayerObserverInte
 
 std::unordered_set<std::string> ResourcesPlayer::getHandlerName() const {
 	return m_handlerName;
+}
+
+void ResourcesPlayer::buttonPressedPlayback() {
+    AISDK_INFO(LX("buttonPressedPlayback").d("reason", "buttonPressed"));
+	m_executor.submit( [this]() {
+	    std::unique_lock<std::mutex> lock(m_mutex);
+        
+         if (ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING == m_currentState  ||
+             ResourcesPlayerObserverInterface::ResourcesPlayerState::PAUSED == m_currentState ) {
+             if(flag_playControl_pause == 1){
+ 
+                 AISDK_INFO(LX("buttonPressedPlayback").d("flag_playControl_pause", "resume"));
+                 if( !m_speechPlayer->resume(m_mediaSourceId)){
+                    AISDK_ERROR(LX("executeTrackChanged").d("resume","failed"));
+                 }
+                flag_playControl_pause = 0;                    
+ 
+             }else{
+                AISDK_INFO(LX("buttonPressedPlayback").d("flag_playControl_pause", "pause"));
+                 if( !m_speechPlayer->pause(m_mediaSourceId)){
+                    AISDK_ERROR(LX("executeTrackChanged").d("pause","failed"));
+                 } 
+                flag_playControl_pause = 1;
+     
+             }
+             
+         }else{
+                 AISDK_INFO(LX("buttonPressedPlaybackFailed").d("reason", "state is not PLAYING or PAUSED"));
+         }
+	   
+	});
 }
 
 void ResourcesPlayer::doShutdown() {
@@ -250,7 +409,6 @@ ResourcesPlayer::ResourcesDirectiveInfo::ResourcesDirectiveInfo(
 }
 	
 void ResourcesPlayer::ResourcesDirectiveInfo::clear() {
-    attachmentReader.reset();
     sendCompletedMessage = false;
 }
 
@@ -259,7 +417,7 @@ ResourcesPlayer::ResourcesPlayer(
 	std::shared_ptr<AudioTrackManagerInterface> trackManager) :
 	DomainProxy{SPEECHNAME},
 	SafeShutdown{SPEECHNAME},
-	m_handlerName{SPEECHNAME},
+	m_handlerName{SPEECHNAME, "PlayControl"},
 	m_speechPlayer{mediaPlayer},
 	m_trackManager{trackManager},
 	m_mediaSourceId{MediaPlayerInterface::ERROR},
@@ -273,15 +431,10 @@ void ResourcesPlayer::init() {
     m_speechPlayer->setObserver(shared_from_this());
 }
 
-//--------------------add by wx @190402-----------------
-#if 0
-void AnalysisNlpDataForResourcesPlayer(cJSON          * datain , std::deque<std::string> &audiourllist );
-
-void AnalysisNlpDataForResourcesPlayer(cJSON          * datain , std::deque<std::string> &audiourllist )
+void ResourcesPlayer::AnalysisNlpDataForResourcesPlayer(cJSON          * datain , std::deque<std::string> &audiourllist )
 {
     cJSON* json = NULL,
      *json_data = NULL,*json_tts_url = NULL, *json_isMultiDialog = NULL, *json_answer = NULL,
-
      *json_parameters = NULL, *json_artist = NULL, *json_title = NULL,
      *json_album = NULL,*json_audio_list = NULL, *json_audio_url = NULL;
 
@@ -298,60 +451,61 @@ void AnalysisNlpDataForResourcesPlayer(cJSON          * datain , std::deque<std:
      (void )json_audio_list;
      (void )json_audio_url;  
 
-     
-       json_data = datain;
-       if(!json_data)
-       {
-       std::cout << "json Error before: " <<cJSON_GetErrorPtr() << std::endl;
-       }
-       else
-       {
-          json_answer = cJSON_GetObjectItem(json_data, "answer");
-          json_tts_url = cJSON_GetObjectItem(json_data, "tts_url");
-          json_isMultiDialog = cJSON_GetObjectItem(json_data, "isMultiDialog");
-         // std::cout << "json_answer =  " << json_answer->valuestring << std::endl;
-        //  std::cout << "json_tts_url =  " << json_tts_url->valuestring << std::endl;
-        //  std::cout << "json_isMultiDialog = " << json_isMultiDialog->valueint << std::endl;
-
-          audiourllist.push_back(json_tts_url->valuestring);
-
-             //parameters  
-             json_parameters = cJSON_GetObjectItem(json_data, "parameters"); 
-            if(json_parameters != NULL) 
-            {
-             json_album = cJSON_GetObjectItem(json_parameters, "album");
-             json_title = cJSON_GetObjectItem(json_parameters, "title");
-            }
-             else
-             {
-             std::cout << "parameters is null"<< std::endl;
-             }
-
-             //audio_list
-             cJSON *js_list = cJSON_GetObjectItem(json_data, "audio_list");
-              if(!js_list){
-                  std::cout << "no audio_list!"<< std::endl;
+     json_data = datain;
+     if(!json_data)
+     {
+     AISDK_ERROR(LX("AnalysisNlpDataForResourcesPlayer").d("json Error before", cJSON_GetErrorPtr()));
+     }
+     else
+     {
+       json_answer = cJSON_GetObjectItem(json_data, "answer");
+      // json_tts_url = cJSON_GetObjectItem(json_data, "tts_url");
+      // json_isMultiDialog = cJSON_GetObjectItem(json_data, "isMultiDialog");
+       std::cout << "json_answer =  " << json_answer->valuestring << std::endl;
+      // std::cout << "json_tts_url =  " << json_tts_url->valuestring << std::endl;
+      // std::cout << "json_isMultiDialog = " << json_isMultiDialog->valueint << std::endl;
+ 
+      // audiourllist.push_back(json_tts_url->valuestring);
+ 
+          //parameters  
+          json_parameters = cJSON_GetObjectItem(json_data, "parameters"); 
+         if(json_parameters != NULL) 
+         {
+          json_album = cJSON_GetObjectItem(json_parameters, "album");
+          json_title = cJSON_GetObjectItem(json_parameters, "title");
+         }
+          else
+          {
+          AISDK_ERROR(LX("AnalysisNlpDataForResourcesPlayer").d("json_parameters", "parameters is null"));
+          }
+ 
+          //audio_list
+          cJSON *js_list = cJSON_GetObjectItem(json_data, "audio_list");
+           if(!js_list){
+              AISDK_ERROR(LX("AnalysisNlpDataForResourcesPlayer").d("audio_list", "no audio_list!"));
+           }
+           
+           int array_size = cJSON_GetArraySize(js_list);
+           AISDK_DEBUG(LX("AnalysisNlpDataForResourcesPlayer").d("audio_list size", array_size));
+           int i = 0;
+           cJSON *item,*it;
+           char *p  = NULL;
+           for(i=0; i< array_size; i++) {
+              item = cJSON_GetArrayItem(js_list, i);
+              if(!item) {
+                 //TODO...
               }
-              int array_size = cJSON_GetArraySize(js_list);
-              std::cout << "audio_list size : " <<array_size << std::endl;
-              int i = 0;
-              cJSON *item,*it;
-              char *p  = NULL;
-              for(i=0; i< array_size; i++) {
-                 item = cJSON_GetArrayItem(js_list, i);
-                 if(!item) {
-                    //TODO...
-                 }
-                 p = cJSON_PrintUnformatted(item);
-                 it = cJSON_Parse(p);
-                 if(!it)
-                    continue ;
-             json_title = cJSON_GetObjectItem(it, "title");
-             json_audio_url = cJSON_GetObjectItem(it, "audio_url");
-             // std::cout << "NO: " << i << ":json_title =  "<< json_title->valuestring << std::endl;
-             // std::cout << "NO: " << i << ":json_audio_url =  " << json_audio_url->valuestring << std::endl;
-             audiourllist.push_back(json_audio_url->valuestring);
-              }
+              p = cJSON_PrintUnformatted(item);
+              it = cJSON_Parse(p);
+              if(!it)
+                 continue ;
+          json_title = cJSON_GetObjectItem(it, "title");
+          json_audio_url = cJSON_GetObjectItem(it, "audio_url");
+          //std::cout << "NO: " << i << ":json_title =  "<< json_title->valuestring << std::endl;
+          //std::cout << "NO: " << i << ":json_audio_url =  " << json_audio_url->valuestring << std::endl;
+          audiourllist.push_back(json_audio_url->valuestring);
+           }
+           
 #if 0
        std::cout <<"get_udio_url_list："<< std::endl;        
        for(std::size_t i = 0; i< audiourllist.size(); i++)
@@ -359,69 +513,31 @@ void AnalysisNlpDataForResourcesPlayer(cJSON          * datain , std::deque<std:
         std::cout << "list_no:" << i << "; get_udio_url=" << audiourllist.at(i) << std::endl;
        }
 #endif          
-       }
-
-     
-}
-
-#endif
-//--------------------add by wx @190402-----------------
-/*
-void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<ResourcesDirectiveInfo> info) {
-	/// To-Do parse tts url and insert chatInfo map
-    /// add by wx @201904
-     auto nlpDomain = info->directive;
-     auto dateMessage = nlpDomain->getData();
-     std::cout << "dateMessage =  " << dateMessage.c_str() << std::endl;
-
-     cJSON* json = NULL, *json_data = NULL;
-     (void )json;
-     (void )json_data;
-     json_data = cJSON_Parse(dateMessage.c_str());
-
-    //get nlp data audio url list to resources player @20190408
-     AnalysisNlpDataForResourcesPlayer(json_data, AUDIO_URL_LIST);
-     info->audioList = AUDIO_URL_LIST;
-     AISDK_INFO(LX("=【20190408】=========AnalysisNlpDataForResourcesPlayer"));
-     
-     for(std::size_t i = 0; i< AUDIO_URL_LIST.size(); i++)
-     {
-      AISDK_INFO(LX("AUDIO_URL_LIST").d("audio_url:",  AUDIO_URL_LIST.at(i)));
      }
 
-
-      info->url = AUDIO_URL_LIST.at(0);
-      AUDIO_URL_LIST.pop_front();
-#if 0
-   //  for(std::size_t i = 0; i < AUDIO_URL_LIST.size(); i++)
-      for(std::size_t i = 0; i < 1; i++) 
-      {
-          info->url = AUDIO_URL_LIST.at(i);
-          AISDK_INFO(LX("AUDIO_URL_LIST").d("playing_now_audio_url:",  AUDIO_URL_LIST.at(i)));
-          AUDIO_URL_LIST.pop_back();
-      }
-
-#endif
-      // If everything checks out, add the chatInfo to the map.    
-      std::cout << "=========================i'm here!!!-解析date数据===========================" << std::endl;
-
-
-    if (!setResourcesDirectiveInfo(info->directive->getMessageId(), info)) {
-        AISDK_ERROR(LX("executePreHandleFailed").d("reason:prehandleCalledTwiceOnSameDirective:messageId:", info->directive->getMessageId()));
-    }
-     //clear reque list data;
-   //  while (!AUDIO_URL_LIST.empty()) AUDIO_URL_LIST.pop_back();
-     cJSON_Delete(json_data);  
 }
 
-*/
 
+void ResourcesPlayer::AnalysisNlpDataForPlayControl(std::shared_ptr<DirectiveInfo> info, std::string &operation )
+{
+    auto data = info->directive->getData();
+    Json::CharReaderBuilder readerBuilder;
+    JSONCPP_STRING errs;
+    Json::Value root;
+    std::unique_ptr<Json::CharReader> const reader(readerBuilder.newCharReader());
+    if (!reader->parse(data.c_str(), data.c_str()+data.length(), &root, &errs)) {
+        AISDK_ERROR(LX("handleDirective").d("reason", "parseDataKeyError"));
+        return;
+    }
+    Json::Value parameters = root["parameters"];
+    operation = parameters["operation"].asString();
+    AISDK_INFO(LX("handleDirective").d("operation", operation));
+}
 
 
 void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<ResourcesDirectiveInfo> info) {
 	/// To-Do parse tts url and insert chatInfo map
-    ///
-        // TODO:parse tts url and insert chatInfo map - Fix me.
+    /// TODO:parse tts url and insert chatInfo map - Fix me.
 #ifdef ENABLE_SOUNDAI_ASR
         auto data = info->directive->getData();
         Json::CharReaderBuilder readerBuilder;
@@ -436,21 +552,46 @@ void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<ResourcesD
         AISDK_INFO(LX("executePreHandleAfterValidation").d("url", url));
         info->url = url;
 #else	
-            info->attachmentReader = info->directive->getAttachmentReader(
-                info->directive->getMessageId(), utils::sharedbuffer::ReaderPolicy::BLOCKING);
+        auto nlpDomain = info->directive;
+        auto dateMessage = nlpDomain->getData();
+        AUDIO_URL_LIST.clear();
+        flag_playControl_pause = 0 ;
+
+        cJSON* json = NULL, *json_data = NULL;
+        (void )json;
+        (void )json_data;
+        json_data = cJSON_Parse(dateMessage.c_str());
+        AnalysisNlpDataForResourcesPlayer(json_data, AUDIO_URL_LIST);
+        info->audioList = AUDIO_URL_LIST;
+        cJSON_Delete(json_data);  
+        AISDK_DEBUG(LX("AUDIO_URL_LIST").d("size:",  AUDIO_URL_LIST.size()));
+        for(std::size_t i = 0; i< AUDIO_URL_LIST.size(); i++)
+        {
+        AISDK_DEBUG(LX("AUDIO_URL_LIST").d("audio_url:",  AUDIO_URL_LIST.at(i)));
+        }
+
+        //info->url = AUDIO_URL_LIST.at(0);
+        //AUDIO_URL_LIST.pop_front();
+
+
+      //  m_attachmentReader = info->directive->getAttachmentReader(
+      //      info->directive->getMessageId(), utils::sharedbuffer::ReaderPolicy::BLOCKING);
+
+        //auto resourceSourceId = setSource(AUDIO_URL_LIST.at(0));
 #endif	
-            // If everything checks out, add the chatInfo to the map.
-            if (!setResourcesDirectiveInfo(info->directive->getMessageId(), info)) {
-                AISDK_ERROR(LX("executePreHandleFailed")
-                            .d("reason", "prehandleCalledTwiceOnSameDirective")
-                            .d("messageId", info->directive->getMessageId()));
-            }       
+        // If everything checks out, add the chatInfo to the map.
+        if (!setResourcesDirectiveInfo(info->directive->getMessageId(), info)) {
+            AISDK_ERROR(LX("executePreHandleFailed")
+                        .d("reason", "prehandleCalledTwiceOnSameDirective")
+                        .d("messageId", info->directive->getMessageId()));
+        }   
 }
 
 
 void ResourcesPlayer::executeHandleAfterValidation(std::shared_ptr<ResourcesDirectiveInfo> info) {
     m_currentInfo = info;
     AISDK_INFO(LX("executeHandleAfterValidation").d("m_currentInfo-url: ", m_currentInfo->url ));
+//    std::this_thread::sleep_for( std::chrono::seconds(2));
     if (!m_trackManager->acquireChannel(CHANNEL_NAME, shared_from_this(), SPEECHNAME)) {
         static const std::string message = std::string("Could not acquire ") + CHANNEL_NAME + " for " + SPEECHNAME;
 		AISDK_INFO(LX("executeHandleFailed")
@@ -458,6 +599,9 @@ void ResourcesPlayer::executeHandleAfterValidation(std::shared_ptr<ResourcesDire
 					.d("messageId", m_currentInfo->directive->getMessageId()));
         reportExceptionFailed(info, message);
     }
+
+    setHandlingCompleted();
+    resetCurrentInfo();
 }
 
 void ResourcesPlayer::executePreHandle(std::shared_ptr<DirectiveInfo> info) {
@@ -473,7 +617,6 @@ void ResourcesPlayer::executePreHandle(std::shared_ptr<DirectiveInfo> info) {
 void ResourcesPlayer::executeHandle(std::shared_ptr<DirectiveInfo> info) {
 	AISDK_INFO(LX("executeHandle").d("messageId", info->directive->getMessageId()));
     auto chatInfo = validateInfo("executeHandle", info);
-     AISDK_INFO(LX("===========executeHandle").d("chatInfo=========: ", chatInfo->url));
     if (!chatInfo) {
 		AISDK_ERROR(LX("executeHandleFailed").d("reason", "invalidDirectiveInfo"));
         return;
@@ -507,8 +650,7 @@ void ResourcesPlayer::executeCancel(std::shared_ptr<DirectiveInfo> info) {
     std::unique_lock<std::mutex> lock(m_mutex);
     if (ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED != m_desiredState) {
         m_desiredState = ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED;
-        if (ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING == m_currentState ||
-            ResourcesPlayerObserverInterface::ResourcesPlayerState::GAINING_FOCUS == m_currentState) {
+        if (ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING == m_currentState ) {
             lock.unlock();
             if (m_currentInfo) {
                 m_currentInfo->sendCompletedMessage = false;
@@ -520,6 +662,7 @@ void ResourcesPlayer::executeCancel(std::shared_ptr<DirectiveInfo> info) {
 }
 
 void ResourcesPlayer::executeStateChange() {
+#if 0
     ResourcesPlayerObserverInterface::ResourcesPlayerState newState;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -539,127 +682,235 @@ void ResourcesPlayer::executeStateChange() {
 			// Trigger stop
             stopPlaying();
             break;
-        case ResourcesPlayerObserverInterface::ResourcesPlayerState::GAINING_FOCUS:
-        case ResourcesPlayerObserverInterface::ResourcesPlayerState::LOSING_FOCUS:
-            // Nothing to do
-            break;
     }
+#endif    
 }
+
+
+void ResourcesPlayer::executeTrackChanged(FocusState newTrace){
+    if(m_currentFocus == newTrace){
+        
+    AISDK_ERROR(LX("executeTrackChanged").d("reason", "m_currentFocus == newTrace"));
+        return;
+    }
+             
+    m_currentFocus = newTrace;
+    AISDK_ERROR(LX("executeTrackChanged").d("newTrace", newTrace));
+    switch (newTrace) {
+    case FocusState::FOREGROUND:
+       switch (m_currentState) {
+        case  ResourcesPlayerObserverInterface::ResourcesPlayerState::IDLE:
+        case  ResourcesPlayerObserverInterface::ResourcesPlayerState::STOPPED:             
+        case  ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED: 
+        {
+            if(AUDIO_URL_LIST.empty()){
+               AISDK_ERROR(LX("executeTrackChanged").d("reason", "nullAUDIO_URL_LIST"));
+               return;
+            }
+
+            playNextItem();
+        }
+            break;
+        case ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING:
+   
+            break;
+        case  ResourcesPlayerObserverInterface::ResourcesPlayerState::PAUSED:
+
+            if(flag_playControl_pause == 0 ){
+                AISDK_ERROR(LX("executeTrackChanged").d("flag_playControl_pause",flag_playControl_pause));
+                if( !m_speechPlayer->resume(m_mediaSourceId)){
+                    AISDK_ERROR(LX("executeTrackChanged").d("resume","failed"));
+                }
+
+            }else{        
+               AISDK_ERROR(LX("executeTrackChanged").d("flag_playControl_pause",flag_playControl_pause));
+            }
+
+            break;
+       }
+   break;
+    case FocusState::BACKGROUND:
+        switch (m_currentState){
+         case  ResourcesPlayerObserverInterface::ResourcesPlayerState::IDLE:
+         case  ResourcesPlayerObserverInterface::ResourcesPlayerState::PAUSED:  
+         case  ResourcesPlayerObserverInterface::ResourcesPlayerState::STOPPED:             
+         case  ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED: 
+            
+            break;
+         case ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING:
+            if( !m_speechPlayer->pause(m_mediaSourceId)){
+                AISDK_ERROR(LX("executeTrackChanged").d("pause","failed"));
+            }
+            break;
+        }
+        
+   break;
+    case FocusState::NONE:
+        
+   break;
+
+   }
+    
+}
+
 
 void ResourcesPlayer::executePlaybackStarted() {
 	AISDK_INFO(LX("executePlaybackStarted"));
-	
-    if (!m_currentInfo) {
-		AISDK_ERROR(LX("executePlaybackStartedIgnored").d("reason", "nullptrDirectiveInfo"));
-        return;
-    }
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 		/// Set current state @c m_currentState to PLAYING to specify device alreay start to playback.
         setCurrentStateLocked(ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING);
     }
 	
-	/// wakeup condition wait
-    m_waitOnStateChange.notify_one();
+}
+
+void ResourcesPlayer::executePlaybackStopped(){
+	AISDK_INFO(LX("executePlaybackStopped"));
+
+
+    resetMediaSourceId();
+
+    switch (m_currentState)
+        {
+        case ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING:
+        case ResourcesPlayerObserverInterface::ResourcesPlayerState::PAUSED:
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                /// Set current state @c m_currentState to PLAYING to specify device alreay start to playback.
+                setCurrentStateLocked(ResourcesPlayerObserverInterface::ResourcesPlayerState::STOPPED);
+            }
+        break;
+        case ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED:
+        case ResourcesPlayerObserverInterface::ResourcesPlayerState::STOPPED:
+        case ResourcesPlayerObserverInterface::ResourcesPlayerState::IDLE:
+            if(AUDIO_URL_LIST.empty() && m_isAlreadyStopping != false ){
+                  AISDK_INFO(LX("executePlaybackFinished").d("reason", "audioUrlListNull"));
+                  if(m_currentFocus != FocusState::NONE){
+                     m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this());
+                  }
+            }else{
+            playNextItem();
+            }
+
+        break;
+            
+        }
+
+
 }
 
 void ResourcesPlayer::executePlaybackFinished() {
 	AISDK_INFO(LX("executePlaybackFinished"));
     std::shared_ptr<ResourcesDirectiveInfo> infotest;
 
-    if (!m_currentInfo) {
-        
-		AISDK_ERROR(LX("executePlaybackFinishedIgnored").d("reason", "nullptrDirectiveInfo"));
-        return;
+    if (!m_attachmentReader) {
+        m_attachmentReader.reset();
     }
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         setCurrentStateLocked(ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED);
         //todo something 
     }
-    m_waitOnStateChange.notify_one();
 
-    if (m_currentInfo->sendCompletedMessage) {
-        setHandlingCompleted();
-    }
-	
-    resetCurrentInfo();
-	
-    {
-        std::lock_guard<std::mutex> lock_guard(m_chatInfoQueueMutex);
-        m_chatInfoQueue.pop_front();
-        if (!m_chatInfoQueue.empty()) {
-            executeHandleAfterValidation(m_chatInfoQueue.front());
-        }
-    }
-	
     resetMediaSourceId();
+    if(AUDIO_URL_LIST.empty()){
+          AISDK_INFO(LX("executePlaybackFinished").d("reason", "audioUrlListNull"));
+          if(m_currentFocus != FocusState::NONE){
+             m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this());
+          }
+          
+    }else{
+    playNextItem();
+    }
 
-#if 1
-//-------------------------
+
+#if 0
   //  while (!AUDIO_URL_LIST.empty()) AUDIO_URL_LIST.pop_back();
-     for(std::size_t i = 0; i< AUDIO_URL_LIST.size(); i++)
-     {
-      AISDK_INFO(LX("current_AUDIO_URL_LIST").d("==============:",  AUDIO_URL_LIST.at(i)));
-     }
-
      if(!AUDIO_URL_LIST.empty()){
 
-         //  std::make_shared<ResourcesDirectiveInfo>(infotest);
-          // infotest->url = AUDIO_URL_LIST.at(3);
-           AISDK_INFO(LX("infotest->url").d("=====infotest->url======:",  AUDIO_URL_LIST.at(3)));
-       
-     //    addToDirectiveQueue(infotest);
+        for(std::size_t i = 0; i< AUDIO_URL_LIST.size(); i++)
+        {
+        AISDK_INFO(LX("executePlaybackFinished").d("AUDIO_URL_LIST",  AUDIO_URL_LIST.at(i)));
+        }
+
+        //  std::make_shared<ResourcesDirectiveInfo>(infotest);
+        //AISDK_INFO(LX("infotest->url").d("=====infotest->url======:",  AUDIO_URL_LIST.at(0)));
+        
+        m_mediaSourceId = m_speechPlayer->setSource(AUDIO_URL_LIST.at(0));
+        m_speechPlayer->play(m_mediaSourceId);   
+        AUDIO_URL_LIST.pop_front();
+        onPlaybackStopped(m_mediaSourceId);
+
+
      }
-#endif
+#endif     
 }
+
+void ResourcesPlayer::executePlaybackPaused(){
+	AISDK_INFO(LX("executePlaybackPaused"));
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+		/// Set current state @c m_currentState to PLAYING to specify device alreay start to playback.
+        setCurrentStateLocked(ResourcesPlayerObserverInterface::ResourcesPlayerState::PAUSED);
+    }
+	
+}
+
+
+void ResourcesPlayer::executePlaybackResumed(){
+	AISDK_INFO(LX("executePlaybackResumed"));
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+		/// Set current state @c m_currentState to PLAYING to specify device alreay start to playback.
+        setCurrentStateLocked(ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING);
+    }
+
+}
+
 
 void ResourcesPlayer::executePlaybackError(const utils::mediaPlayer::ErrorType& type, std::string error) {
 	std::cout << "executePlaybackError: type: " << type << " error: " << error << std::endl;
-    if (!m_currentInfo) {
-        return;
-    }
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         setCurrentStateLocked(ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED);
     }
-    m_waitOnStateChange.notify_one();
-    releaseForegroundTrace();
-    resetCurrentInfo();
     resetMediaSourceId();
-    {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        while (!m_chatInfoQueue.empty()) {
-			auto charInfo = m_chatInfoQueue.front();
-            m_chatInfoQueue.pop_front();
-			lock.unlock();
-			reportExceptionFailed(charInfo, error);
-			lock.lock();
-        }
-    }
+    executePlaybackStopped();
 
 }
 
-/*
-void ResourcesPlayer::startPlaying() {
-	std::cout << "startPlaying" << std::endl;
-    m_mediaSourceId = m_speechPlayer->setSource(m_currentInfo->url, DEFAULT_OFFSET);
 
-
+void ResourcesPlayer::playNextItem() {
+	AISDK_INFO(LX("playNextItem"));
+    if(m_attachmentReader != nullptr){
+    	/// The following params must be set fix point.
+    	const utils::AudioFormat format{
+    						.encoding = aisdk::utils::AudioFormat::Encoding::LPCM,
+    					   .endianness = aisdk::utils::AudioFormat::Endianness::LITTLE,
+    					   .sampleRateHz = 16000,	
+    					   .sampleSizeInBits = 16,
+    					   .numChannels = 1,	
+    					   .dataSigned = true
+    	};
+        m_mediaSourceId = m_speechPlayer->setSource(std::move(m_attachmentReader), &format);
+    }else{
+        AISDK_INFO(LX("playNextItem").d("AUDIO_URL", AUDIO_URL_LIST.at(0)));
+        m_mediaSourceId = m_speechPlayer->setSource(AUDIO_URL_LIST.at(0));
+        AUDIO_URL_LIST.pop_front();
+    }
     
-    if (MediaPlayerInterface::ERROR == m_mediaSourceId) {
-        AISDK_ERROR(LX("startPlayingFailed").d("reason", "setSourceFailed."));
-        executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "playFailed");
-    } else if (!m_speechPlayer->play(m_mediaSourceId)) {
-        executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "playFailed");
-    } else {
-        // Execution of play is successful.
-        m_isAlreadyStopping = false;
-    }
-    	std::cout << "=======================here：startplaying=========." << std::endl;  
+     if (MediaPlayerInterface::ERROR == m_mediaSourceId) {
+ 		AISDK_ERROR(LX("playNextItemFailed").d("reason", "setSourceFailed"));
+         executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "playFailed");
+     } else if (!m_speechPlayer->play(m_mediaSourceId)) {
+         executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "playFailed");
+     } else {
+         // Execution of play is successful.
+         m_isAlreadyStopping = false;
+     }
 }
 
-*/
+
 void ResourcesPlayer::startPlaying() {
 	AISDK_INFO(LX("startPlaying"));
 	#ifndef ENABLE_SOUNDAI_ASR
@@ -673,7 +924,7 @@ void ResourcesPlayer::startPlaying() {
 					   .dataSigned = true
 	};
 	
-    m_mediaSourceId = m_speechPlayer->setSource(std::move(m_currentInfo->attachmentReader), &format);
+    m_mediaSourceId = m_speechPlayer->setSource(std::move(m_attachmentReader), &format);
 	#else
 	m_mediaSourceId = m_speechPlayer->setSource(m_currentInfo->url);
 	#endif
@@ -712,6 +963,7 @@ void ResourcesPlayer::setCurrentStateLocked(
     for (auto observer : m_observers) {
         observer->onStateChanged(m_currentState);
     }
+    m_waitOnStateChange.notify_one();
 }
 
 void ResourcesPlayer::setDesiredStateLocked(FocusState newTrace) {
@@ -720,6 +972,8 @@ void ResourcesPlayer::setDesiredStateLocked(FocusState newTrace) {
             m_desiredState = ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING;
             break;
         case FocusState::BACKGROUND:
+            m_desiredState = ResourcesPlayerObserverInterface::ResourcesPlayerState::PAUSED;
+            break;
         case FocusState::NONE:
             m_desiredState = ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED;
             break;
@@ -754,8 +1008,7 @@ void ResourcesPlayer::reportExceptionFailed(
     info->clear();
     removeDirective(info->directive->getMessageId());
     std::unique_lock<std::mutex> lock(m_mutex);
-    if (ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING == m_currentState ||
-        ResourcesPlayerObserverInterface::ResourcesPlayerState::GAINING_FOCUS == m_currentState) {
+    if (ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING == m_currentState ) {
         lock.unlock();
         stopPlaying();
     }
@@ -825,7 +1078,6 @@ bool ResourcesPlayer::setResourcesDirectiveInfo(
 
 void ResourcesPlayer::addToDirectiveQueue(std::shared_ptr<ResourcesDirectiveInfo> info) {
     std::lock_guard<std::mutex> lock(m_chatInfoQueueMutex);
-     AISDK_INFO(LX("========================iamamama-"));
 
     if (m_chatInfoQueue.empty()) {
         m_chatInfoQueue.push_back(info);
@@ -841,99 +1093,7 @@ void ResourcesPlayer::removeChatDirectiveInfo(const std::string& messageId) {
     m_chatDirectiveInfoMap.erase(messageId);
 }
 
-void ResourcesPlayer::onDialogUXStateChanged(
-	utils::dialogRelay::DialogUXStateObserverInterface::DialogUXState newState) {
-	AISDK_DEBUG5(LX("onDialogUXStateChanged"));
-	m_executor.submit([this, newState]() { executeOnDialogUXStateChanged(newState); });
-}
 
-void ResourcesPlayer::executeOnDialogUXStateChanged(
-    utils::dialogRelay::DialogUXStateObserverInterface::DialogUXState newState) {
-	AISDK_INFO(LX("executeOnDialogUXStateChanged"));
-    if (newState != utils::dialogRelay::DialogUXStateObserverInterface::DialogUXState::IDLE) {
-        return;
-    }
-    if (m_currentFocus != FocusState::NONE &&
-        m_currentState != ResourcesPlayerObserverInterface::ResourcesPlayerState::GAINING_FOCUS) {
-        m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this());
-        m_currentFocus = FocusState::NONE;
-    }
-}
-
-
-#if 0
-
-int test();
-void test_string();
-
-
-//-------------
-int test()
-{
-    std::deque<int> test;
-    test.push_back(10);
-    test.push_back(20);
-    test.push_back(30);
-    std::cout << "=========================i'm here!!!我是队列测试demo-start===========================" << std::endl;
-    std::cout <<"原始双端队列："<< std::endl;  
-    
-    for(std::size_t i = 0; i< test.size(); i++)
-    {
-     std::cout << "test: = " << test.at(i) << std::endl;
-    }
-
-    test.push_front(99);
-    test.push_front(88);
-    test.push_front(77);
-    std::cout <<"从前端插入：" << std::endl;
-
-    for(std::size_t i = 0; i < test.size(); i++)
-    {
-    std::cout << "push front: = " << test.at(i) << std::endl;
-    }
-
-    test.pop_front();    
-    for(std::size_t i = 0; i < test.size(); i++)
-    {
-    std::cout << "after pop front: = " << test.at(i) << std::endl;
-    }
-
-    test.pop_back();
-    for(std::size_t i = 0; i < test.size(); i++)
-    {
-    std::cout << "after pop back: = " << test.at(i) << std::endl;
-    }
-
-    
-
-    std::cout << "=========================i'm here!!!我是队列测试demo-end===========================" << std::endl;
-    return 0;
-}
-
-
-
-//-------------
-void test_string()
-{
-    std::deque<std::string> d;
-    d.push_back("aaaa");
-   // test.push_back(20);
-   // test.push_back(30);
-    std::cout << "=========================i'm here!!!我是队列测试demo-start===========================" << std::endl;
-    std::cout <<"原始双端队列："<< std::endl;  
-    
-    for(std::size_t i = 0; i< d.size(); i++)
-    {
-     std::cout << "test: = " << d.at(i) << std::endl;
-    }
-    
-    std::cout << "=========================i'm here!!!我是队列测试demo-end===========================" << std::endl;
-    //return 0;
-}
-
-#endif
-    
-//-------------
 
 }	// namespace speechSynthesizer
 }	// namespace domain

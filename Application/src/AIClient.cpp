@@ -254,6 +254,8 @@ bool AIClient::initialize(
 	 * be controlled should be added into @c m_playbackRouter.
 	 */
 	m_playbackRouter.insert(m_speechSynthesizer);
+	m_playbackRouter.insert(m_resourcesPlayer);
+
 	// TODO: Continue to add other playback commponent.
 	/// ...
 	/// ...
@@ -265,6 +267,7 @@ bool AIClient::notifyOfWakeWord(
 	std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream,
 	utils::sharedbuffer::SharedBuffer::Index beginIndex,
 	utils::sharedbuffer::SharedBuffer::Index endIndex) {
+	AISDK_DEBUG5(LX("notifyOfWakeWord").d("wakeup", "COMING"));
 
 	m_asrEngine->recognize(stream, beginIndex, endIndex);
 	return true;

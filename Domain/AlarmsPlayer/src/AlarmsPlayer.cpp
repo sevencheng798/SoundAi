@@ -342,14 +342,14 @@ void AlarmsPlayer::CheckAlarmList(sqlite3 *db)
 
     char const *alarmSql= "select *from alarm;";
     sqlite3_get_table( db , alarmSql , &azResult , &nrow , &ncolumn , &zErrMsg );
-    AISDK_DEBUG(LX("CheckAlarmList").d("alarm::nrow", nrow).d(" ncolumn", ncolumn));
+    //AISDK_DEBUG(LX("CheckAlarmList").d("alarm::nrow", nrow).d(" ncolumn", ncolumn));
 
     if((nrow >= 1) && (ncolumn != 0))
     {
         char const *minsql = "select min(timestamp) from alarm;";
         sqlite3_get_table( db , minsql , &azResult , &nrow , &ncolumn , &zErrMsg );
     
-        AISDK_DEBUG(LX("CheckAlarmList").d("min(timestamp) from alarm:", azResult[nrow*ncolumn]));        
+        //AISDK_DEBUG(LX("CheckAlarmList").d("min(timestamp) from alarm:", azResult[nrow*ncolumn]));        
         long int alarmtimesec = (long int)(atoll(azResult[nrow*ncolumn])/1000);   //long long int --> long int;
         struct tm *alarmp;
         alarmp = localtime(&alarmtimesec);
@@ -403,9 +403,9 @@ void AlarmsPlayer::CheckAlarmList(sqlite3 *db)
          sqlite3_exec( db , deleteAlarmTime , NULL , NULL , &zErrMsg );
          sqlite3_free(zErrMsg);
         }
-        else 
+     //   else 
         {
-         AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "waiting for one time alarm!"));
+      //   AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "waiting for one time alarm!"));
         }
 
         }
@@ -427,7 +427,7 @@ void AlarmsPlayer::CheckRepeatAlarmList(sqlite3 *db)
 
     char const *alarmSql_repeat ="select *from alarmList_repeat;";    
     sqlite3_get_table( db , alarmSql_repeat , &azResult , &nrow , &ncolumn , &zErrMsg );
-    AISDK_DEBUG(LX("CheckRepeatAlarmList").d("alarmList_repeat::nrow", nrow).d(" ncolumn", ncolumn));
+  //  AISDK_DEBUG(LX("CheckRepeatAlarmList").d("alarmList_repeat::nrow", nrow).d(" ncolumn", ncolumn));
 
     //current time
     time_t timesec;

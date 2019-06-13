@@ -1,19 +1,16 @@
 #ifndef __MQ_API_H__
 #define __MQ_API_H__
 
-#include "Application/mq_internal.h"
-#if 1
+#include "mq_internal.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-
 #define IN
 #define OUT
 #define INOUT
-
 
 typedef void (*RECV_CB_FUNC)(void);
 typedef void (*MSG_FREE_PPARAM_CB)(void* ptr);
@@ -21,19 +18,9 @@ typedef void (*MSG_FREE_PPARAM_CB)(void* ptr);
 enum MSG_TYPE{
 	GM_MSG_PULSE = 0x0002,
 	GM_MSG_SAMPLE,
-	GM_MSG_COAP,
+	GM_MSG_GM_TASK,
+	GM_MSG_COAP
 };
-
-typedef enum {
-    LED_COLOR_RED = 1,      // 001
-    LED_COLOR_GREEN = 2,    // 010
-    LED_COLOR_BLUE = 4,     // 100
-    LED_COLOR_YELLOW = 3,   // 011  R + B
-    LED_COLOR_MAGENTA = 5,  // 101  R + G
-    LED_COLOR_CYAN = 6,     // 110  G + R
-    LED_COLOR_WIHTE = 7,    // 111  R + G + B
-    LED_COLOR_OFF,
-}e_LED_COLOR;
 
 typedef enum {
     // status mode
@@ -57,10 +44,10 @@ typedef enum {
 }e_LED_MODE;
 
 typedef enum {
-	KEY_EVT_VOL_UP = LED_MODE_INVALID + 1,
+	KEY_EVT_VOL_UP = LED_MODE_INVALID + 1,//12
 	KEY_EVT_VOL_DOWN,
 	KEY_EVT_MUTE,
-	KEY_EVT_PAUSE_AND_RESUME,
+	KEY_EVT_PAUSE_AND_RESUME,//15
 	KEY_EVT_TURN_ON, // system turn on , 
 	KEY_EVT_NEXT,    // NEXT MUSIC
 	KEY_EVT_LAST,    // LAST MUSIC
@@ -77,6 +64,7 @@ typedef struct MqSubMsgInfo
     uint32_t sub_id;        //which is used for splite sub msg type;
 	uint32_t status;
     uint32_t iparam;        //param format is integer
+    uint8_t md5[64];  //param format is pointer
     uint8_t content[1024];  //param format is pointer
     uint32_t content_len;   //real lenth of content
 }MQ_SUB_MQ_MSG_INFO_T;
@@ -105,7 +93,6 @@ ssize_t mq_recv(INOUT MQ_RECV_INFO_T* recv_info_ptr);
 
 #ifdef __cplusplus
 }
-#endif
 #endif
 
 #endif
