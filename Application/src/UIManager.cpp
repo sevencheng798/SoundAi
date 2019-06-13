@@ -201,6 +201,10 @@ void UIManager::printState() {
             responseWakeUp(WAKEUP_AUDIO_LIST);
             //+WAKE UP  ; LED  ;
 			break;
+		case DialogUXStateObserverInterface::DialogUXState::LISTEN_EXPECTING:
+			AISDK_INFO(LX(LISTEN_MESSAGE));
+			system("aplay /cfg/sai_config/wakeup/ding.wav");
+			break;	
 		case DialogUXStateObserverInterface::DialogUXState::THINKING:
             m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_WAKEUP;
             m_mqSndInfo.msg_info.sub_msg_info.status = 0;

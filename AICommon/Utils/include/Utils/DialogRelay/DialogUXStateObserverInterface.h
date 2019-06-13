@@ -30,6 +30,9 @@ public:
         /// Device is currently listening.
         LISTENING,
 
+		/// Device is expected listen again.
+		LISTEN_EXPECTING,
+		
         /**
          * A customer request has been completed and no more input is accepted. In this state, device is waiting for a
          * response from NLP Cloud.
@@ -73,6 +76,8 @@ inline std::string DialogUXStateObserverInterface::stateToString(DialogUXState s
             return "IDLE";
         case DialogUXState::LISTENING:
             return "LISTENING";
+		case DialogUXState::LISTEN_EXPECTING:
+			return "LISTENING_EXPECT";
         case DialogUXState::THINKING:
             return "THINKING";
         case DialogUXState::SPEAKING:

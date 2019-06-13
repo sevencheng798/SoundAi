@@ -67,7 +67,7 @@ void DialogUXStateRelay::onStateChanged(soundai::SoundAiObserverInterface::State
 				tryEnterIdleState();
 				return;
 			case soundai::SoundAiObserverInterface::State::EXPECTING_SPEECH:
-				setState(dialogRelay::DialogUXStateObserverInterface::DialogUXState::LISTENING);
+				setState(dialogRelay::DialogUXStateObserverInterface::DialogUXState::LISTEN_EXPECTING);
 				return;
 			case soundai::SoundAiObserverInterface::State::RECOGNIZING:
 				setState(dialogRelay::DialogUXStateObserverInterface::DialogUXState::LISTENING);
