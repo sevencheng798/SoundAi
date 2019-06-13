@@ -441,13 +441,13 @@ bool AIUIAutomaticSpeechRecognizer::executeRecognize(
 	// Should ensure writer already close.
 	closeActiveAttachmentWriter();
 
-	// Formally update state now.
-	setVaildVad(false);
-	setState(state);
-	
 	if(m_readerThread.joinable()) {
 		m_readerThread.join();
 	}
+
+	// Formally update state now.
+	setVaildVad(false);
+	setState(state);
 
 	// Creating new @c Reader.
 	m_reader = stream->createReader(Reader::Policy::BLOCKING);
