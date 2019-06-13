@@ -81,22 +81,22 @@ void SpeechSynthesizer::onDeregistered() {
 }
 
 void SpeechSynthesizer::preHandleDirective(std::shared_ptr<DirectiveInfo> info) {
-	AISDK_INFO(LX("preHandleDirective").d("messageId", info->directive->getMessageId()));
+	AISDK_DEBUG5(LX("preHandleDirective").d("messageId", info->directive->getMessageId()));
     m_executor.submit([this, info]() { executePreHandle(info); });
 }
 
 void SpeechSynthesizer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
-	AISDK_INFO(LX("handleDirective").d("messageId", info->directive->getMessageId()));
+	AISDK_DEBUG5(LX("handleDirective").d("messageId", info->directive->getMessageId()));
     m_executor.submit([this, info]() { executeHandle(info); });
 }
 
 void SpeechSynthesizer::cancelDirective(std::shared_ptr<DirectiveInfo> info) {
-	AISDK_INFO(LX("cancelDirective").d("messageId", info->directive->getMessageId()));
+	AISDK_DEBUG5(LX("cancelDirective").d("messageId", info->directive->getMessageId()));
     m_executor.submit([this, info]() { executeCancel(info); });
 }
 
 void SpeechSynthesizer::onTrackChanged(FocusState newTrace) {
-	AISDK_DEBUG5(LX("onTrackChanged").d("newTrace", newTrace));
+	AISDK_INFO(LX("onTrackChanged").d("newTrace", newTrace));
     std::unique_lock<std::mutex> lock(m_mutex);
     m_currentFocus = newTrace;
     setDesiredStateLocked(newTrace);
@@ -313,7 +313,7 @@ void SpeechSynthesizer::executeHandleAfterValidation(std::shared_ptr<ChatDirecti
 }
 
 void SpeechSynthesizer::executePreHandle(std::shared_ptr<DirectiveInfo> info) {
-	AISDK_INFO(LX("executePreHandle").d("messageId", info->directive->getMessageId()));
+	//AISDK_INFO(LX("executePreHandle").d("messageId", info->directive->getMessageId()));
     auto chatInfo = validateInfo("executePreHandle", info);
     if (!chatInfo) {
 		AISDK_ERROR(LX("executePreHandleFailed").d("reason", "invalidDirectiveInfo"));
@@ -323,7 +323,7 @@ void SpeechSynthesizer::executePreHandle(std::shared_ptr<DirectiveInfo> info) {
 }
 
 void SpeechSynthesizer::executeHandle(std::shared_ptr<DirectiveInfo> info) {
-	AISDK_INFO(LX("executeHandle").d("messageId", info->directive->getMessageId()));
+	//AISDK_INFO(LX("executeHandle").d("messageId", info->directive->getMessageId()));
     auto chatInfo = validateInfo("executeHandle", info);
     if (!chatInfo) {
 		AISDK_ERROR(LX("executeHandleFailed").d("reason", "invalidDirectiveInfo"));
@@ -333,7 +333,7 @@ void SpeechSynthesizer::executeHandle(std::shared_ptr<DirectiveInfo> info) {
 }
 
 void SpeechSynthesizer::executeCancel(std::shared_ptr<DirectiveInfo> info) {
-	AISDK_INFO(LX("executeCancel").d("messageId", info->directive->getMessageId()));
+	//AISDK_INFO(LX("executeCancel").d("messageId", info->directive->getMessageId()));
     auto chatInfo = validateInfo("executeCancel", info);
     if (!chatInfo) {
 		AISDK_ERROR(LX("executeCancelFailed").d("reason", "invalidDirectiveInfo"));

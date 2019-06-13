@@ -144,8 +144,6 @@ bool AOWrapper::stopLocked(){
         }
 		 
 		return true;		
-	}else {
-		AISDK_DEBUG2(LX("stopLockedFailed").d("reason", "alreadyIsStopped"));
 	}
 	
 	return false;

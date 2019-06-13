@@ -381,7 +381,8 @@ void SoundAiKeywordDetector::detectionLoop() {
 
 			errCode = sai_denoise_feed(m_denoiseContext, static_cast<char *>(pbuf8), wordsRead*sizeof(*audioDataToPush.data()));
 			if (SAI_ASP_ERROR_SUCCESS != errCode){
-				AISDK_ERROR(LX("detectionLoopFailed").d("reason", "sai_denoise_feed err"));
+				AISDK_ERROR(LX("detectionLoopFailed").d("reason", "sai_denoise_feed err").d("errCode", errCode));
+				// TODO: Sven we should convert the 'sai_asp_err_t' state to string.
 			}
 		}
 		
