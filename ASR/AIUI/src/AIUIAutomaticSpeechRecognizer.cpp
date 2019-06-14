@@ -64,7 +64,7 @@ const auto THINKING_TIMEOUT = std::chrono::seconds{4};
  * When the listening state is entered, the ASR engine still cannot receive or recognize 
  * the vaild speech. we should take timeout strategy to quit recognizer state.
  */
-const auto ASR_TIMEOUT = std::chrono::seconds{10};
+const auto ASR_TIMEOUT = std::chrono::seconds{6};
 
 // #define TTS_RECORD
 #ifdef TTS_RECORD
@@ -277,6 +277,9 @@ AIUIAutomaticSpeechRecognizer::~AIUIAutomaticSpeechRecognizer() {
 		m_aiuiAgent->destroy();
 		m_aiuiAgent = NULL;
 	}
+	
+	if(m_gainTune)
+		m_gainTune.reset();
 }
 
 AIUIAutomaticSpeechRecognizer::AIUIAutomaticSpeechRecognizer(
@@ -298,7 +301,8 @@ AIUIAutomaticSpeechRecognizer::AIUIAutomaticSpeechRecognizer(
 	m_aiuiDir{aiuiDir}, 
 	m_aiuiLogDir{aiuiLogDir},
 	m_running{false},
-	m_attachmentWriter{nullptr} {
+	m_attachmentWriter{nullptr},
+	m_gainTune{nullptr} {
 
 }
 	
@@ -307,6 +311,12 @@ void AIUIAutomaticSpeechRecognizer::closeActiveAttachmentWriter() {
 }
 
 bool AIUIAutomaticSpeechRecognizer::init() {
+	m_gainTune = std::make_shared<ASRGainTune>();
+	if(!m_gainTune) {
+		AISDK_ERROR(LX("initFailed").d("reason", "createdGainTuneFailed"));
+		return false;
+	}
+	
 	if(m_aiuiDir.empty()) {
 		AISDK_ERROR(LX("initFailed").d("reason", "aiuiDirIsEmpty"));
 		return false;
@@ -458,8 +468,6 @@ bool AIUIAutomaticSpeechRecognizer::executeRecognize(
 
 	// Creating new @c Reader.
 	m_reader = stream->createReader(Reader::Policy::BLOCKING);
-	// Seek keyword begin position.
-	m_reader->seek(0, Reader::Reference::BEFORE_WRITER);
 	
     // Record provider as the last-used Audio Provider so it can be used in the event of an ExpectSpeech domain.
 	m_audioProvider = stream;
@@ -717,6 +725,12 @@ bool AIUIAutomaticSpeechRecognizer::executeTTSResult(const std::string info, con
 void AIUIAutomaticSpeechRecognizer::sendStreamProcessing() {
 	std::vector<int16_t> audioDataToPush(640); // 640*2 = 1280 = 80ms
 	ssize_t wordsRead;
+
+	std::this_thread::sleep_for(std::chrono::seconds(1));
+
+	// Seek keyword begin position.
+	m_reader->seek(0, Reader::Reference::BEFORE_WRITER);
+
 	do {
 		bool didErrorOccur = false;
 		// Start read data.
@@ -742,6 +756,9 @@ void AIUIAutomaticSpeechRecognizer::sendStreamProcessing() {
 			auto length = wordsRead*sizeof(*audioDataToPush.data());
 			aiui::Buffer* buffer = aiui::Buffer::alloc(length);
 			void *pbuf8 = audioDataToPush.data();
+			if(m_gainTune)
+				m_gainTune->adjustGain(audioDataToPush.data(), length, 0.08);
+			
 			memcpy(buffer->data(), pbuf8, length);
 			
 			// Start writing data to AIUI Cloud.

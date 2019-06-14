@@ -14,6 +14,7 @@ add_library(ASR SHARED
     AutomaticSpeechRecognizerRegister.cpp
 	MessageConsumer.cpp
     ASRTimer.cpp
+    ASRGainTune.cpp
 	${asr_SOURCES})
 
 include_directories(ASR 

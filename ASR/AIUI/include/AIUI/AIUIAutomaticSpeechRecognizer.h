@@ -29,6 +29,7 @@
 #include "ASR/GenericAutomaticSpeechRecognizer.h"
 #include "ASR/AutomaticSpeechRecognizerConfiguration.h"
 #include "ASR/ASRTimer.h"
+#include "ASR/ASRGainTune.h"
 #include "AIUI/AIUIASRListener.h"
 #include "AIUI/AIUIASRListenerObserverInterface.h"
 
@@ -312,6 +313,9 @@ private:
 	/// The current @c AttachmentWriter.
 	std::shared_ptr<utils::attachment::AttachmentWriter> m_attachmentWriter;
 
+	/// The instance of @c ASRGainTune.
+	std::shared_ptr<ASRGainTune> m_gainTune;
+	
 	/// A timer to transition out of the LISTENING state.
 	ASRTimer m_timeoutForListeningTimer;
 

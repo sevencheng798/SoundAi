@@ -111,7 +111,7 @@ bool getProcCPUInfo(std::string &serial) {
 		auto pos = line.find(key);
 		if(pos != std::string::npos) {
 			pos = line.find_last_of(DELIM);
-			pos += 1; // skip delim :
+			pos += 2; // skip delim ': and SPACE'
 			serial = line.substr(pos);
 			break;
 		}
