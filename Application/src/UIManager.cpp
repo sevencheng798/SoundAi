@@ -148,10 +148,23 @@ void UIManager::printHelpScreen() {
 
 void UIManager::microphoneOff() {
 	// TODO: LED to indicate.
+	system("cvlc /cfg/sai_config/mic_close.mp3 --play-and-exit &");
+    std::this_thread::sleep_for( std::chrono::seconds(2));
+    memset(&m_mqSndInfo, 0x00, sizeof(m_mqSndInfo));   
+    m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_MUTE;
+    m_mqSndInfo.msg_info.sub_msg_info.status = 1;
+    creatMsg(m_mqSndInfo);
+    
     m_executor.submit([]() { AISDK_INFO(LX("Microphone Off!")); });
 }
 
 void UIManager::microphoneOn() {
+    memset(&m_mqSndInfo, 0x00, sizeof(m_mqSndInfo));   
+    system("cvlc /cfg/sai_config/mic_open.mp3 --play-and-exit &");
+    m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_MUTE;
+    m_mqSndInfo.msg_info.sub_msg_info.status = 0;
+    creatMsg(m_mqSndInfo);
+
     m_executor.submit([this]() { printState(); });
 }
 

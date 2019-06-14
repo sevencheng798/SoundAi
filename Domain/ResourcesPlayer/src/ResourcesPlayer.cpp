@@ -58,7 +58,6 @@ std::deque<std::string> AUDIO_URL_LIST;
 ///add for use store play control state; enable = 1;unable = 0;
 int flag_playControl_pause = 0; 
 
-
 std::shared_ptr<ResourcesPlayer> ResourcesPlayer::create(
 	std::shared_ptr<MediaPlayerInterface> mediaPlayer,
 	std::shared_ptr<AudioTrackManagerInterface> trackManager,
@@ -103,7 +102,13 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
     AISDK_INFO(LX("handleDirective").d("messageId: ",  info->directive->getMessageId()));
 
     if(info->directive->getDomain() == SPEECHNAME ){
-        m_executor.submit([this, info]() { executeHandle(info); });
+
+         if( !m_speechPlayer->stop(m_mediaSourceId)){
+            AISDK_ERROR(LX("executeTrackChanged").d("stop","failed"));
+         }else{
+            AISDK_INFO(LX("executeTrackChanged = clean current resources and stop player state ")); 
+         }
+         m_executor.submit([this, info]() { executeHandle(info); });
 
     }else if(info->directive->getDomain() == "PlayControl" ){
 
@@ -114,7 +119,6 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
         if( operation == "PAUSE"){
              std::this_thread::sleep_for( std::chrono::microseconds(100));
              
-            //setCurrentStateLocked(ResourcesPlayerObserverInterface::ResourcesPlayerState::STOPPED);
               flag_playControl_pause = 1;
               if( !m_speechPlayer->pause(m_mediaSourceId)){
                  AISDK_ERROR(LX("executeTrackChanged").d("pause","failed"));
@@ -122,6 +126,8 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
        
               info->result->setCompleted();  
         }else if(operation == "STOP" ){
+              std::this_thread::sleep_for( std::chrono::microseconds(100));
+ 
               flag_playControl_pause = 1;
               if( !m_speechPlayer->pause(m_mediaSourceId)){
                   AISDK_ERROR(LX("executeTrackChanged").d("pause","failed"));

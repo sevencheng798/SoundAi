@@ -12,9 +12,6 @@
 #include "Application/UIManager.h"
 #include "Application/ControlActionManager.h"
 
-//use for send msg to ipc.
-struct MqSndInfo m_mqSndMuteInfo;
-
 namespace aisdk {
 namespace application {
 
@@ -45,26 +42,16 @@ void ControlActionManager::help() {
 void ControlActionManager::microphoneToggle() {
     m_executor.submit([this]() {
         if (m_isMicOn) {
-            system("cvlc /cfg/sai_config/mic_close.mp3 --play-and-exit &");
-            std::this_thread::sleep_for( std::chrono::seconds(2));
-                     
             m_isMicOn = false;
-            m_micWrapper->stopStreamingMicrophoneData();
             m_userInterface->microphoneOff();
-   
-            m_mqSndMuteInfo.msg_info.sub_msg_info.sub_id = LED_MODE_MUTE;
-            m_mqSndMuteInfo.msg_info.sub_msg_info.status = 1;
-            m_userInterface->creatMsg(m_mqSndMuteInfo);
-                   } else {
+            m_micWrapper->stopStreamingMicrophoneData();
+            
+        } else {
             m_isMicOn = true;
             m_micWrapper->startStreamingMicrophoneData();
             m_userInterface->microphoneOn();
             
-            system("cvlc /cfg/sai_config/mic_open.mp3 --play-and-exit &");
-            m_mqSndMuteInfo.msg_info.sub_msg_info.sub_id = LED_MODE_MUTE;
-            m_mqSndMuteInfo.msg_info.sub_msg_info.status = 0;
-            m_userInterface->creatMsg(m_mqSndMuteInfo);
-          }
+        }
     });	
 }
 

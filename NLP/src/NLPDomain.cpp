@@ -170,8 +170,8 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
 		nlpdata->NlpData_domain = "ExpectSpeech";
        }
      else{
-    nlpdata->NlpData_domain = "SpeechSynthesizer";
-    AISDK_INFO(LX("domain").d("domain", "others unknow"));
+        nlpdata->NlpData_domain = "SpeechSynthesizer";
+        AISDK_INFO(LX("domain").d("domain", "others unknow"));
     }
 
     #if 0
