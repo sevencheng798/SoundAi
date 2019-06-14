@@ -13,6 +13,9 @@
 #ifndef __DEVICE_INFO_H_
 #define __DEVICE_INFO_H_
 #include <memory>
+#include <mutex>
+#include <unordered_set>
+#include <Utils/NetworkStateObserverInterface.h>
 
 namespace aisdk {
 namespace utils {
@@ -40,6 +43,33 @@ public:
      * @return DSN.
      */
     std::string getDeviceSerialNumber() const;
+
+	/**
+	 * Check network state.
+	 *
+	 * @return @c true is connected, otherwise @c false.
+	 */
+	bool isConnected();
+
+	/**
+     * Adds an observer to be notified of Network state changes.
+     *
+     * @param observer The new observer to notify of Network state changes.
+     */
+    void addObserver(std::shared_ptr<NetworkStateObserverInterface> observer);
+
+    /**
+     * Removes an observer from the internal collection of observers synchronously. If the observer is not present,
+     * nothing will happen.
+     *
+     * @param observer The observer to remove.
+     */
+    void removeObserver(std::shared_ptr<NetworkStateObserverInterface> observer);
+
+	/**
+	 * Notify network state be change.
+	 */
+	void notifyStateChange(NetworkStateObserverInterface::Status state);
 	
     /**
      * Destructor.
@@ -57,6 +87,11 @@ private:
 
     /// DSN
     std::string m_deviceSerialNumber;
+
+	/// The @c NetworkStateObserverInterface to notify Network state be changed.
+    std::unordered_set<std::shared_ptr<NetworkStateObserverInterface>> m_observers;
+
+	std::mutex m_mutex;
 };
 }	//utils
 } // namespace aisdk

@@ -15,6 +15,8 @@
 #include <Utils/Logging/Logger.h>
 #include "Utils/DeviceInfo.h"
 
+#include "properties.h"
+
 /// String to identify log entries originating from this file. 
 static const std::string TAG("DeviceInfo");
 
@@ -54,6 +56,37 @@ std::string DeviceInfo::getDialogId() const {
 
 std::string DeviceInfo::getDeviceSerialNumber() const {
     return m_deviceSerialNumber;
+}
+
+bool DeviceInfo::isConnected() {
+	char *key = (char *)"net.wifi.state";
+	char state[4]={0};
+	getprop(key, (char *)&state);
+	AISDK_DEBUG5(LX("isConnected").d("networkState", state));
+	
+	if(state[0] == '1') {
+		notifyStateChange(NetworkStateObserverInterface::Status::CONNECTED);
+		return true;
+	}
+
+	notifyStateChange(NetworkStateObserverInterface::Status::DISCONNECTED);
+	return false;
+}
+
+void DeviceInfo::notifyStateChange(NetworkStateObserverInterface::Status state) {
+	std::lock_guard<std::mutex> lock(m_mutex);
+	for(auto observer : m_observers)
+		observer->onNetworkStatusChanged(state);
+}
+
+void DeviceInfo::addObserver(std::shared_ptr<NetworkStateObserverInterface> observer) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_observers.insert(observer);
+}
+
+void DeviceInfo::removeObserver(std::shared_ptr<NetworkStateObserverInterface> observer) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_observers.erase(observer);
 }
 
 DeviceInfo::~DeviceInfo(){}
