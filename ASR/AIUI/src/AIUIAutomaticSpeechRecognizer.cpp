@@ -427,6 +427,13 @@ bool AIUIAutomaticSpeechRecognizer::executeRecognize(
 			AISDK_ERROR(LX("executeRecognizeFailed").d("reason", "Barge-in is not permitted while busy"));
 			return false;
 	}
+
+	// Check network state.
+	if(!m_deviceInfo->isConnected()) {
+		AISDK_WARN(LX("executeRecognizeFailed").d("reason", "networkIsDisconnected"));
+		executeResetState();
+		return false;
+	}
 	
 	// Accique channel prority.
 	if (!m_trackManager->acquireChannel(CHANNEL_NAME, shared_from_this(), CHANNEL_INTERFACE_NAME)) {
@@ -444,7 +451,7 @@ bool AIUIAutomaticSpeechRecognizer::executeRecognize(
 	if(m_readerThread.joinable()) {
 		m_readerThread.join();
 	}
-
+	
 	// Formally update state now.
 	setVaildVad(false);
 	setState(state);
