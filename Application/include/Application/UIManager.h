@@ -14,6 +14,7 @@
 #define __UI_MANAGER_H_
 
 #include <Utils/DialogRelay/DialogUXStateObserverInterface.h>
+#include <Utils/NetworkStateObserverInterface.h>
 #include <Utils/Threading/Executor.h>
 #include "Application/mq_api.h"
 
@@ -25,7 +26,8 @@ namespace application {
  * A user interface manager status class.
  */
 class UIManager 
-	: public utils::dialogRelay::DialogUXStateObserverInterface {
+	: public utils::dialogRelay::DialogUXStateObserverInterface
+	, public utils::NetworkStateObserverInterface {
 	
 public:
 	/// A alias @c DialogUXStateObserverInterface
@@ -45,6 +47,11 @@ public:
 	/// @{
 	void onDialogUXStateChanged(DialogUXState newState) override;
 	/// @}
+	
+	/// @name NetworkStateObserverInterface methods
+	/// @{
+	void onNetworkStatusChanged(const Status newState) override;
+	/// }
 
 	/// Prints the Error Message for Wrong Input.
 	void printErrorScreen();
@@ -72,8 +79,9 @@ private:
 	/// The current dialog UX state of the SDK
     DialogUXState m_dialogState;
 
-    ///creatMsg msg id;
-    int m_msgId; 
+	/// The current dialog network state of the SDK
+    Status m_connectionState;
+
 	/// An internal executor thread pool that performs execution task sequentially.
     utils::threading::Executor m_executor;
 };

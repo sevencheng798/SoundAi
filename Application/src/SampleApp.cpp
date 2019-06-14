@@ -137,6 +137,9 @@ bool SampleApp::initialize() {
 	// Creating UI manager
 	auto userInterfaceManager = std::make_shared<UIManager>();
 
+	// Adding network observer to UX manager.
+	deviceInfo->addObserver(userInterfaceManager);
+
 	// Create the AIClient to service those component.
 	m_aiClient = aisdk::application::AIClient::createNew(
 		deviceInfo,

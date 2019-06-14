@@ -45,6 +45,11 @@ static const std::string HELP_MESSAGE =
 		"| Stop an interaction:                                                       |\n"
 		"|        Press 's' and Enter to stop an ongoing interaction.                 |\n";
 
+static const std::string CONNECTION_MESSAGE =
+		"\n#############################################\n"
+		"########    Network Disconnected    ###########\n"
+		"#############################################\n";
+
 static const std::string IDLE_MESSAGE =
 		"\n#############################################\n"
 		"########## NLP Client is currently IDLE! ####\n"
@@ -118,6 +123,17 @@ void UIManager::onDialogUXStateChanged(DialogUXStateObserverInterface::DialogUXS
 		});
 }
 
+void UIManager::onNetworkStatusChanged(const Status newState) {
+	m_executor.submit([this, newState]() {
+			if(m_connectionState == newState)
+				return;
+			
+			m_connectionState = newState;
+			printState();
+		});
+
+}
+
 void UIManager::printErrorScreen() {
     m_executor.submit([]() { AISDK_INFO(LX("Invalid Option")); });
 }
@@ -185,42 +201,47 @@ void UIManager::printState() {
      }
      
      memset(&m_mqSndInfo, 0x00, sizeof(m_mqSndInfo));
-
-	switch(m_dialogState) {
-		case DialogUXStateObserverInterface::DialogUXState::IDLE:
-            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_TTS;
-            m_mqSndInfo.msg_info.sub_msg_info.status = 0;
-            creatMsg(m_mqSndInfo);
-			AISDK_INFO(LX(IDLE_MESSAGE));
-			break;
-		case DialogUXStateObserverInterface::DialogUXState::LISTENING:
-			AISDK_INFO(LX(LISTEN_MESSAGE));
-            responseWakeUp(WAKEUP_AUDIO_LIST);
-            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_WAKEUP;
-            m_mqSndInfo.msg_info.sub_msg_info.status = 1;
-            creatMsg(m_mqSndInfo);
-            //+WAKE UP  ; LED  ;
-			break;
-		case DialogUXStateObserverInterface::DialogUXState::LISTEN_EXPECTING:
-			AISDK_INFO(LX(LISTEN_MESSAGE));
-			system("aplay /cfg/sai_config/wakeup/ding.wav");
-			break;	
-		case DialogUXStateObserverInterface::DialogUXState::THINKING:
-            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_WAKEUP;
-            m_mqSndInfo.msg_info.sub_msg_info.status = 0;
-            creatMsg(m_mqSndInfo);
-			AISDK_INFO(LX(THINK_MESSAGE));
-			break;
-		case DialogUXStateObserverInterface::DialogUXState::SPEAKING:
-            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_TTS;
-            m_mqSndInfo.msg_info.sub_msg_info.status = 1;
-            creatMsg(m_mqSndInfo);
-			AISDK_INFO(LX(SPEAK_MESSAGE));
-			break;
-		case DialogUXStateObserverInterface::DialogUXState::FINISHED:
-			break;
-	}
+	if(m_connectionState == utils::NetworkStateObserverInterface::Status::DISCONNECTED) {
+		AISDK_INFO(LX(CONNECTION_MESSAGE));
+		
+	}else if(m_connectionState == utils::NetworkStateObserverInterface::Status::CONNECTED) {
+		switch(m_dialogState) {
+			case DialogUXStateObserverInterface::DialogUXState::IDLE:
+	            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_TTS;
+	            m_mqSndInfo.msg_info.sub_msg_info.status = 0;
+	            creatMsg(m_mqSndInfo);
+				AISDK_INFO(LX(IDLE_MESSAGE));
+				break;
+			case DialogUXStateObserverInterface::DialogUXState::LISTENING:
+				AISDK_INFO(LX(LISTEN_MESSAGE));
+	            responseWakeUp(WAKEUP_AUDIO_LIST);
+	            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_WAKEUP;
+	            m_mqSndInfo.msg_info.sub_msg_info.status = 1;
+	            creatMsg(m_mqSndInfo);
+	            //+WAKE UP  ; LED  ;
+				break;
+			case DialogUXStateObserverInterface::DialogUXState::LISTEN_EXPECTING:
+				AISDK_INFO(LX(LISTEN_MESSAGE));
+				system("aplay /cfg/sai_config/wakeup/ding.wav");
+				break;	
+			case DialogUXStateObserverInterface::DialogUXState::THINKING:
+	            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_WAKEUP;
+	            m_mqSndInfo.msg_info.sub_msg_info.status = 0;
+	            creatMsg(m_mqSndInfo);
+				AISDK_INFO(LX(THINK_MESSAGE));
+				break;
+			case DialogUXStateObserverInterface::DialogUXState::SPEAKING:
+	            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_TTS;
+	            m_mqSndInfo.msg_info.sub_msg_info.status = 1;
+	            creatMsg(m_mqSndInfo);
+				AISDK_INFO(LX(SPEAK_MESSAGE));
+				break;
+			case DialogUXStateObserverInterface::DialogUXState::FINISHED:
+				break;
+		}
     
+    }
+
 }
 
 } // namespace application
