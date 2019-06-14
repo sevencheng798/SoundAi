@@ -56,7 +56,7 @@ extern const char *DENOISE_EVENT_TYPE_NEED_UPDATE_LICENSE;
 extern const char *DENOISE_FEATURE_VOIP;
 
 #ifdef __cplusplus
-} // extern C
+}  // extern C
 #endif
 
 #endif /* __SOUNDAI_DENOISE_OPTION_H__ */

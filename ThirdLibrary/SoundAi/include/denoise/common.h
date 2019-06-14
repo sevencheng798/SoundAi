@@ -8,6 +8,7 @@
 #ifndef __SOUNDAI_ASP_COMMON_INTERFACE_H__
 #define __SOUNDAI_ASP_COMMON_INTERFACE_H__
 
+#include <stdint.h>
 #include <stdlib.h>
 
 #ifdef __cplusplus
