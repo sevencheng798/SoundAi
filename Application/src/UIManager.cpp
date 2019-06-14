@@ -125,8 +125,8 @@ void UIManager::onDialogUXStateChanged(DialogUXStateObserverInterface::DialogUXS
 
 void UIManager::onNetworkStatusChanged(const Status newState) {
 	m_executor.submit([this, newState]() {
-			if(m_connectionState == newState)
-				return;
+			//if(m_connectionState == newState)
+			//	return;
 			
 			m_connectionState = newState;
 	        if(m_connectionState == utils::NetworkStateObserverInterface::Status::DISCONNECTED) {
