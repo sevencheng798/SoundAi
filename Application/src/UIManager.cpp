@@ -195,12 +195,10 @@ int UIManager::responseWakeUp(std::deque<std::string> wakeUpAudioList)
     if(0 == (int)(wakeUpAudioList.size())){
         AISDK_ERROR(LX("responseWakeUp").d("reason", "cfg/soundai/wakeup = NULL"));
         return 0;
-    }
-    else if(flag_Time_read_audioDir < (int)(wakeUpAudioList.size()) ){
+    }else if(flag_Time_read_audioDir < (int)(wakeUpAudioList.size()) ){
        i =  flag_Time_read_audioDir;
        flag_Time_read_audioDir ++;
-    }
-    else{
+    }else{
        i = 0;     
        flag_Time_read_audioDir = 0;
     }
@@ -213,49 +211,47 @@ int UIManager::responseWakeUp(std::deque<std::string> wakeUpAudioList)
 void UIManager::printState() {
      if(flag_Time_read_audioDir == 0)
      {
-     //while (!WAKEUP_AUDIO_LIST.empty()) WAKEUP_AUDIO_LIST.pop_back();
-     WAKEUP_AUDIO_LIST.clear();
-     readWakeupAudioDir(wakeUpAudioPath,WAKEUP_AUDIO_LIST);
+        WAKEUP_AUDIO_LIST.clear();
+        readWakeupAudioDir(wakeUpAudioPath,WAKEUP_AUDIO_LIST);
      }
      
      memset(&m_mqSndInfo, 0x00, sizeof(m_mqSndInfo));
-		switch(m_dialogState) {
-			case DialogUXStateObserverInterface::DialogUXState::IDLE:
-	            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_TTS;
-	            m_mqSndInfo.msg_info.sub_msg_info.status = 0;
-	            creatMsg(m_mqSndInfo);
-				AISDK_INFO(LX(IDLE_MESSAGE));
-				break;
-			case DialogUXStateObserverInterface::DialogUXState::LISTENING:
-				AISDK_INFO(LX(LISTEN_MESSAGE));
-	            responseWakeUp(WAKEUP_AUDIO_LIST);
-	            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_WAKEUP;
-	            m_mqSndInfo.msg_info.sub_msg_info.status = 1;
-	            creatMsg(m_mqSndInfo);
-	            //+WAKE UP  ; LED  ;
-				break;
-			case DialogUXStateObserverInterface::DialogUXState::LISTEN_EXPECTING:
-                m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_TTS;
-	            m_mqSndInfo.msg_info.sub_msg_info.status = 1;
-	            creatMsg(m_mqSndInfo);
-				AISDK_INFO(LX(LISTEN_MESSAGE));
-				system("aplay /cfg/sai_config/wakeup/ding.wav");
-				break;	
-			case DialogUXStateObserverInterface::DialogUXState::THINKING:
-	            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_WAKEUP;
-	            m_mqSndInfo.msg_info.sub_msg_info.status = 0;
-	            creatMsg(m_mqSndInfo);
-				AISDK_INFO(LX(THINK_MESSAGE));
-				break;
-			case DialogUXStateObserverInterface::DialogUXState::SPEAKING:
-	            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_TTS;
-	            m_mqSndInfo.msg_info.sub_msg_info.status = 1;
-	            creatMsg(m_mqSndInfo);
-				AISDK_INFO(LX(SPEAK_MESSAGE));
-				break;
-			case DialogUXStateObserverInterface::DialogUXState::FINISHED:
-				break;
-		}
+     switch(m_dialogState) {
+     	case DialogUXStateObserverInterface::DialogUXState::IDLE:
+             m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_TTS;
+             m_mqSndInfo.msg_info.sub_msg_info.status = 0;
+             creatMsg(m_mqSndInfo);
+             AISDK_INFO(LX(IDLE_MESSAGE));
+             break;
+     	case DialogUXStateObserverInterface::DialogUXState::LISTENING:
+             AISDK_INFO(LX(LISTEN_MESSAGE));
+             responseWakeUp(WAKEUP_AUDIO_LIST);
+             m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_WAKEUP;
+             m_mqSndInfo.msg_info.sub_msg_info.status = 1;
+             creatMsg(m_mqSndInfo);
+             break;
+     	case DialogUXStateObserverInterface::DialogUXState::LISTEN_EXPECTING:
+             m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_WAKEUP;
+             m_mqSndInfo.msg_info.sub_msg_info.status = 1;
+             creatMsg(m_mqSndInfo);
+             AISDK_INFO(LX(LISTEN_MESSAGE));
+             system("aplay /cfg/sai_config/wakeup/ding.wav");
+             break;	
+     	case DialogUXStateObserverInterface::DialogUXState::THINKING:
+             m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_WAKEUP;
+             m_mqSndInfo.msg_info.sub_msg_info.status = 0;
+             creatMsg(m_mqSndInfo);
+             AISDK_INFO(LX(THINK_MESSAGE));
+             break;
+     	case DialogUXStateObserverInterface::DialogUXState::SPEAKING:
+             m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_TTS;
+             m_mqSndInfo.msg_info.sub_msg_info.status = 1;
+             creatMsg(m_mqSndInfo);
+             AISDK_INFO(LX(SPEAK_MESSAGE));
+             break;
+     	case DialogUXStateObserverInterface::DialogUXState::FINISHED:
+     		break;
+     }
     
 
 }
