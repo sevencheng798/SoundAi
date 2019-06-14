@@ -107,7 +107,9 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
             AISDK_ERROR(LX("executeTrackChanged").d("stop","failed"));
          }else{
             AISDK_INFO(LX("executeTrackChanged = clean current resources and stop player state ")); 
+            flag_playControl_pause = 0;
             info->result->setCompleted();
+            
          }
          m_executor.submit([this, info]() { executeHandle(info); });
 
