@@ -235,6 +235,9 @@ void UIManager::printState() {
 	            //+WAKE UP  ; LED  ;
 				break;
 			case DialogUXStateObserverInterface::DialogUXState::LISTEN_EXPECTING:
+                m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_TTS;
+	            m_mqSndInfo.msg_info.sub_msg_info.status = 1;
+	            creatMsg(m_mqSndInfo);
 				AISDK_INFO(LX(LISTEN_MESSAGE));
 				system("aplay /cfg/sai_config/wakeup/ding.wav");
 				break;	
