@@ -131,6 +131,7 @@ void UIManager::onNetworkStatusChanged(const Status newState) {
 			m_connectionState = newState;
 	        if(m_connectionState == utils::NetworkStateObserverInterface::Status::DISCONNECTED) {
 		        AISDK_INFO(LX(CONNECTION_MESSAGE));
+                system("cvlc /cfg/sai_config/net_connecting.mp3 --play-and-exit &");
 		
 	        }else if(m_connectionState == utils::NetworkStateObserverInterface::Status::CONNECTED) {
 			

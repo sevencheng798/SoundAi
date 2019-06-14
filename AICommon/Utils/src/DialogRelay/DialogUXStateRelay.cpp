@@ -186,16 +186,13 @@ void DialogUXStateRelay::onStateChanged(dmInterface::AlarmsPlayerObserverInterfa
 
 
 
-
-
 void DialogUXStateRelay::tryEnterIdleState() {
 	m_executor.submit([this]() {
 		// The delay ensures that ASR state is avoided from Thinking to IDLE.
 		usleep(200*1000);
 		if(m_currentState != dialogRelay::DialogUXStateObserverInterface::DialogUXState::IDLE && \
 			m_speechSynthesizerState == dmInterface::SpeechSynthesizerObserverInterface::SpeechSynthesizerState::FINISHED && \
-			m_alarmsPlayerState == dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState::FINISHED && \
-			m_resourcesPlayerState == dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED) {
+			m_alarmsPlayerState == dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState::FINISHED ) {
 			setState(dialogRelay::DialogUXStateObserverInterface::DialogUXState::IDLE);
 		}
 	});

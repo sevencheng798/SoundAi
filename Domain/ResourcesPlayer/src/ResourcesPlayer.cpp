@@ -107,6 +107,7 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
             AISDK_ERROR(LX("executeTrackChanged").d("stop","failed"));
          }else{
             AISDK_INFO(LX("executeTrackChanged = clean current resources and stop player state ")); 
+            info->result->setCompleted();
          }
          m_executor.submit([this, info]() { executeHandle(info); });
 
@@ -145,12 +146,13 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
 
 #if 0        
                flag_playControl_pause = 0;
+              AUDIO_URL_LIST.pop_front();
               if(!AUDIO_URL_LIST.empty()){
-                  AUDIO_URL_LIST.pop_front();
-          if( !m_speechPlayer->stop(m_mediaSourceId)){
-                  AISDK_ERROR(LX("executeTrackChanged").d("stop","failed"));
-              }
-                  m_mediaSourceId = m_speechPlayer->setSource(AUDIO_URL_LIST.at(0));
+
+                  if( !m_speechPlayer->stop(m_mediaSourceId)){
+                          AISDK_ERROR(LX("executeTrackChanged").d("stop","failed"));
+                      }
+                     m_mediaSourceId = m_speechPlayer->setSource(AUDIO_URL_LIST.at(0));
               }
               if( !m_speechPlayer->play(m_mediaSourceId)){
                   AISDK_ERROR(LX("executeTrackChanged").d("NEXT","failed"));
@@ -161,15 +163,15 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
         }else if(operation == "SWITCH"){
         
                     AISDK_ERROR(LX("executeTrackChanged").d("SWITCH","failed"));
-    
+                    info->result->setCompleted();
         }else if(operation == "PREVIOUS"){
         
                     AISDK_ERROR(LX("executeTrackChanged").d("PREVIOUS","failed"));
-    
+                    info->result->setCompleted();
         }else if(operation == "SINGLE_LOOP"){
         
                     AISDK_ERROR(LX("executeTrackChanged").d("SINGLE_LOOP","failed"));
-    
+                    info->result->setCompleted();
         }else{
                AISDK_ERROR(LX("executeTrackChanged").d("operation","mull"));
     
@@ -900,9 +902,13 @@ void ResourcesPlayer::playNextItem() {
     	};
         m_mediaSourceId = m_speechPlayer->setSource(std::move(m_attachmentReader), &format);
     }else{
-        AISDK_INFO(LX("playNextItem").d("AUDIO_URL", AUDIO_URL_LIST.at(0)));
-        m_mediaSourceId = m_speechPlayer->setSource(AUDIO_URL_LIST.at(0));
-        AUDIO_URL_LIST.pop_front();
+
+         if( !AUDIO_URL_LIST.empty()){
+             AISDK_INFO(LX("playNextItem").d("AUDIO_URL", AUDIO_URL_LIST.at(0)));
+             m_mediaSourceId = m_speechPlayer->setSource(AUDIO_URL_LIST.at(0));
+             AUDIO_URL_LIST.pop_front();
+         }
+
     }
     
      if (MediaPlayerInterface::ERROR == m_mediaSourceId) {
