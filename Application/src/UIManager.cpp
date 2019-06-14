@@ -129,9 +129,13 @@ void UIManager::onNetworkStatusChanged(const Status newState) {
 				return;
 			
 			m_connectionState = newState;
-			printState();
+	        if(m_connectionState == utils::NetworkStateObserverInterface::Status::DISCONNECTED) {
+		        AISDK_INFO(LX(CONNECTION_MESSAGE));
+		
+	        }else if(m_connectionState == utils::NetworkStateObserverInterface::Status::CONNECTED) {
+			
+			}
 		});
-
 }
 
 void UIManager::printErrorScreen() {
@@ -201,10 +205,6 @@ void UIManager::printState() {
      }
      
      memset(&m_mqSndInfo, 0x00, sizeof(m_mqSndInfo));
-	if(m_connectionState == utils::NetworkStateObserverInterface::Status::DISCONNECTED) {
-		AISDK_INFO(LX(CONNECTION_MESSAGE));
-		
-	}else if(m_connectionState == utils::NetworkStateObserverInterface::Status::CONNECTED) {
 		switch(m_dialogState) {
 			case DialogUXStateObserverInterface::DialogUXState::IDLE:
 	            m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_TTS;
@@ -240,7 +240,6 @@ void UIManager::printState() {
 				break;
 		}
     
-    }
 
 }
 
