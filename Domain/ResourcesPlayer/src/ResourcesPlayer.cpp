@@ -103,13 +103,15 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
 
     if(info->directive->getDomain() == SPEECHNAME ){
 
-//         if( !m_speechPlayer->stop(m_mediaSourceId)){
-//            AISDK_ERROR(LX("executeTrackChanged").d("stop","failed"));
-//         }else{
-//            AISDK_INFO(LX("executeTrackChanged = clean current resources and stop player state ")); 
-//            flag_playControl_pause = 0;
-//            info->result->setCompleted();
-//         }
+         if( !m_speechPlayer->stop(m_mediaSourceId)){
+            AISDK_ERROR(LX("executeTrackChanged").d("stop","failed"));
+            std::this_thread::sleep_for( std::chrono::microseconds(2000));
+         }else{
+            AISDK_INFO(LX("executeTrackChanged = clean current resources and stop player state ")); 
+            flag_playControl_pause = 0;
+          //  info->result->setCompleted();    
+         }
+         
          m_executor.submit([this, info]() { executeHandle(info); });
 
     }else if(info->directive->getDomain() == "PlayControl" ){
@@ -131,7 +133,7 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
               std::this_thread::sleep_for( std::chrono::microseconds(100));
  
               flag_playControl_pause = 1;
-              if( !m_speechPlayer->pause(m_mediaSourceId)){
+              if( !m_speechPlayer->stop(m_mediaSourceId)){
                   AISDK_ERROR(LX("executeTrackChanged").d("pause","failed"));
               }  
               
