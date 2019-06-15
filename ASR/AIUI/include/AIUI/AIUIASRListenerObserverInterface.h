@@ -32,6 +32,7 @@ public:
 	virtual void handleEventStateWorking() = 0;
 
 	virtual void handleEventVadBegin() = 0;
+	virtual void handleEventVadEnd() = 0;
 	/**
 	 * Handle the action specified by the nlp result in @c IAIUIEvent.
 	 * @params unparsedIntent The unparsed intent(answer) JSON string from AIUI Cloud. 

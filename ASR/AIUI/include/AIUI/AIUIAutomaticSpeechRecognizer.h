@@ -91,6 +91,7 @@ public:
 	void handleEventStateReady() override;
 	void handleEventStateWorking() override;
 	void handleEventVadBegin() override;
+	void handleEventVadEnd() override;
 	void handleEventResultNLP(const std::string unparsedIntent) override;
 	void handleEventResultTPP(const std::string unparsedIntent) override;
 	void handleEventResultTTS(const std::string info, const std::string data) override;
@@ -265,6 +266,10 @@ private:
      */
 	void transitionFromListeningTimedOut();
 
+	void transitionFromActivingTimedOut();
+
+	void tryEntryListeningStateOnTimer();
+
 	/**
 	 * The function that It must be ensured that there is a timeout mechanism when there
 	 * is no response for a long time during the transition from recognition to thinking.
@@ -315,7 +320,10 @@ private:
 
 	/// The instance of @c ASRGainTune.
 	std::shared_ptr<ASRGainTune> m_gainTune;
-	
+
+	/// A timer to transition out of the LISTENING state when no audio can be found in the initial specified time.
+	ASRTimer m_timeoutForActivingAudioTimer;
+		
 	/// A timer to transition out of the LISTENING state.
 	ASRTimer m_timeoutForListeningTimer;
 

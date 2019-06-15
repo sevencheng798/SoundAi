@@ -64,7 +64,10 @@ const auto THINKING_TIMEOUT = std::chrono::seconds{4};
  * When the listening state is entered, the ASR engine still cannot receive or recognize 
  * the vaild speech. we should take timeout strategy to quit recognizer state.
  */
-const auto ASR_TIMEOUT = std::chrono::seconds{6};
+const auto LISTENG_TIMEOUT = std::chrono::seconds{5};
+
+/// Set check Activing audio timeout time.
+const auto ACTIVING_TIMEOUT = std::chrono::seconds{3};
 
 // #define TTS_RECORD
 #ifdef TTS_RECORD
@@ -164,6 +167,11 @@ void AIUIAutomaticSpeechRecognizer::handleEventStateWorking() {
 }
 
 void AIUIAutomaticSpeechRecognizer::handleEventVadBegin() {
+	tryEntryListeningStateOnTimer();
+}
+
+void AIUIAutomaticSpeechRecognizer::handleEventVadEnd() {
+	setVaildVad(true);
 	m_timeoutForListeningTimer.stop();
 	if(!m_timeoutForThinkingTimer.isActive()) {
 		if(!m_timeoutForThinkingTimer.start(
@@ -879,6 +887,7 @@ void AIUIAutomaticSpeechRecognizer::executeResetState() {
 
 	m_sessionId.clear();
 
+	m_timeoutForActivingAudioTimer.stop();
 	m_timeoutForListeningTimer.stop();
 	m_timeoutForThinkingTimer.stop();
 	
@@ -891,7 +900,6 @@ void AIUIAutomaticSpeechRecognizer::transitionFromThinkingTimedOut() {
 		AISDK_DEBUG0(LX("transitionFromThinkingTimedOut"));
 		setVaildVad(true);
 		executeResetState();
-//		setState(ObserverInterface::State::IDLE);
 	});
 }
 
@@ -899,14 +907,31 @@ void AIUIAutomaticSpeechRecognizer::transitionFromListeningTimedOut() {
 	m_executor.submit([this]() {
 		AISDK_DEBUG0(LX("transitionFromListeningTimedOut"));
 		setVaildVad(true);
+	});
+}
+
+void AIUIAutomaticSpeechRecognizer::transitionFromActivingTimedOut() {
+	m_executor.submit([this]() {
+		AISDK_DEBUG0(LX("transitionFromActivingTimedOut"));
+		setVaildVad(true);
 		executeResetState();
 	});
 }
 
-void AIUIAutomaticSpeechRecognizer::tryEntryIdleStateOnTimer() {
+void AIUIAutomaticSpeechRecognizer::tryEntryListeningStateOnTimer() {
+	m_timeoutForActivingAudioTimer.stop();
 	if(!m_timeoutForListeningTimer.start(
-		ASR_TIMEOUT,
+		LISTENG_TIMEOUT,
 		std::bind(&AIUIAutomaticSpeechRecognizer::transitionFromListeningTimedOut, this))
+		.valid()) {
+		AISDK_ERROR(LX("tryEntryListeningStateOnTimer").d("reason", "failedToStartTryEntryListeningStateOnTimer"));
+	}
+}
+
+void AIUIAutomaticSpeechRecognizer::tryEntryIdleStateOnTimer() {
+	if(!m_timeoutForActivingAudioTimer.start(
+		ACTIVING_TIMEOUT,
+		std::bind(&AIUIAutomaticSpeechRecognizer::transitionFromActivingTimedOut, this))
 		.valid()) {
 		AISDK_ERROR(LX("tryEntryIdleStateOnTimer").d("reason", "failedToStartTryEntryIdleStateOnTimer"));
 	}
