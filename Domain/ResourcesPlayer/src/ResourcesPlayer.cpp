@@ -103,14 +103,13 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
 
     if(info->directive->getDomain() == SPEECHNAME ){
 
-         if( !m_speechPlayer->stop(m_mediaSourceId)){
-            AISDK_ERROR(LX("executeTrackChanged").d("stop","failed"));
-         }else{
-            AISDK_INFO(LX("executeTrackChanged = clean current resources and stop player state ")); 
-            flag_playControl_pause = 0;
-            info->result->setCompleted();
-            
-         }
+//         if( !m_speechPlayer->stop(m_mediaSourceId)){
+//            AISDK_ERROR(LX("executeTrackChanged").d("stop","failed"));
+//         }else{
+//            AISDK_INFO(LX("executeTrackChanged = clean current resources and stop player state ")); 
+//            flag_playControl_pause = 0;
+//            info->result->setCompleted();
+//         }
          m_executor.submit([this, info]() { executeHandle(info); });
 
     }else if(info->directive->getDomain() == "PlayControl" ){
@@ -610,7 +609,7 @@ void ResourcesPlayer::executeHandleAfterValidation(std::shared_ptr<ResourcesDire
         reportExceptionFailed(info, message);
     }
 
-    setHandlingCompleted();
+    //setHandlingCompleted();
     resetCurrentInfo();
 }
 
@@ -1096,10 +1095,14 @@ void ResourcesPlayer::addToDirectiveQueue(std::shared_ptr<ResourcesDirectiveInfo
     if (m_chatInfoQueue.empty()) {
         m_chatInfoQueue.push_back(info);
         executeHandleAfterValidation(info);
+        info->result->setCompleted();
     } else {
 		AISDK_INFO(LX("addToDirectiveQueue").d("queueSize", m_chatInfoQueue.size()));
+        info->result->setCompleted();
         m_chatInfoQueue.push_back(info);
     }
+
+
 }
 
 void ResourcesPlayer::removeChatDirectiveInfo(const std::string& messageId) {
