@@ -42,6 +42,7 @@ add_subdirectory(ASR)
 add_subdirectory(KWD)
 add_subdirectory(NLP)
 add_subdirectory(Domain)
+add_subdirectory(Modules)
 add_subdirectory(ThirdLibrary)
 add_subdirectory(Application)
 

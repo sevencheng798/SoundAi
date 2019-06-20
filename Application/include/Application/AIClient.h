@@ -31,6 +31,7 @@
 #include "SpeechSynthesizer/SpeechSynthesizer.h"
 #include "ResourcesPlayer/ResourcesPlayer.h"
 #include "AlarmsPlayer/AlarmsPlayer.h"
+#include "Bringup.h"
 
 namespace aisdk {
 namespace application {
@@ -74,6 +75,8 @@ public:
 	 * This method can be called by the client when a Button is pressed on a physical button or on the GUI.
 	 */
 	void buttonPressed();
+
+    void bringupSound(int type);
 	
     /**
      * Destructor.
@@ -95,7 +98,6 @@ private:
 		std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> alarmMediaPlayer,
 		std::unordered_set<std::shared_ptr<utils::dialogRelay::DialogUXStateObserverInterface>>
 			dialogStateObservers);
-
 
 	/// The AI dialog UX State.
 	std::shared_ptr<utils::dialogRelay::DialogUXStateRelay> m_dialogUXStateRelay;
@@ -120,6 +122,8 @@ private:
 
     /// To-Do wx
     std::shared_ptr<domain::alarmsPlayer::AlarmsPlayer> m_alarmsPlayer;
+
+    std::shared_ptr<modules::bringup::Bringup> m_bringupPlayer;
 	/// ...
 	/// ...
 };

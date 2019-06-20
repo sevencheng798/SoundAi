@@ -11,6 +11,14 @@
  */
 #include "Application/UIManager.h"
 #include "Application/ControlActionManager.h"
+#include <Utils/Logging/Logger.h>
+
+// String to identify log entries originating from this file.
+static const std::string TAG("ControlActionManager");
+/// Define output
+#define LX(event) aisdk::utils::logging::LogEntry(TAG, event)
+
+
 
 namespace aisdk {
 namespace application {
@@ -57,6 +65,14 @@ void ControlActionManager::microphoneToggle() {
 
 void ControlActionManager::playbackControl() {
     m_executor.submit([this]() { m_client->buttonPressed(); });
+}
+
+void ControlActionManager::playBringupSound(int type) {
+    AISDK_INFO(LX("ControlActionManager type")
+                .d("value", type));
+    m_type=type;
+
+    m_executor.submit([this]() { m_client->bringupSound(m_type);});
 }
 
 void ControlActionManager::tap() {

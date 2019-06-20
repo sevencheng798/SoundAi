@@ -72,6 +72,8 @@ int InputControlInteraction::run() {
         memset(&m_mqRecvInfo, 0x00, sizeof(m_mqRecvInfo));
         int flag_recv = reveiceMsg(m_mqRecvInfo);
         int ipcCmdMode =  m_mqRecvInfo.msg_info.sub_msg_info.sub_id;
+        int ipcStatus = m_mqRecvInfo.msg_info.sub_msg_info.status;
+
         if(flag_recv == 0 ){
             AISDK_INFO(LX("IPC::ReceiveMsg")
                 .d("msg_type", GM_MSG_GM_TASK)
@@ -94,6 +96,10 @@ int InputControlInteraction::run() {
                 case KEY_EVT_PAUSE_AND_RESUME:
                     AISDK_INFO(LX("IPC::ReceiveMsg").d("ipcCmdMode","KEY_EVT_PAUSE_AND_RESUME"));
                     m_controlActionManager->playbackControl();
+                    break;
+                case BRINGUP:
+                    AISDK_INFO(LX("IPC::ReceiveMsg BRINGUP").d("ipcStatus", ipcStatus));
+                    m_controlActionManager->playBringupSound(ipcStatus);
                     break;
                 default:
                     break;

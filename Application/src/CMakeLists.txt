@@ -32,6 +32,7 @@ target_link_libraries(SampleApp
 		AlarmsPlayer
 		ASR
 		KWD
+		Bringup
 		portaudio
 		ao
 		asound

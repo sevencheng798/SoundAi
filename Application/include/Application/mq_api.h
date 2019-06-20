@@ -57,6 +57,7 @@ typedef enum {
 	KEY_EVT_TEST,
 	KEY_EVT_FM,
 	KEY_EVT_LED,    //保留
+	BRINGUP
 }eKEY_EVENT;
 
 typedef struct MqSubMsgInfo

@@ -64,6 +64,11 @@ public:
 	 *  the app enters a pause state, otherwise enters a resume/play state.
 	 */
     void playbackControl();
+
+    /*
+     * start up music
+    */
+    void playBringupSound(int type);
 	
     /**
      * Should be called whenever a user presses and releases the tap button.
@@ -91,6 +96,7 @@ private:
 	
     /// Whether the microphone is currently turned on.
     bool m_isMicOn;
+    int m_type;
 
     /**
      * An internal executor that performs execution of callable objects passed to it sequentially but asynchronously.

@@ -200,6 +200,15 @@ bool AIClient::initialize(
       
       AISDK_INFO(LX("initializeSucessed").d("reason", "CreateAlarmsPlayer============here!!!!!!!!"));
    
+    m_bringupPlayer = modules::bringup::Bringup::create(
+        ttsDocker,
+        m_asrEngine,
+        streamMediaPlayer,
+        m_audioTrackManager);
+    if (!m_bringupPlayer) {
+        AISDK_ERROR(LX("initializeFailed").d("reason", "unableToCreatebringupPlayer"));
+        return false;
+    }
 	// TODO: Continue to add other domain commponent.
 	/// ...
 	/// ...
@@ -306,6 +315,9 @@ AIClient::~AIClient() {
 	}
 }
 
+void AIClient::bringupSound(int type) {
+    m_bringupPlayer->start(type);
+}
 }  // namespace application
 }  // namespace aisdk
 
