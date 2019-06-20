@@ -152,10 +152,19 @@ bool AOWrapper::stopLocked(){
 bool AOWrapper::stop(SourceId id)
 {
 	AISDK_DEBUG2(LX(__func__).d("requestId", id));
-	std::lock_guard<std::mutex> lock{m_operationMutex};
-	if (id == m_sourceId)
-		return stopLocked();
-
+	std::unique_lock<std::mutex> lock{m_operationMutex};
+	if (id == m_sourceId) {
+		if(stopLocked()) {
+			lock.unlock();
+			// Make sure current thread be destroyed.
+			if(m_playerThread.joinable()) {
+				m_playerWaitCondition.notify_one(); //
+				m_playerThread.join();
+			}
+			return true;
+		}
+		return false;
+	}
 	AISDK_ERROR(LX("stopFailed").d("reason", "Invalid Id").d("RequestId", id).d("currentId", m_sourceId));
 		
 	return false;
@@ -307,6 +316,7 @@ void AOWrapper::doPlayAudioLoop() {
 	while(true) {
 		m_playerWaitCondition.wait(lock, task);
 		if(m_isShuttingDown || m_state == AOPlayerState::FINISHED) {
+			AISDK_DEBUG2(LX("doPlayAudioLoop").d("reason", "updatingPlayerState"));
 			m_state = AOPlayerState::IDLE;
 			break;
 		}
