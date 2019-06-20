@@ -284,10 +284,9 @@ const char* AlarmsPlayer::CreateRandomUuid(char *uuid)
     const char *c = "89ab";
     char *p = uuid;
     int n;
-    for( n = 0; n < 16; ++n )
-    {
+    for( n = 0; n < 16; ++n ) {
         int b = rand()%255;
-        switch( n )
+        switch(n)
         {
             case 6:
                 sprintf(p, "4%x", b%15 );
@@ -299,10 +298,8 @@ const char* AlarmsPlayer::CreateRandomUuid(char *uuid)
                 sprintf(p, "%02x", b);
             break;
         }
-
         p += 2;
-        switch( n )
-        {
+        switch(n) {
             case 3:
             case 5:
             case 7:
@@ -348,67 +345,58 @@ void AlarmsPlayer::CheckAlarmList(sqlite3 *db)
     {
         char const *minsql = "select min(timestamp) from alarm;";
         sqlite3_get_table( db , minsql , &azResult , &nrow , &ncolumn , &zErrMsg );
-    
-        //AISDK_DEBUG(LX("CheckAlarmList").d("min(timestamp) from alarm:", azResult[nrow*ncolumn]));        
+
+        // AISDK_DEBUG(LX("CheckAlarmList").d("min(timestamp) from alarm:", azResult[nrow*ncolumn]));        
         long int alarmtimesec = (long int)(atoll(azResult[nrow*ncolumn])/1000);   //long long int --> long int;
-        struct tm *alarmp;
-        alarmp = localtime(&alarmtimesec);
-        printf("AlarmsPlayer:sqliteThreadHander::first alarm time:%d-%d-%d %d:%d:%d\n", 1900+alarmp->tm_year, 1+alarmp->tm_mon, alarmp->tm_mday, alarmp->tm_hour, alarmp->tm_min, alarmp->tm_sec);
+        // struct tm *alarmp;
+        // alarmp = localtime(&alarmtimesec);
+        // printf("AlarmsPlayer:sqliteThreadHander::first alarm time:%d-%d-%d %d:%d:%d\n", 1900+alarmp->tm_year, 1+alarmp->tm_mon, alarmp->tm_mday, alarmp->tm_hour, alarmp->tm_min, alarmp->tm_sec);
 
-        //current time
+        // current time
         time_t timesec;
-        struct tm *p;
+        // struct tm *p;
         time(&timesec);
-        p = localtime(&timesec);         
-        printf("AlarmsPlayer:sqliteThreadHander::current system time:%d-%d-%d %d:%d:%d\n", 1900+p->tm_year, 1+p->tm_mon, p->tm_mday, p->tm_hour, p->tm_min, p->tm_sec);
+        // p = localtime(&timesec);         
+        // printf("AlarmsPlayer:sqliteThreadHander::current system time:%d-%d-%d %d:%d:%d\n", 1900+p->tm_year, 1+p->tm_mon, p->tm_mday, p->tm_hour, p->tm_min, p->tm_sec);
 
 
-        if((timesec/20) == (alarmtimesec/20))  
-        {
-         sprintf(deleteAlarmContent, "select content from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
-         sqlite3_get_table( db , deleteAlarmContent , &azResultContent , &nrowContent , &ncolumnContent , &zErrMsgContent );
-         AISDK_DEBUG(LX("deleteAlarmContent").d("select content from alarm where timestamp", azResultContent[nrowContent*ncolumnContent]));        
-         std::string currentContent = azResultContent[nrowContent*ncolumnContent];
-            
-          for(int i = 0; i < 1; i++) //'i' use for set repeat times;
-           {
-           AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
-           
-           char contentId[37];
-           CreateRandomUuid(contentId);
-           auto writer = m_ttsDocker->createWriter(contentId);
-           auto reader = m_ttsDocker->createReader(contentId, utils::sharedbuffer::ReaderPolicy::BLOCKING);
-           AISDK_DEBUG(LX("deleteAlarmContent").d("currentContent", currentContent));
-           m_asrEngine->acquireTextToSpeech(currentContent, std::move(writer));
-           
-           utils::AudioFormat format {
-           .encoding = aisdk::utils::AudioFormat::Encoding::LPCM,
-           .endianness = aisdk::utils::AudioFormat::Endianness::LITTLE,
-           .sampleRateHz = 16000,
-           .sampleSizeInBits = 16,
-           .numChannels = 1,
-           .dataSigned = true
-           };
-           
-           auto sourceId = m_speechPlayer->setSource(std::move(reader), &format);
-           m_speechPlayer->play(sourceId);
-           }
-         sprintf(deleteAlarmTime, "delete from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
-         sqlite3_exec( db , deleteAlarmTime , NULL , NULL , &zErrMsg );
-         sqlite3_free(zErrMsg);
-        }
-        else if((timesec/20) > (alarmtimesec/20))
-        { 
-         sprintf(deleteAlarmTime, "delete from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
-         sqlite3_exec( db , deleteAlarmTime , NULL , NULL , &zErrMsg );
-         sqlite3_free(zErrMsg);
-        }
-     //   else 
-        {
-      //   AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "waiting for one time alarm!"));
+        if((timesec/20) == (alarmtimesec/20)) {
+            sprintf(deleteAlarmContent, "select content from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
+            sqlite3_get_table( db , deleteAlarmContent , &azResultContent , &nrowContent , &ncolumnContent , &zErrMsgContent );
+            AISDK_DEBUG(LX("deleteAlarmContent").d("select content from alarm where timestamp", azResultContent[nrowContent*ncolumnContent]));        
+            std::string currentContent = azResultContent[nrowContent*ncolumnContent];
+
+            for(int i = 0; i < 1; i++) { //'i' use for set repeat times;
+                AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
+
+                char contentId[37];
+                CreateRandomUuid(contentId);
+                auto writer = m_ttsDocker->createWriter(contentId);
+                auto reader = m_ttsDocker->createReader(contentId, utils::sharedbuffer::ReaderPolicy::BLOCKING);
+                AISDK_DEBUG(LX("deleteAlarmContent").d("currentContent", currentContent));
+                m_asrEngine->acquireTextToSpeech(currentContent, std::move(writer));
+
+                utils::AudioFormat format {
+                        .encoding = aisdk::utils::AudioFormat::Encoding::LPCM,
+                        .endianness = aisdk::utils::AudioFormat::Endianness::LITTLE,
+                        .sampleRateHz = 16000,
+                        .sampleSizeInBits = 16,
+                        .numChannels = 1,
+                        .dataSigned = true };
+
+                auto sourceId = m_speechPlayer->setSource(std::move(reader), &format);
+                m_speechPlayer->play(sourceId);
+            }
+            sprintf(deleteAlarmTime, "delete from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
+            sqlite3_exec( db , deleteAlarmTime , NULL , NULL , &zErrMsg );
+            sqlite3_free(zErrMsg);
+        }else if((timesec/20) > (alarmtimesec/20)) { 
+            sprintf(deleteAlarmTime, "delete from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
+            sqlite3_exec( db , deleteAlarmTime , NULL , NULL , &zErrMsg );
+            sqlite3_free(zErrMsg);
         }
 
-        }
+    }
 
 }
 
@@ -427,85 +415,73 @@ void AlarmsPlayer::CheckRepeatAlarmList(sqlite3 *db)
 
     char const *alarmSql_repeat ="select *from alarmList_repeat;";    
     sqlite3_get_table( db , alarmSql_repeat , &azResult , &nrow , &ncolumn , &zErrMsg );
-  //  AISDK_DEBUG(LX("CheckRepeatAlarmList").d("alarmList_repeat::nrow", nrow).d(" ncolumn", ncolumn));
+    // AISDK_DEBUG(LX("CheckRepeatAlarmList").d("alarmList_repeat::nrow", nrow).d(" ncolumn", ncolumn));
 
-    //current time
+    // current time
     time_t timesec;
     time(&timesec);
     
-    if((nrow >= 1) && (ncolumn != 0))
-        {
-        for(int i=5;i<(nrow+1)*ncolumn;i=i+5)
-        {
-        AISDK_DEBUG(LX("CheckRepeatAlarmList").d("NO:", (i/5)).d("repeat alarm time ", azResult[i]));           
-        long int alarmtimesec =(long int)( getMorningTime()+ (atoll(azResult[i])/1000));
+    if((nrow >= 1) && (ncolumn != 0)) {
+        for(int i=5;i<(nrow+1)*ncolumn;i=i+5) {
+            // AISDK_DEBUG(LX("CheckRepeatAlarmList").d("NO:", (i/5)).d("repeat alarm time ", azResult[i]));           
+            long int alarmtimesec =(long int)( getMorningTime()+ (atoll(azResult[i])/1000));
+       
+            // struct tm *alarmp_repeat;
+            // alarmp_repeat = localtime(&alarmtimesec);
+            // printf("AlarmsPlayer:CheckRepeatAlarmList::repeat time: %d:%d:%d\n", alarmp_repeat->tm_hour, alarmp_repeat->tm_min, alarmp_repeat->tm_sec);
 
-        struct tm *alarmp_repeat;
-        alarmp_repeat = localtime(&alarmtimesec);
-        printf("AlarmsPlayer:CheckRepeatAlarmList::repeat time: %d:%d:%d\n", alarmp_repeat->tm_hour, alarmp_repeat->tm_min, alarmp_repeat->tm_sec);
+            sprintf(deleteAlarmContent, "select content from alarmList_repeat where timestamp_day = %s;" ,azResult[i]);
+            sqlite3_get_table( db , deleteAlarmContent , &azResultContent , &nrowContent , &ncolumnContent , &zErrMsgContent );
+            //AISDK_INFO(LX("deleteAlarmContent").d("select content from alarm where timestamp_day", azResultContent[nrowContent*ncolumnContent]));        
+            std::string currentContent = azResultContent[nrowContent*ncolumnContent];
 
-        sprintf(deleteAlarmContent, "select content from alarmList_repeat where timestamp_day = %s;" ,azResult[i]);
-        sqlite3_get_table( db , deleteAlarmContent , &azResultContent , &nrowContent , &ncolumnContent , &zErrMsgContent );
-        //AISDK_INFO(LX("deleteAlarmContent").d("select content from alarm where timestamp_day", azResultContent[nrowContent*ncolumnContent]));        
-        std::string currentContent = azResultContent[nrowContent*ncolumnContent];
+            if((timesec/20) == (alarmtimesec/20)) {         
+                for(int i = 0; i < 1; i++) {
+                     AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
 
-        if((timesec/20) == (alarmtimesec/20))  
-         {         
-
-            for(int i = 0; i < 1; i++) 
-             {
-             AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
-
-             char contentId[37];
-             CreateRandomUuid(contentId);
-             auto writer = m_ttsDocker->createWriter(contentId);
-             auto reader = m_ttsDocker->createReader(contentId, utils::sharedbuffer::ReaderPolicy::BLOCKING);
-             AISDK_DEBUG(LX("deleteAlarmContent").d("currentContent", currentContent));
-             m_asrEngine->acquireTextToSpeech(currentContent, std::move(writer));
-             
-             utils::AudioFormat format {
-             .encoding = aisdk::utils::AudioFormat::Encoding::LPCM,
-             .endianness = aisdk::utils::AudioFormat::Endianness::LITTLE,
-             .sampleRateHz = 16000,
-             .sampleSizeInBits = 16,
-             .numChannels = 1,
-             .dataSigned = true
-             };
-             
-             auto sourceId = m_speechPlayer->setSource(std::move(reader), &format);
-             m_speechPlayer->play(sourceId);
-             
-             }
-         }
-        
+                     char contentId[37];
+                     CreateRandomUuid(contentId);
+                     auto writer = m_ttsDocker->createWriter(contentId);
+                     auto reader = m_ttsDocker->createReader(contentId, utils::sharedbuffer::ReaderPolicy::BLOCKING);
+                     AISDK_DEBUG(LX("deleteAlarmContent").d("currentContent", currentContent));
+                     m_asrEngine->acquireTextToSpeech(currentContent, std::move(writer));
+                     
+                     utils::AudioFormat format {
+                             .encoding = aisdk::utils::AudioFormat::Encoding::LPCM,
+                             .endianness = aisdk::utils::AudioFormat::Endianness::LITTLE,
+                             .sampleRateHz = 16000,
+                             .sampleSizeInBits = 16,
+                             .numChannels = 1,
+                             .dataSigned = true };
+                     
+                     auto sourceId = m_speechPlayer->setSource(std::move(reader), &format);
+                     m_speechPlayer->play(sourceId);
+                     
+                }
+            }
         }
     }
 
 }
 
 
-void AlarmsPlayer::sqliteThreadHander()
-{
+void AlarmsPlayer::sqliteThreadHander() {
     sqlite3 *db=NULL;
     int len;
-
-
     while(1){
         len = sqlite3_open("/data/alarm.db",&db);
-        if( len )
-        {
+        if( len ) {
         fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
         sqlite3_close(db);
         exit(1);
         }
 
-
         CheckAlarmList(db);
         CheckRepeatAlarmList(db);
         sqlite3_close(db);
-        sleep(10);
+        // sleep(10);
+        std::this_thread::sleep_for( std::chrono::seconds(10));
     }
-    
 }
 
 
@@ -540,15 +516,13 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
      char content[1024];
      
     cJSON* json = NULL,
-    *json_data = NULL, *json_tts_url = NULL, *json_isMultiDialog = NULL, *json_answer = NULL,
+    *json_data = NULL, *json_answer = NULL,
     *json_parameters = NULL, *json_event = NULL, *json_operation = NULL, *json_timestamp = NULL,
     *json_repeat = NULL, *json_repeat_type = NULL, *json_repeat_timestamp_day = NULL ,*json_repeat_weekday = NULL;
      
      (void )json;
      (void )json_data;
      (void )json_answer;
-     (void )json_tts_url;
-     (void )json_isMultiDialog;
      (void )json_parameters;
      (void )json_event;
      (void )json_operation;
@@ -568,7 +542,6 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
       else
       {
          json_answer = cJSON_GetObjectItem(json_data, "answer");
-         json_isMultiDialog = cJSON_GetObjectItem(json_data, "isMultiDialog");
          AISDK_DEBUG(LX("json_data").d("json_answer", json_answer->valuestring));
       
          //parameters  
@@ -787,9 +760,6 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
 }
 
 #endif
-//--------------------add by wx @190402-----------------
-void testsqlites();
-
 
 void AlarmsPlayer::executePreHandleAfterValidation(std::shared_ptr<AlarmDirectiveInfo> info) {
 	/// To-Do parse tts url and insert chatInfo map
@@ -821,15 +791,15 @@ void AlarmsPlayer::executePreHandleAfterValidation(std::shared_ptr<AlarmDirectiv
         AnalysisNlpDataForAlarmsPlayer(json_data, TTS_URL_LIST);
         cJSON_Delete(json_data);  
 
-        info->attachmentReader = info->directive->getAttachmentReader(
-                info->directive->getMessageId(), utils::sharedbuffer::ReaderPolicy::BLOCKING);
+//        info->attachmentReader = info->directive->getAttachmentReader(
+//                info->directive->getMessageId(), utils::sharedbuffer::ReaderPolicy::BLOCKING);
     
 #endif
-    if (!setAlarmDirectiveInfo(info->directive->getMessageId(), info)) {
-		AISDK_ERROR(LX("executePreHandleFailed")
-					.d("reason", "prehandleCalledTwiceOnSameDirective")
-					.d("messageId", info->directive->getMessageId()));
-    }
+//    if (!setAlarmDirectiveInfo(info->directive->getMessageId(), info)) {
+//		AISDK_ERROR(LX("executePreHandleFailed")
+//					.d("reason", "prehandleCalledTwiceOnSameDirective")
+//					.d("messageId", info->directive->getMessageId()));
+//    }
 }
 
 void AlarmsPlayer::executeHandleAfterValidation(std::shared_ptr<AlarmDirectiveInfo> info) {
@@ -976,23 +946,6 @@ void AlarmsPlayer::executePlaybackFinished() {
 	
     resetMediaSourceId();
 
-#if 0
-//-------------------------
-  //  while (!AUDIO_URL_LIST.empty()) AUDIO_URL_LIST.pop_back();
-     for(std::size_t i = 0; i< AUDIO_URL_LIST.size(); i++)
-    {
-      AISDK_INFO(LX("current_AUDIO_URL_LIST").d("==============:",  AUDIO_URL_LIST.at(i)));
-     }
-
-     if(!AUDIO_URL_LIST.empty()){
-
-           //std::make_shared<AlarmDirectiveInfo>(infotest);
-          // infotest->url = AUDIO_URL_LIST.at(3);
-           AISDK_INFO(LX("infotest->url").d("=====infotest->url======:",  AUDIO_URL_LIST.at(3)));
-       
-     //    addToDirectiveQueue(infotest);
-     }
-#endif
 }
 
 void AlarmsPlayer::executePlaybackError(const utils::mediaPlayer::ErrorType& type, std::string error) {
@@ -1222,7 +1175,7 @@ void AlarmsPlayer::executeOnDialogUXStateChanged(
 
 
 
-#if 1
+#if 0
 
 void testsqlites()
 {
