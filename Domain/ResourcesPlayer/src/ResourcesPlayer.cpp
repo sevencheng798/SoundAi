@@ -124,7 +124,6 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
             AISDK_INFO(LX("executeTrackChanged = clean current resources and stop player state ")); 
             flag_playControl_pause = 0;
         }
-
         std::this_thread::sleep_for( std::chrono::microseconds(2000));
         m_executor.submit([this, info]() { executeHandle(info); });
         //m_executor.submit([this, info]() { handlePlayDirective(info); });
@@ -134,7 +133,6 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
         std::string operation;
         AnalysisNlpDataForPlayControl(info, operation);
         responsePlayControl(info, operation);
-           
     }
    //else if(info->directive->getDomain() == VOLUME ){
    //     std::string operation;
@@ -143,7 +141,6 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
    //     info->result->setCompleted();
    // }
     
- 
 }
 
 void ResourcesPlayer::cancelDirective(std::shared_ptr<DirectiveInfo> info) {

@@ -17,6 +17,7 @@
 
 #include <Utils/Microphone/MicrophoneInterface.h>
 #include <Utils/SafeShutdown.h>
+#include <Utils/BringUp/BringUpEventType.h>
 
 #include "Application/AIClient.h"
 #include "KeywordObserver.h"
@@ -68,13 +69,12 @@ public:
     /*
      * start up music
     */
-    void playBringupSound(int type);
+    void playBringupSound(utils::bringup::eventType type);
 	
     /**
      * Should be called whenever a user presses and releases the tap button.
      */
     void tap();
-
     /**
      * Should be called whenever a user presses invalid option.
      */

@@ -13,6 +13,7 @@
 #include "Application/ControlActionManager.h"
 #include <Utils/Logging/Logger.h>
 
+
 // String to identify log entries originating from this file.
 static const std::string TAG("ControlActionManager");
 /// Define output
@@ -52,12 +53,14 @@ void ControlActionManager::microphoneToggle() {
         if (m_isMicOn) {
             m_isMicOn = false;
             m_userInterface->microphoneOff();
+            playBringupSound(utils::bringup::eventType::MICROPHONE_OFF);
             m_micWrapper->stopStreamingMicrophoneData();
-            
+
         } else {
             m_isMicOn = true;
             m_micWrapper->startStreamingMicrophoneData();
             m_userInterface->microphoneOn();
+            playBringupSound(utils::bringup::eventType::MICROPHONE_ON);
             
         }
     });	
@@ -67,12 +70,9 @@ void ControlActionManager::playbackControl() {
     m_executor.submit([this]() { m_client->buttonPressed(); });
 }
 
-void ControlActionManager::playBringupSound(int type) {
-    AISDK_INFO(LX("ControlActionManager type")
-                .d("value", type));
-    m_type=type;
+void ControlActionManager::playBringupSound(utils::bringup::eventType type) {
 
-    m_executor.submit([this]() { m_client->bringupSound(m_type);});
+    m_executor.submit([this, type]() { m_client->bringupSound(type);});
 }
 
 void ControlActionManager::tap() {

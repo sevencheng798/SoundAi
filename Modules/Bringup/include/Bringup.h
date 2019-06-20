@@ -20,6 +20,8 @@
 #include <Utils/Channel/ChannelObserverInterface.h>
 #include <Utils/Threading/Executor.h>
 #include <ASR/GenericAutomaticSpeechRecognizer.h>
+#include <Utils/BringUp/BringUpEventType.h>
+
 
 namespace aisdk {
 namespace modules {
@@ -62,7 +64,7 @@ public:
 
      void init();
 
-    bool start(int type);
+    bool start(utils::bringup::eventType type);
      
      ~Bringup();
 
@@ -80,16 +82,10 @@ private:
     std::shared_ptr<utils::channel::AudioTrackManagerInterface> m_trackManager;
 
     SourceId m_currentSourceId;
-    int m_status;
+    utils::bringup::eventType m_status;
     int m_playFlag;
     utils::channel::FocusState m_Tracep;
     
-    enum BRINGUP_STATUS{
-        BRINGUP_RESTART_CONFIG = 1,
-        BRINGUP_START_BIND,
-        BRINGUP_BIND_COMPLETE,
-        BRINGUP_GMJK_START
-    };
     enum PLAY_FLAG{
         IDLE = 0,
         PLAY_START_FLAG,

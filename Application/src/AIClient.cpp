@@ -315,7 +315,7 @@ AIClient::~AIClient() {
 	}
 }
 
-void AIClient::bringupSound(int type) {
+void AIClient::bringupSound(utils::bringup::eventType type) {
     m_bringupPlayer->start(type);
 }
 }  // namespace application

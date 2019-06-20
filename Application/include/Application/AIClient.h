@@ -76,7 +76,7 @@ public:
 	 */
 	void buttonPressed();
 
-    void bringupSound(int type);
+    void bringupSound(utils::bringup::eventType type);
 	
     /**
      * Destructor.

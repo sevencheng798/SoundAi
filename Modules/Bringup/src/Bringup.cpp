@@ -11,7 +11,7 @@
  */
 #include <fstream>
 #include <Utils/Logging/Logger.h>
-
+#include <Utils/BringUp/BringUpEventType.h>
 #include "Bringup.h"
 
 /// String to identify log entries originating from this file.
@@ -22,7 +22,6 @@ static const std::string TAG("Bringup");
 namespace aisdk {
 namespace modules {
 namespace bringup {
-
 /// The name of the @c AudioTrackManager channel used by the @c SpeechSynthesizer.
 static const std::string CHANNEL_NAME = utils::channel::AudioTrackManagerInterface::DIALOG_CHANNEL_NAME;
 
@@ -65,21 +64,26 @@ void Bringup::onTrackChanged(utils::channel::FocusState newTrace) {
    switch(newTrace) {
         case utils::channel::FocusState::FOREGROUND:
         {
-            AISDK_INFO(LX("onTrackChanged").d("m_status", m_status));
             auto in = std::make_shared<std::ifstream>();
             
             switch(m_status){
-            case BRINGUP_RESTART_CONFIG:
+            case utils::bringup::eventType::BRINGUP_RESTART_CONFIG:
                 in->open("/cfg/sai_config/restartconfig.mp3", std::ifstream::in);
             break;
-            case BRINGUP_START_BIND:
+            case utils::bringup::eventType::BRINGUP_START_BIND:
                 in->open("/cfg/sai_config/startbind.mp3", std::ifstream::in);
             break;
-            case BRINGUP_BIND_COMPLETE:
+            case utils::bringup::eventType::BRINGUP_BIND_COMPLETE:
                 in->open("/cfg/sai_config/bind_ok.mp3", std::ifstream::in);
             break;
-            case BRINGUP_GMJK_START:
+            case utils::bringup::eventType::BRINGUP_GMJK_START:
                 in->open("/cfg/sai_config/gmjkstart.mp3", std::ifstream::in);
+            break;
+            case utils::bringup::eventType::MICROPHONE_OFF:
+                in->open("/cfg/sai_config/mic_close.mp3", std::ifstream::in);
+            break;
+             case utils::bringup::eventType::MICROPHONE_ON:
+                in->open("/cfg/sai_config/mic_open.mp3", std::ifstream::in);
             break;
             default:
             break; 
@@ -141,11 +145,10 @@ void Bringup::init() {
 }
 
 
-bool Bringup::start(int type) {
+bool Bringup::start(utils::bringup::eventType type) {
     m_status = type;
 
-    AISDK_INFO(LX("start").d("m_status", m_status)
-                          .d("m_currentSourceId", m_currentSourceId)
+    AISDK_INFO(LX("start").d("m_currentSourceId", m_currentSourceId)
                           .d("m_playFlag", m_playFlag)
                           .d("m_Tracep", m_Tracep));
     if(m_Tracep != utils::channel::FocusState::NONE)

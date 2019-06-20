@@ -99,7 +99,7 @@ int InputControlInteraction::run() {
                     break;
                 case BRINGUP:
                     AISDK_INFO(LX("IPC::ReceiveMsg BRINGUP").d("ipcStatus", ipcStatus));
-                    m_controlActionManager->playBringupSound(ipcStatus);
+                    m_controlActionManager->playBringupSound(static_cast<utils::bringup::eventType>(ipcStatus));
                     break;
                 default:
                     break;
