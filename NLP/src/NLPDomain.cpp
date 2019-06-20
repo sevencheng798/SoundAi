@@ -144,6 +144,7 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
     //music,audio,listenBook,news,FM,story,joke
     else if(strcmp(json_domain->valuestring, "music")== 0 
        ||strcmp(json_domain->valuestring, "audio")== 0
+       ||strcmp(json_domain->valuestring, "IREADER")== 0
        ||strcmp(json_domain->valuestring, "listenBook")== 0
        ||strcmp(json_domain->valuestring, "news")== 0
        ||strcmp(json_domain->valuestring, "FM")== 0
@@ -165,7 +166,12 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
        {
        nlpdata->NlpData_domain = "PlayControl";
        AISDK_INFO(LX("domain").d("domain", "PlayControl"));
-       }    
+       }  
+  //   else if(strcmp(json_domain->valuestring, "volume")== 0)
+  //     {
+  //     nlpdata->NlpData_domain = "Volume";
+  //     AISDK_INFO(LX("domain").d("domain", "Volume"));
+  //     } 
 	 else if(strcmp(json_domain->valuestring, "ExpectSpeech")== 0) {
 		nlpdata->NlpData_domain = "ExpectSpeech";
        }
@@ -175,9 +181,9 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
     }
 
     #if 0
-    //volume,playcontrol
-      if(strcmp(json_domain->valuestring, "volume")== 0 
-           ||strcmp(json_domain->valuestring, "playcontrol")== 0)
+    //volume
+      else if(strcmp(json_domain->valuestring, "volume")== 0 
+           ||strcmp(json_domain->valuestring, "VOLUME")== 0)
        {
        nlpdata->NlpData_domain = "PlayControl";
        AISDK_INFO(LX("domain").d("domain", "PlayControl"));

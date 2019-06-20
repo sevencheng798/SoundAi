@@ -44,7 +44,13 @@ static const std::string CHANNEL_NAME = AudioTrackManagerInterface::MEDIA_CHANNE
 //static const std::string SPEECHCHAT{"SpeechChat"};
 
 /// The name of the @c SafeShutdown
-static const std::string SPEECHNAME{"ResourcesPlayer"};
+static const std::string RESOURCESNAME{"ResourcesPlayer"};
+
+/// The name of the @c SafeShutdown
+static const std::string PLAYCONTROL{"PlayControl"};
+
+/// The name of the @c SafeShutdown
+//static const std::string VOLUME{"Volume"};
 
 /// The duration to wait for a state change in @c onTrackChanged before failing.
 static const std::chrono::seconds STATE_CHANGE_TIMEOUT{3};
@@ -57,6 +63,13 @@ std::deque<std::string> AUDIO_URL_LIST;
 
 ///add for use store play control state; enable = 1;unable = 0;
 int flag_playControl_pause = 0; 
+
+int flag_playControl_flush = 0; 
+
+bool m_isStopped = false;
+///add for select resources num in audiolist;
+std::size_t currentItemNum = 0;
+
 
 std::shared_ptr<ResourcesPlayer> ResourcesPlayer::create(
 	std::shared_ptr<MediaPlayerInterface> mediaPlayer,
@@ -95,95 +108,40 @@ void ResourcesPlayer::onDeregistered() {
 
 void ResourcesPlayer::preHandleDirective(std::shared_ptr<DirectiveInfo> info) {
     AISDK_INFO(LX("preHandleDirective").d("messageId: ",  info->directive->getMessageId()));
-    m_executor.submit([this, info]() { executePreHandle(info); });
+    if(info->directive->getDomain() == RESOURCESNAME ){
+            m_executor.submit([this, info]() { executePreHandle(info); });
+    }
 }
 
 void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
     AISDK_INFO(LX("handleDirective").d("messageId: ",  info->directive->getMessageId()));
-
-    if(info->directive->getDomain() == SPEECHNAME ){
-
-         if( !m_speechPlayer->stop(m_mediaSourceId)){
+    if(info->directive->getDomain() == RESOURCESNAME ){
+        nextInfo = info; 
+        previousInfo = info;
+        if( !m_speechPlayer->stop(m_mediaSourceId)){
             AISDK_ERROR(LX("executeTrackChanged").d("stop","failed"));
-            std::this_thread::sleep_for( std::chrono::microseconds(2000));
-         }else{
+        }else{
             AISDK_INFO(LX("executeTrackChanged = clean current resources and stop player state ")); 
             flag_playControl_pause = 0;
-          //  info->result->setCompleted();    
-         }
-         
-         m_executor.submit([this, info]() { executeHandle(info); });
-
-    }else if(info->directive->getDomain() == "PlayControl" ){
-
-        //add @20190612
-        std::string operation;
-        AnalysisNlpDataForPlayControl(info, operation);
-     
-        if( operation == "PAUSE"){
-             std::this_thread::sleep_for( std::chrono::microseconds(100));
-             
-              flag_playControl_pause = 1;
-              if( !m_speechPlayer->pause(m_mediaSourceId)){
-                 AISDK_ERROR(LX("executeTrackChanged").d("pause","failed"));
-              } 
-       
-              info->result->setCompleted();  
-        }else if(operation == "STOP" ){
-              std::this_thread::sleep_for( std::chrono::microseconds(100));
- 
-              flag_playControl_pause = 1;
-              if( !m_speechPlayer->stop(m_mediaSourceId)){
-                  AISDK_ERROR(LX("executeTrackChanged").d("pause","failed"));
-              }  
-              
-              info->result->setCompleted();  
-        }else if(operation == "CONTINUE" ){
-              flag_playControl_pause = 0;
-              if( !m_speechPlayer->resume(m_mediaSourceId)){
-                  AISDK_ERROR(LX("executeTrackChanged").d("resume","failed"));
-              }  
-              
-              info->result->setCompleted();  
-        }else if(operation == "NEXT"){
-
-#if 0        
-               flag_playControl_pause = 0;
-              AUDIO_URL_LIST.pop_front();
-              if(!AUDIO_URL_LIST.empty()){
-
-                  if( !m_speechPlayer->stop(m_mediaSourceId)){
-                          AISDK_ERROR(LX("executeTrackChanged").d("stop","failed"));
-                      }
-                     m_mediaSourceId = m_speechPlayer->setSource(AUDIO_URL_LIST.at(0));
-              }
-              if( !m_speechPlayer->play(m_mediaSourceId)){
-                  AISDK_ERROR(LX("executeTrackChanged").d("NEXT","failed"));
-              }  
-#endif     
-              info->result->setCompleted();  
-              
-        }else if(operation == "SWITCH"){
-        
-                    AISDK_ERROR(LX("executeTrackChanged").d("SWITCH","failed"));
-                    info->result->setCompleted();
-        }else if(operation == "PREVIOUS"){
-        
-                    AISDK_ERROR(LX("executeTrackChanged").d("PREVIOUS","failed"));
-                    info->result->setCompleted();
-        }else if(operation == "SINGLE_LOOP"){
-        
-                    AISDK_ERROR(LX("executeTrackChanged").d("SINGLE_LOOP","failed"));
-                    info->result->setCompleted();
-        }else{
-               AISDK_ERROR(LX("executeTrackChanged").d("operation","mull"));
-    
-               info->result->setCompleted();  
         }
 
+        std::this_thread::sleep_for( std::chrono::microseconds(2000));
+        m_executor.submit([this, info]() { executeHandle(info); });
+        //m_executor.submit([this, info]() { handlePlayDirective(info); });
 
+    }else if(info->directive->getDomain() == PLAYCONTROL ){
+
+        std::string operation;
+        AnalysisNlpDataForPlayControl(info, operation);
+        responsePlayControl(info, operation);
            
     }
+   //else if(info->directive->getDomain() == VOLUME ){
+   //     std::string operation;
+   //     int volumeValue;
+   //     AnalysisNlpDataForVolume(info, operation, volumeValue);
+   //     info->result->setCompleted();
+   // }
     
  
 }
@@ -352,28 +310,26 @@ void ResourcesPlayer::buttonPressedPlayback() {
 	m_executor.submit( [this]() {
 	    std::unique_lock<std::mutex> lock(m_mutex);
         
-         if (ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING == m_currentState  ||
-             ResourcesPlayerObserverInterface::ResourcesPlayerState::PAUSED == m_currentState ) {
-             if(flag_playControl_pause == 1){
- 
-                 AISDK_INFO(LX("buttonPressedPlayback").d("flag_playControl_pause", "resume"));
-                 if( !m_speechPlayer->resume(m_mediaSourceId)){
+        if (ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING == m_currentState  ||
+            ResourcesPlayerObserverInterface::ResourcesPlayerState::PAUSED == m_currentState ) {
+            
+            if(flag_playControl_pause == 1){
+                AISDK_INFO(LX("buttonPressedPlayback").d("flag_playControl_pause", "resume"));
+                if( !m_speechPlayer->resume(m_mediaSourceId)){
                     AISDK_ERROR(LX("executeTrackChanged").d("resume","failed"));
-                 }
+                }
                 flag_playControl_pause = 0;                    
- 
-             }else{
+            }else{
                 AISDK_INFO(LX("buttonPressedPlayback").d("flag_playControl_pause", "pause"));
-                 if( !m_speechPlayer->pause(m_mediaSourceId)){
+                if( !m_speechPlayer->pause(m_mediaSourceId)){
                     AISDK_ERROR(LX("executeTrackChanged").d("pause","failed"));
-                 } 
+                } 
                 flag_playControl_pause = 1;
-     
-             }
-             
-         }else{
-                 AISDK_INFO(LX("buttonPressedPlaybackFailed").d("reason", "state is not PLAYING or PAUSED"));
-         }
+            }
+
+        }else{
+        AISDK_INFO(LX("buttonPressedPlaybackFailed").d("reason", "state is not PLAYING or PAUSED"));
+        }
 	   
 	});
 }
@@ -426,9 +382,9 @@ void ResourcesPlayer::ResourcesDirectiveInfo::clear() {
 ResourcesPlayer::ResourcesPlayer(
 	std::shared_ptr<MediaPlayerInterface> mediaPlayer,
 	std::shared_ptr<AudioTrackManagerInterface> trackManager) :
-	DomainProxy{SPEECHNAME},
-	SafeShutdown{SPEECHNAME},
-	m_handlerName{SPEECHNAME, "PlayControl"},
+	DomainProxy{RESOURCESNAME},
+	SafeShutdown{RESOURCESNAME},
+	m_handlerName{RESOURCESNAME, PLAYCONTROL},
 	m_speechPlayer{mediaPlayer},
 	m_trackManager{trackManager},
 	m_mediaSourceId{MediaPlayerInterface::ERROR},
@@ -444,93 +400,66 @@ void ResourcesPlayer::init() {
 
 void ResourcesPlayer::AnalysisNlpDataForResourcesPlayer(cJSON          * datain , std::deque<std::string> &audiourllist )
 {
-    cJSON* json = NULL,
-     *json_data = NULL,*json_tts_url = NULL, *json_isMultiDialog = NULL, *json_answer = NULL,
-     *json_parameters = NULL, *json_artist = NULL, *json_title = NULL,
-     *json_album = NULL,*json_audio_list = NULL, *json_audio_url = NULL;
+    cJSON* json = NULL, *json_data = NULL, *json_answer = NULL,
+     *json_parameters = NULL, *json_title = NULL,*json_album = NULL, *json_audio_url = NULL;
 
      (void )json;
      (void )json_data;
      (void )json_answer;
-     (void )json_tts_url;
-     (void )json_isMultiDialog;
-
      (void )json_parameters;
-     (void )json_artist;
      (void )json_title;
      (void )json_album;
-     (void )json_audio_list;
      (void )json_audio_url;  
 
      json_data = datain;
-     if(!json_data)
-     {
-     AISDK_ERROR(LX("AnalysisNlpDataForResourcesPlayer").d("json Error before", cJSON_GetErrorPtr()));
-     }
-     else
-     {
+     if(!json_data) {
+        AISDK_ERROR(LX("AnalysisNlpDataForResourcesPlayer").d("json Error before", cJSON_GetErrorPtr()));
+     }else{
        json_answer = cJSON_GetObjectItem(json_data, "answer");
-      // json_tts_url = cJSON_GetObjectItem(json_data, "tts_url");
-      // json_isMultiDialog = cJSON_GetObjectItem(json_data, "isMultiDialog");
-       std::cout << "json_answer =  " << json_answer->valuestring << std::endl;
-      // std::cout << "json_tts_url =  " << json_tts_url->valuestring << std::endl;
-      // std::cout << "json_isMultiDialog = " << json_isMultiDialog->valueint << std::endl;
+       AISDK_INFO(LX("AnalysisNlpDataForResourcesPlayer").d("json_answer", json_answer->valuestring));
  
-      // audiourllist.push_back(json_tts_url->valuestring);
+        //parameters  
+        json_parameters = cJSON_GetObjectItem(json_data, "parameters"); 
+        if(json_parameters != NULL) {
+            json_album = cJSON_GetObjectItem(json_parameters, "album");
+            json_title = cJSON_GetObjectItem(json_parameters, "title");
+        }else {
+            AISDK_ERROR(LX("AnalysisNlpDataForResourcesPlayer").d("json_parameters", "parameters is null"));
+        }
  
-          //parameters  
-          json_parameters = cJSON_GetObjectItem(json_data, "parameters"); 
-         if(json_parameters != NULL) 
-         {
-          json_album = cJSON_GetObjectItem(json_parameters, "album");
-          json_title = cJSON_GetObjectItem(json_parameters, "title");
+        //audio_list
+        cJSON *js_list = cJSON_GetObjectItem(json_data, "audio_list");
+         if(!js_list){
+            AISDK_ERROR(LX("AnalysisNlpDataForResourcesPlayer").d("audio_list", "no audio_list!"));
          }
-          else
-          {
-          AISDK_ERROR(LX("AnalysisNlpDataForResourcesPlayer").d("json_parameters", "parameters is null"));
-          }
- 
-          //audio_list
-          cJSON *js_list = cJSON_GetObjectItem(json_data, "audio_list");
-           if(!js_list){
-              AISDK_ERROR(LX("AnalysisNlpDataForResourcesPlayer").d("audio_list", "no audio_list!"));
-           }
+         
+         int array_size = cJSON_GetArraySize(js_list);
+         AISDK_DEBUG(LX("AnalysisNlpDataForResourcesPlayer").d("audio_list size", array_size));
+         int i = 0;
+         cJSON *item,*it;
+         char *p  = NULL;
+         for(i=0; i< array_size; i++) {
+            item = cJSON_GetArrayItem(js_list, i);
+            if(!item) {
+               //TODO...
+            }
+            p = cJSON_PrintUnformatted(item);
+            it = cJSON_Parse(p);
+            if(!it)
+            continue ;
+        json_title = cJSON_GetObjectItem(it, "title");
+        json_audio_url = cJSON_GetObjectItem(it, "audio_url");
+        //std::cout << "NO: " << i << ":json_title =  "<< json_title->valuestring << std::endl;
+        //std::cout << "NO: " << i << ":json_audio_url =  " << json_audio_url->valuestring << std::endl;
+        audiourllist.push_back(json_audio_url->valuestring);
+         }
            
-           int array_size = cJSON_GetArraySize(js_list);
-           AISDK_DEBUG(LX("AnalysisNlpDataForResourcesPlayer").d("audio_list size", array_size));
-           int i = 0;
-           cJSON *item,*it;
-           char *p  = NULL;
-           for(i=0; i< array_size; i++) {
-              item = cJSON_GetArrayItem(js_list, i);
-              if(!item) {
-                 //TODO...
-              }
-              p = cJSON_PrintUnformatted(item);
-              it = cJSON_Parse(p);
-              if(!it)
-                 continue ;
-          json_title = cJSON_GetObjectItem(it, "title");
-          json_audio_url = cJSON_GetObjectItem(it, "audio_url");
-          //std::cout << "NO: " << i << ":json_title =  "<< json_title->valuestring << std::endl;
-          //std::cout << "NO: " << i << ":json_audio_url =  " << json_audio_url->valuestring << std::endl;
-          audiourllist.push_back(json_audio_url->valuestring);
-           }
-           
-#if 0
-       std::cout <<"get_udio_url_list："<< std::endl;        
-       for(std::size_t i = 0; i< audiourllist.size(); i++)
-       {
-        std::cout << "list_no:" << i << "; get_udio_url=" << audiourllist.at(i) << std::endl;
-       }
-#endif          
      }
 
 }
 
 
-void ResourcesPlayer::AnalysisNlpDataForPlayControl(std::shared_ptr<DirectiveInfo> info, std::string &operation )
-{
+void ResourcesPlayer::AnalysisNlpDataForPlayControl(std::shared_ptr<DirectiveInfo> info, std::string &operation ) {
     auto data = info->directive->getData();
     Json::CharReaderBuilder readerBuilder;
     JSONCPP_STRING errs;
@@ -546,9 +475,106 @@ void ResourcesPlayer::AnalysisNlpDataForPlayControl(std::shared_ptr<DirectiveInf
 }
 
 
-void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<ResourcesDirectiveInfo> info) {
-	/// To-Do parse tts url and insert chatInfo map
-    /// TODO:parse tts url and insert chatInfo map - Fix me.
+void ResourcesPlayer::AnalysisNlpDataForVolume(std::shared_ptr<DirectiveInfo> info, std::string &operation, int &volumeValue ) {
+    auto data = info->directive->getData();
+    Json::CharReaderBuilder readerBuilder;
+    JSONCPP_STRING errs;
+    Json::Value root;
+    std::unique_ptr<Json::CharReader> const reader(readerBuilder.newCharReader());
+    if (!reader->parse(data.c_str(), data.c_str()+data.length(), &root, &errs)) {
+        AISDK_ERROR(LX("handleDirective").d("reason", "parseDataKeyError"));
+        return;
+    }
+    Json::Value parameters = root["parameters"];
+    operation = parameters["operation"].asString();
+    AISDK_INFO(LX("handleDirective").d("operation", operation));
+
+    if(operation == "SET"){
+        volumeValue = parameters["value"].asInt();
+        AISDK_INFO(LX("handleDirective").d("volumeValue", volumeValue));
+    }
+}
+
+
+
+void ResourcesPlayer::responsePlayControl(std::shared_ptr<DirectiveInfo> info, std::string operation) {
+        std::string m_operation = operation;
+
+        if( m_operation == "PAUSE"){
+             std::this_thread::sleep_for( std::chrono::microseconds(100));
+             
+              flag_playControl_pause = 1;
+              if( !m_speechPlayer->pause(m_mediaSourceId)){
+                 AISDK_ERROR(LX("executeTrackChanged").d("pause","failed"));
+              } 
+       
+        }else if(m_operation == "STOP" ){
+              std::this_thread::sleep_for( std::chrono::microseconds(100));
+ 
+              flag_playControl_pause = 1;
+              if( !m_speechPlayer->pause(m_mediaSourceId)){
+                  AISDK_ERROR(LX("executeTrackChanged").d("pause","failed"));
+              }  
+              
+        }else if(m_operation == "CONTINUE" ){
+             std::this_thread::sleep_for( std::chrono::microseconds(100));
+ 
+              flag_playControl_pause = 0;
+              if( !m_speechPlayer->resume(m_mediaSourceId)){
+                  AISDK_ERROR(LX("executeTrackChanged").d("resume","failed"));
+              }  
+              
+        }else if(m_operation == "NEXT" ) {
+              std::this_thread::sleep_for( std::chrono::microseconds(100));
+              if( !m_speechPlayer->stop(m_mediaSourceId)){
+                  AISDK_ERROR(LX("executeTrackChanged").d("NEXT","failed"));
+              }else{
+                  AISDK_INFO(LX("executeTrackChanged = clean current resources and stop player state ")); 
+              }
+              flag_playControl_pause = 0;
+              currentItemNum ++;
+              if(currentItemNum >= AUDIO_URL_LIST.size()){
+                currentItemNum = 0;
+              }
+              AISDK_ERROR(LX("executeTrackChanged").d("currentItemNum", currentItemNum));
+              std::this_thread::sleep_for( std::chrono::microseconds(2000));
+              executeHandle(nextInfo);
+              
+        }else if(m_operation == "SWITCH"){
+                
+              AISDK_ERROR(LX("executeTrackChanged").d("SWITCH","failed"));
+        }else if(m_operation == "PREVIOUS"){
+              std::this_thread::sleep_for( std::chrono::microseconds(100));
+              if( !m_speechPlayer->stop(m_mediaSourceId)){
+                  AISDK_ERROR(LX("executeTrackChanged").d("PREVIOUS","failed"));
+              }else{
+                  AISDK_INFO(LX("executeTrackChanged = clean current resources and stop player state ")); 
+              }
+
+              flag_playControl_pause = 0;             
+              if(currentItemNum == 0){
+                  currentItemNum = AUDIO_URL_LIST.size() - 1 ;
+              }else{
+                  currentItemNum --; 
+              }
+              AISDK_ERROR(LX("executeTrackChanged").d("currentItemNum", currentItemNum));
+              std::this_thread::sleep_for( std::chrono::microseconds(2000));
+              executeHandle(previousInfo);
+        
+        }else if(m_operation == "SINGLE_LOOP"){
+        
+               AISDK_ERROR(LX("executeTrackChanged").d("SINGLE_LOOP","failed"));
+        }else{
+               AISDK_ERROR(LX("executeTrackChanged").d("operation","mull"));
+    
+        }
+        
+        info->result->setCompleted();  
+
+}
+
+void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<DirectiveInfo> info) {
+	/// To-Do parse tts url and insert resourcesInfo map
 #ifdef ENABLE_SOUNDAI_ASR
         auto data = info->directive->getData();
         Json::CharReaderBuilder readerBuilder;
@@ -565,15 +591,12 @@ void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<ResourcesD
 #else	
         auto nlpDomain = info->directive;
         auto dateMessage = nlpDomain->getData();
-        AUDIO_URL_LIST.clear();
-        flag_playControl_pause = 0 ;
 
         cJSON* json = NULL, *json_data = NULL;
         (void )json;
         (void )json_data;
         json_data = cJSON_Parse(dateMessage.c_str());
         AnalysisNlpDataForResourcesPlayer(json_data, AUDIO_URL_LIST);
-        info->audioList = AUDIO_URL_LIST;
         cJSON_Delete(json_data);  
         AISDK_DEBUG(LX("AUDIO_URL_LIST").d("size:",  AUDIO_URL_LIST.size()));
         for(std::size_t i = 0; i< AUDIO_URL_LIST.size(); i++)
@@ -581,30 +604,25 @@ void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<ResourcesD
         AISDK_DEBUG(LX("AUDIO_URL_LIST").d("audio_url:",  AUDIO_URL_LIST.at(i)));
         }
 
-        //info->url = AUDIO_URL_LIST.at(0);
-        //AUDIO_URL_LIST.pop_front();
 
-
-      //  m_attachmentReader = info->directive->getAttachmentReader(
-      //      info->directive->getMessageId(), utils::sharedbuffer::ReaderPolicy::BLOCKING);
-
+        // m_attachmentReader = info->directive->getAttachmentReader(
+        //     info->directive->getMessageId(), utils::sharedbuffer::ReaderPolicy::BLOCKING);
         //auto resourceSourceId = setSource(AUDIO_URL_LIST.at(0));
 #endif	
-        // If everything checks out, add the chatInfo to the map.
-        if (!setResourcesDirectiveInfo(info->directive->getMessageId(), info)) {
-            AISDK_ERROR(LX("executePreHandleFailed")
-                        .d("reason", "prehandleCalledTwiceOnSameDirective")
-                        .d("messageId", info->directive->getMessageId()));
-        }   
+        // If everything checks out, add the resourcesInfo to the map.
+        //  if (!setResourcesDirectiveInfo(info->directive->getMessageId(), info)) {
+        //      AISDK_ERROR(LX("executePreHandleFailed")
+        //                  .d("reason", "prehandleCalledTwiceOnSameDirective")
+        //                  .d("messageId", info->directive->getMessageId()));
+        //  }   
 }
 
 
 void ResourcesPlayer::executeHandleAfterValidation(std::shared_ptr<ResourcesDirectiveInfo> info) {
     m_currentInfo = info;
-    AISDK_INFO(LX("executeHandleAfterValidation").d("m_currentInfo-url: ", m_currentInfo->url ));
-//    std::this_thread::sleep_for( std::chrono::seconds(2));
-    if (!m_trackManager->acquireChannel(CHANNEL_NAME, shared_from_this(), SPEECHNAME)) {
-        static const std::string message = std::string("Could not acquire ") + CHANNEL_NAME + " for " + SPEECHNAME;
+   // AISDK_INFO(LX("executeHandleAfterValidation").d("m_currentInfo-url: ", m_currentInfo->url ));
+    if (!m_trackManager->acquireChannel(CHANNEL_NAME, shared_from_this(), RESOURCESNAME)) {
+        static const std::string message = std::string("Could not acquire ") + CHANNEL_NAME + " for " + RESOURCESNAME;
 		AISDK_INFO(LX("executeHandleFailed")
 					.d("reason", "CouldNotAcquireChannel")
 					.d("messageId", m_currentInfo->directive->getMessageId()));
@@ -617,44 +635,110 @@ void ResourcesPlayer::executeHandleAfterValidation(std::shared_ptr<ResourcesDire
 
 void ResourcesPlayer::executePreHandle(std::shared_ptr<DirectiveInfo> info) {
     AISDK_INFO(LX("executePreHandle").d("messageId: ", info->directive->getMessageId() ));
-    auto chatInfo = validateInfo("executePreHandle", info);
-    if (!chatInfo) {
-		AISDK_ERROR(LX("executePreHandleFailed").d("reason", "invalidDirectiveInfo"));
-        return;
-    }
-    executePreHandleAfterValidation(chatInfo);
+//    auto resourcesInfo = validateInfo("executePreHandle", info);
+//    if (!resourcesInfo) {
+//		AISDK_ERROR(LX("executePreHandleFailed").d("reason", "invalidDirectiveInfo"));
+//        return;
+//    }
+
+    //initialization parameters 
+    AUDIO_URL_LIST.clear();
+    flag_playControl_pause = 0 ;
+    currentItemNum = 0;
+    AISDK_INFO(LX("executePreHandle")
+                .d(" initialization parameters ", "AUDIO_URL_LIST cleared ")
+                .d(" flag_playControl_pause ", flag_playControl_pause)
+                .d(" currentItemNum ", currentItemNum));
+    executePreHandleAfterValidation(info);
 }
 
 void ResourcesPlayer::executeHandle(std::shared_ptr<DirectiveInfo> info) {
 	AISDK_INFO(LX("executeHandle").d("messageId", info->directive->getMessageId()));
-    auto chatInfo = validateInfo("executeHandle", info);
-    if (!chatInfo) {
+    auto resourcesInfo = validateInfo("executeHandle", info);
+    if (!resourcesInfo) {
 		AISDK_ERROR(LX("executeHandleFailed").d("reason", "invalidDirectiveInfo"));
         return;
     }
-    addToDirectiveQueue(chatInfo);
+    addToDirectiveQueue(resourcesInfo);
 }
+
+void ResourcesPlayer::handlePlayDirective(std::shared_ptr<DirectiveInfo> info) {
+    AISDK_INFO(LX("=================================handlePlayDirective-===========================")
+            .d("messageId", info->directive->getMessageId()));
+	AISDK_INFO(LX("handlePlayDirective").d("messageId", info->directive->getMessageId()));
+    m_executor.submit([this, info]() { executePlay(info); });
+#if 0 // mark_debug
+    auto chatInfo = validateInfo("handlePlayDirective", info);
+    if (!chatInfo) {
+		AISDK_ERROR(LX("handlePlayDirectiveFailed").d("reason", "invalidDirectiveInfo"));
+        return;
+    }
+    addToDirectiveQueue(chatInfo);
+#endif
+}
+
+void ResourcesPlayer::executePlay(std::shared_ptr<DirectiveInfo> info) {
+
+    stopPlaying();
+
+    {
+        // Block until we achieve the desired state.
+       std::unique_lock<std::mutex> lock(m_mutexStopRequest);
+        if ( !m_waitOnStopChange.wait_for( lock, STATE_CHANGE_TIMEOUT, []() {return m_isStopped; })){
+            AISDK_ERROR(LX("executePlayWaitStopStateTimeout"));
+        }
+    }
+
+    m_isStopped = false;
+    
+     switch (m_currentState) {
+        case ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING:
+        case ResourcesPlayerObserverInterface::ResourcesPlayerState::PAUSED:
+            //stopPlaying();
+            //AISDK_INFO(LX("executeTrackChanged = clean current resources and stop player state ")); 
+            //flag_playControl_pause = 0;
+        break;
+        case  ResourcesPlayerObserverInterface::ResourcesPlayerState::IDLE:
+        case  ResourcesPlayerObserverInterface::ResourcesPlayerState::STOPPED:             
+        case  ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED:  
+            AISDK_INFO(LX("executePlay").d("m_currentFocus", m_currentFocus));
+            if(m_currentFocus == FocusState::NONE) {
+                if (!m_trackManager->acquireChannel(CHANNEL_NAME, shared_from_this(), RESOURCESNAME)) {
+                    static const std::string message = std::string("Could not acquire ") + CHANNEL_NAME + " for " + RESOURCESNAME;
+                    AISDK_INFO(LX("executePlaysFailed")
+                       .d("reason", "CouldNotAcquireChannel")
+                       .d("messageId", m_currentInfo->directive->getMessageId()));
+                   // reportExceptionFailed(info, message);
+                }
+            }
+        break;
+     }
+
+     AISDK_INFO(LX("executePlay").d("reason", "stating completed..."));
+    info->result->setCompleted();
+}
+
 
 void ResourcesPlayer::executeCancel(std::shared_ptr<DirectiveInfo> info) {
 	AISDK_INFO(LX("executeCancel").d("messageId", info->directive->getMessageId()));
-    auto chatInfo = validateInfo("executeCancel", info);
-    if (!chatInfo) {
+    auto resourcesInfo = validateInfo("executeCancel", info);
+    if (!resourcesInfo) {
         AISDK_ERROR(LX("executeCancelFailed").d("reason", "invalidDirectiveInfo"));
         return;
     }
-    if (chatInfo != m_currentInfo) {
-        chatInfo->clear();
-        removeChatDirectiveInfo(chatInfo->directive->getMessageId());
+    if (resourcesInfo != m_currentInfo) {
+        resourcesInfo->clear();
+        removeChatDirectiveInfo(resourcesInfo->directive->getMessageId());
         {
             std::lock_guard<std::mutex> lock(m_chatInfoQueueMutex);
             for (auto it = m_chatInfoQueue.begin(); it != m_chatInfoQueue.end(); it++) {
-                if (chatInfo->directive->getMessageId() == it->get()->directive->getMessageId()) {
+                if (resourcesInfo->directive->getMessageId() == it->get()->directive->getMessageId()) {
                     it = m_chatInfoQueue.erase(it);
                     break;
                 }
             }
         }
-        removeDirective(chatInfo->directive->getMessageId());
+        removeDirective(resourcesInfo->directive->getMessageId());
         return;
     }
 	
@@ -713,14 +797,22 @@ void ResourcesPlayer::executeTrackChanged(FocusState newTrace){
         case  ResourcesPlayerObserverInterface::ResourcesPlayerState::IDLE:
         case  ResourcesPlayerObserverInterface::ResourcesPlayerState::STOPPED:             
         case  ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED: 
-        {
-            if(AUDIO_URL_LIST.empty()){
-               AISDK_ERROR(LX("executeTrackChanged").d("reason", "nullAUDIO_URL_LIST"));
-               return;
-            }
+            {
+                if(AUDIO_URL_LIST.empty()){
+                   AISDK_ERROR(LX("executeTrackChanged").d("reason", "nullAUDIO_URL_LIST"));
+                   return;
+                }
+                
+                AISDK_DEBUG5(LX("executeTrackChanged").d("playResourceItem", "play type----->1"));
 
-            playNextItem();
-        }
+              //  playNextItem();
+              
+                if(currentItemNum >= AUDIO_URL_LIST.size()){
+                    currentItemNum = 0;
+                }
+               playResourceItem(AUDIO_URL_LIST.at(currentItemNum));
+
+            }
             break;
         case ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING:
    
@@ -778,7 +870,6 @@ void ResourcesPlayer::executePlaybackStarted() {
 void ResourcesPlayer::executePlaybackStopped(){
 	AISDK_INFO(LX("executePlaybackStopped"));
 
-
     resetMediaSourceId();
 
     switch (m_currentState)
@@ -795,19 +886,22 @@ void ResourcesPlayer::executePlaybackStopped(){
         case ResourcesPlayerObserverInterface::ResourcesPlayerState::STOPPED:
         case ResourcesPlayerObserverInterface::ResourcesPlayerState::IDLE:
             if(AUDIO_URL_LIST.empty() && m_isAlreadyStopping != false ){
-                  AISDK_INFO(LX("executePlaybackFinished").d("reason", "audioUrlListNull"));
-                  if(m_currentFocus != FocusState::NONE){
-                     m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this());
-                  }
+                 AISDK_INFO(LX("executePlaybackFinished").d("reason", "audioUrlListNull"));
+                 if(m_currentFocus != FocusState::NONE){
+                    m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this());
+                 }
             }else{
-            playNextItem();
+                // playNextItem();
+                 AISDK_DEBUG5(LX("executePlaybackStopped").d("playResourceItem", "play type----->2"));
+                 if(currentItemNum >= AUDIO_URL_LIST.size()){
+                    currentItemNum = 0;
+                 }
+                 playResourceItem(AUDIO_URL_LIST.at(currentItemNum));
             }
 
         break;
             
         }
-
-
 }
 
 void ResourcesPlayer::executePlaybackFinished() {
@@ -831,30 +925,17 @@ void ResourcesPlayer::executePlaybackFinished() {
           }
           
     }else{
-    playNextItem();
+     // playNextItem();
+      AISDK_DEBUG5(LX("executePlaybackFinished").d("playResourceItem", "play type----->3"));
+      currentItemNum ++;
+       if(currentItemNum >= AUDIO_URL_LIST.size()){
+           currentItemNum = 0;
+       }
+       playResourceItem(AUDIO_URL_LIST.at(currentItemNum));
+   
     }
 
 
-#if 0
-  //  while (!AUDIO_URL_LIST.empty()) AUDIO_URL_LIST.pop_back();
-     if(!AUDIO_URL_LIST.empty()){
-
-        for(std::size_t i = 0; i< AUDIO_URL_LIST.size(); i++)
-        {
-        AISDK_INFO(LX("executePlaybackFinished").d("AUDIO_URL_LIST",  AUDIO_URL_LIST.at(i)));
-        }
-
-        //  std::make_shared<ResourcesDirectiveInfo>(infotest);
-        //AISDK_INFO(LX("infotest->url").d("=====infotest->url======:",  AUDIO_URL_LIST.at(0)));
-        
-        m_mediaSourceId = m_speechPlayer->setSource(AUDIO_URL_LIST.at(0));
-        m_speechPlayer->play(m_mediaSourceId);   
-        AUDIO_URL_LIST.pop_front();
-        onPlaybackStopped(m_mediaSourceId);
-
-
-     }
-#endif     
 }
 
 void ResourcesPlayer::executePlaybackPaused(){
@@ -913,6 +994,21 @@ void ResourcesPlayer::playNextItem() {
          }
 
     }
+    
+     if (MediaPlayerInterface::ERROR == m_mediaSourceId) {
+ 		AISDK_ERROR(LX("playNextItemFailed").d("reason", "setSourceFailed"));
+         executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "playFailed");
+     } else if (!m_speechPlayer->play(m_mediaSourceId)) {
+         executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "playFailed");
+     } else {
+         // Execution of play is successful.
+         m_isAlreadyStopping = false;
+     }
+}
+
+void ResourcesPlayer::playResourceItem(std::string ResourceItem ) {
+    AISDK_INFO(LX("playResourceItem").d("ResourceItem", ResourceItem));
+    m_mediaSourceId = m_speechPlayer->setSource(ResourceItem);
     
      if (MediaPlayerInterface::ERROR == m_mediaSourceId) {
  		AISDK_ERROR(LX("playNextItemFailed").d("reason", "setSourceFailed"));
@@ -995,15 +1091,15 @@ void ResourcesPlayer::setDesiredStateLocked(FocusState newTrace) {
     }
 }
 
-void ResourcesPlayer::resetCurrentInfo(std::shared_ptr<ResourcesDirectiveInfo> chatInfo) {
-    if (m_currentInfo != chatInfo) {
+void ResourcesPlayer::resetCurrentInfo(std::shared_ptr<ResourcesDirectiveInfo> resourcesInfo) {
+    if (m_currentInfo != resourcesInfo) {
         if (m_currentInfo) {
             removeChatDirectiveInfo(m_currentInfo->directive->getMessageId());
 			// Removing map of @c DomainProxy's @c m_directiveInfoMap
             removeDirective(m_currentInfo->directive->getMessageId());
             m_currentInfo->clear();
         }
-        m_currentInfo = chatInfo;
+        m_currentInfo = resourcesInfo;
     }
 }
 
@@ -1059,14 +1155,14 @@ std::shared_ptr<ResourcesPlayer::ResourcesDirectiveInfo> ResourcesPlayer::valida
         return nullptr;
     }
 
-    auto chatDirInfo = getResourcesDirectiveInfo(info->directive->getMessageId());
-    if (chatDirInfo) {
-        return chatDirInfo;
+    auto resourcesDirInfo = getResourcesDirectiveInfo(info->directive->getMessageId());
+    if (resourcesDirInfo) {
+        return resourcesDirInfo;
     }
 
-    chatDirInfo = std::make_shared<ResourcesDirectiveInfo>(info);
+    resourcesDirInfo = std::make_shared<ResourcesDirectiveInfo>(info);
 
-    return chatDirInfo;
+    return resourcesDirInfo;
 
 }
 
@@ -1094,17 +1190,21 @@ bool ResourcesPlayer::setResourcesDirectiveInfo(
 void ResourcesPlayer::addToDirectiveQueue(std::shared_ptr<ResourcesDirectiveInfo> info) {
     std::lock_guard<std::mutex> lock(m_chatInfoQueueMutex);
 
+    executeHandleAfterValidation(info);
+    info->result->setCompleted();
+	AISDK_INFO(LX("addToDirectiveQueue").d("executeHandleAfterValidation"," info->result->setCompleted();"));
+
+#if 0
     if (m_chatInfoQueue.empty()) {
         m_chatInfoQueue.push_back(info);
-        executeHandleAfterValidation(info);
-        info->result->setCompleted();
+
     } else {
 		AISDK_INFO(LX("addToDirectiveQueue").d("queueSize", m_chatInfoQueue.size()));
         info->result->setCompleted();
         m_chatInfoQueue.push_back(info);
     }
 
-
+#endif
 }
 
 void ResourcesPlayer::removeChatDirectiveInfo(const std::string& messageId) {

@@ -152,8 +152,6 @@ private:
 		/// Identifies the location of audio content.  the value will be a remote http/https location.
 		std::string url;
 
-        std::deque<std::string> audioList;
-        
         /// A flag to indicate if the domain directive complete message has to be sent to the @c DomainSequencer.
         bool sendCompletedMessage;
     };
@@ -181,13 +179,19 @@ private:
     ///
     void AnalysisNlpDataForPlayControl(std::shared_ptr<DirectiveInfo> info, std::string &operation );
 
+    ///
+    void AnalysisNlpDataForVolume(std::shared_ptr<DirectiveInfo> info, std::string &operation, int &volumeValue );
+    
+    ///
+    void responsePlayControl(std::shared_ptr<DirectiveInfo> info, std::string operation);
+
     
     /**
      * Pre-handle a ResourcesPlayer.Chat directive (on the @c m_executor threadpool) to parse own keys and values.
      *
      * @param info The directive to pre-handle and the associated data.
      */
-    void executePreHandleAfterValidation(std::shared_ptr<ResourcesDirectiveInfo> info);
+    void executePreHandleAfterValidation(std::shared_ptr<DirectiveInfo> info);
 
     /**
      * Handle a ResourcesPlayer.Chat directive (on the @c m_executor threadpool).  This starts a request for
@@ -211,6 +215,11 @@ private:
      * @param info The directive to handle and the result object with which to communicate the result.
      */
     void executeHandle(std::shared_ptr<DirectiveInfo> info);
+
+    void handlePlayDirective(std::shared_ptr<DirectiveInfo> info);
+
+    ///
+    void executePlay(std::shared_ptr<DirectiveInfo> info) ;
 
     /**
      * Cancel execution of a ResourcesPlayer.Chat directive (on the @c m_executor threadpool).
@@ -255,6 +264,8 @@ private:
      */
     ///
     void playNextItem();
+
+    void playResourceItem(std::string ResourceItem );
     
     void executePlaybackError(const utils::mediaPlayer::ErrorType& type, std::string error);
 
@@ -409,13 +420,16 @@ private:
 
 	/// Mutex to serialize access to m_currentState, m_desiredState, and m_waitOnStateChange.
 	std::mutex m_mutex;
+	std::mutex m_mutexStopRequest;
 
 	/// A flag to keep track of if @c ResourcesPlayer has called @c Stop() already or not.
 	bool m_isAlreadyStopping;
 
 	/// Condition variable to wake @c onFocusChanged() once the state transition to desired state is complete.
 	std::condition_variable m_waitOnStateChange;
-	
+
+    std::condition_variable m_waitOnStopChange;
+    
     /// Map of message Id to @c ResourcesDirectiveInfo.
     std::unordered_map<std::string, std::shared_ptr<ResourcesDirectiveInfo>> m_chatDirectiveInfoMap;
 
