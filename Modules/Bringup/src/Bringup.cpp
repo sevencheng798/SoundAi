@@ -85,6 +85,9 @@ void Bringup::onTrackChanged(utils::channel::FocusState newTrace) {
              case utils::bringup::eventType::MICROPHONE_ON:
                 in->open("/cfg/sai_config/mic_open.mp3", std::ifstream::in);
             break;
+             case utils::bringup::eventType::NET_DISCONNECTED:
+                in->open("/cfg/sai_config/net_connecting.mp3", std::ifstream::in);
+             break;
             default:
             break; 
 

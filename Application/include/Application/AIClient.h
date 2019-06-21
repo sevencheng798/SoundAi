@@ -20,6 +20,7 @@
 #include <Utils/MediaPlayer/MediaPlayerInterface.h>
 #include <Utils/DialogRelay/DialogUXStateObserverInterface.h>
 #include <Utils/DialogRelay/DialogUXStateRelay.h>
+#include <Utils/NetworkStateObserverInterface.h>
 /// Stream buffer .
 #include <Utils/SharedBuffer/SharedBuffer.h>
 #include <DMInterface/DomainSequencerInterface.h>
@@ -33,13 +34,14 @@
 #include "AlarmsPlayer/AlarmsPlayer.h"
 #include "Bringup.h"
 
+
 namespace aisdk {
 namespace application {
 
 /**
  * This class is used to instantiate each interactive component
  */
-class AIClient {
+class AIClient:public utils::NetworkStateObserverInterface{
 public:
 	/**
 	 * Creates and initializes a default AI client. To connect the client to soundai server, users should make a call to
@@ -77,7 +79,11 @@ public:
 	void buttonPressed();
 
     void bringupSound(utils::bringup::eventType type);
-	
+
+    /// @name NetworkStateObserverInterface methods
+	/// @{
+	void onNetworkStatusChanged(const Status newState) override;
+	/// }
     /**
      * Destructor.
      */

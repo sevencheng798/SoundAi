@@ -125,14 +125,9 @@ void UIManager::onDialogUXStateChanged(DialogUXStateObserverInterface::DialogUXS
 
 void UIManager::onNetworkStatusChanged(const Status newState) {
 	m_executor.submit([this, newState]() {
-			//if(m_connectionState == newState)
-			//	return;
-			
 			m_connectionState = newState;
 	        if(m_connectionState == utils::NetworkStateObserverInterface::Status::DISCONNECTED) {
 		        AISDK_INFO(LX(CONNECTION_MESSAGE));
-                system("cvlc /cfg/sai_config/net_connecting.mp3 --play-and-exit &");
-		
 	        }else if(m_connectionState == utils::NetworkStateObserverInterface::Status::CONNECTED) {
 			
 			}
@@ -154,6 +149,7 @@ void UIManager::microphoneOff() {
     m_mqSndInfo.msg_info.sub_msg_info.status = 1;
     creatMsg(m_mqSndInfo);
 
+    system("echo 0 > /sys/devices/platform/dummy/mute");
     m_executor.submit([]() { AISDK_INFO(LX("Microphone Off!")); });
 }
 

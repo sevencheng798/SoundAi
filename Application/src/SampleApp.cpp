@@ -155,7 +155,10 @@ bool SampleApp::initialize() {
         AISDK_ERROR(LX("Failed to create AI SDK client!"));
         return false;
     }
-	
+
+	// Adding network observer to @c AIClient.
+	deviceInfo->addObserver(m_aiClient);
+    
 #if defined(KWD)
 	// Step1.
 	/*

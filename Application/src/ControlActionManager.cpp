@@ -52,9 +52,9 @@ void ControlActionManager::microphoneToggle() {
     m_executor.submit([this]() {
         if (m_isMicOn) {
             m_isMicOn = false;
+            m_micWrapper->stopStreamingMicrophoneData();
             m_userInterface->microphoneOff();
             playBringupSound(utils::bringup::eventType::MICROPHONE_OFF);
-            m_micWrapper->stopStreamingMicrophoneData();
 
         } else {
             m_isMicOn = true;

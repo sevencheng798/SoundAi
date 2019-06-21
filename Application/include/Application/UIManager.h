@@ -17,6 +17,7 @@
 #include <Utils/NetworkStateObserverInterface.h>
 #include <Utils/Threading/Executor.h>
 #include "Application/mq_api.h"
+#include "Bringup.h"
 
 
 namespace aisdk {

@@ -293,6 +293,14 @@ void AIClient::buttonPressed() {
 		router->buttonPressedPlayback();
 }
 
+void AIClient::onNetworkStatusChanged(const Status newState) {
+    if(newState == utils::NetworkStateObserverInterface::Status::DISCONNECTED) {
+        bringupSound(utils::bringup::eventType::NET_DISCONNECTED);
+    }else if(newState == utils::NetworkStateObserverInterface::Status::CONNECTED) {
+
+    }
+}
+
 AIClient::~AIClient() {
 	if(m_domainSequencer) {
 		AISDK_DEBUG5(LX("DomainSequencerShutdown"));
