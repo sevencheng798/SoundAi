@@ -389,7 +389,7 @@ private:
 	std::unordered_set<std::string> m_handlerName;
 	
 	/// MediaPlayerInterface instance to send tts audio to MediaPlayer interface and playback.
-	std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> m_speechPlayer;
+	std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> m_resourcesPlayer;
 
 	/// AudioTrackManagerInterface instance to acqurie the channel.
 	std::shared_ptr<utils::channel::AudioTrackManagerInterface> m_trackManager;

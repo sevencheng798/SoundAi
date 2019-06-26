@@ -46,11 +46,7 @@ static const std::string CHANNEL_NAME = AudioTrackManagerInterface::MEDIA_CHANNE
 /// The name of the @c SafeShutdown
 static const std::string RESOURCESNAME{"ResourcesPlayer"};
 
-/// The name of the @c SafeShutdown
 static const std::string PLAYCONTROL{"PlayControl"};
-
-/// The name of the @c SafeShutdown
-//static const std::string VOLUME{"Volume"};
 
 /// The duration to wait for a state change in @c onTrackChanged before failing.
 static const std::chrono::seconds STATE_CHANGE_TIMEOUT{3};
@@ -118,7 +114,7 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
     if(info->directive->getDomain() == RESOURCESNAME ){
         nextInfo = info; 
         previousInfo = info;
-        if( !m_speechPlayer->stop(m_mediaSourceId)){
+        if( !m_resourcesPlayer->stop(m_mediaSourceId)){
             AISDK_ERROR(LX("executeTrackChanged").d("stop","failed"));
         }else{
             AISDK_INFO(LX("executeTrackChanged = clean current resources and stop player state ")); 
@@ -134,13 +130,6 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
         AnalysisNlpDataForPlayControl(info, operation);
         responsePlayControl(info, operation);
     }
-   //else if(info->directive->getDomain() == VOLUME ){
-   //     std::string operation;
-   //     int volumeValue;
-   //     AnalysisNlpDataForVolume(info, operation, volumeValue);
-   //     info->result->setCompleted();
-   // }
-    
 }
 
 void ResourcesPlayer::cancelDirective(std::shared_ptr<DirectiveInfo> info) {
@@ -312,13 +301,13 @@ void ResourcesPlayer::buttonPressedPlayback() {
             
             if(flag_playControl_pause == 1){
                 AISDK_INFO(LX("buttonPressedPlayback").d("flag_playControl_pause", "resume"));
-                if( !m_speechPlayer->resume(m_mediaSourceId)){
+                if( !m_resourcesPlayer->resume(m_mediaSourceId)){
                     AISDK_ERROR(LX("executeTrackChanged").d("resume","failed"));
                 }
                 flag_playControl_pause = 0;                    
             }else{
                 AISDK_INFO(LX("buttonPressedPlayback").d("flag_playControl_pause", "pause"));
-                if( !m_speechPlayer->pause(m_mediaSourceId)){
+                if( !m_resourcesPlayer->pause(m_mediaSourceId)){
                     AISDK_ERROR(LX("executeTrackChanged").d("pause","failed"));
                 } 
                 flag_playControl_pause = 1;
@@ -333,7 +322,7 @@ void ResourcesPlayer::buttonPressedPlayback() {
 
 void ResourcesPlayer::doShutdown() {
 	AISDK_INFO(LX("doShutdown").d("reason", "destory"));
-	m_speechPlayer->setObserver(nullptr);
+	m_resourcesPlayer->setObserver(nullptr);
 	{
         std::unique_lock<std::mutex> lock(m_mutex);
         if (ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING == m_currentState ||
@@ -358,7 +347,7 @@ void ResourcesPlayer::doShutdown() {
     }
 	
     m_executor.shutdown();
-    m_speechPlayer.reset();
+    m_resourcesPlayer.reset();
     m_waitOnStateChange.notify_one();
     m_trackManager.reset();
     m_observers.clear();
@@ -382,7 +371,7 @@ ResourcesPlayer::ResourcesPlayer(
 	DomainProxy{RESOURCESNAME},
 	SafeShutdown{RESOURCESNAME},
 	m_handlerName{RESOURCESNAME, PLAYCONTROL},
-	m_speechPlayer{mediaPlayer},
+	m_resourcesPlayer{mediaPlayer},
 	m_trackManager{trackManager},
 	m_mediaSourceId{MediaPlayerInterface::ERROR},
 	m_currentState{ResourcesPlayerObserverInterface::ResourcesPlayerState::FINISHED},
@@ -392,7 +381,7 @@ ResourcesPlayer::ResourcesPlayer(
 }
 
 void ResourcesPlayer::init() {
-    m_speechPlayer->setObserver(shared_from_this());
+    m_resourcesPlayer->setObserver(shared_from_this());
 }
 
 void ResourcesPlayer::AnalysisNlpDataForResourcesPlayer(cJSON          * datain , std::deque<std::string> &audiourllist )
@@ -501,7 +490,7 @@ void ResourcesPlayer::responsePlayControl(std::shared_ptr<DirectiveInfo> info, s
              std::this_thread::sleep_for( std::chrono::microseconds(100));
              
               flag_playControl_pause = 1;
-              if( !m_speechPlayer->pause(m_mediaSourceId)){
+              if( !m_resourcesPlayer->pause(m_mediaSourceId)){
                  AISDK_ERROR(LX("executeTrackChanged").d("pause","failed"));
               } 
        
@@ -509,7 +498,7 @@ void ResourcesPlayer::responsePlayControl(std::shared_ptr<DirectiveInfo> info, s
               std::this_thread::sleep_for( std::chrono::microseconds(100));
  
               flag_playControl_pause = 1;
-              if( !m_speechPlayer->pause(m_mediaSourceId)){
+              if( !m_resourcesPlayer->pause(m_mediaSourceId)){
                   AISDK_ERROR(LX("executeTrackChanged").d("pause","failed"));
               }  
               
@@ -517,13 +506,13 @@ void ResourcesPlayer::responsePlayControl(std::shared_ptr<DirectiveInfo> info, s
              std::this_thread::sleep_for( std::chrono::microseconds(100));
  
               flag_playControl_pause = 0;
-              if( !m_speechPlayer->resume(m_mediaSourceId)){
+              if( !m_resourcesPlayer->resume(m_mediaSourceId)){
                   AISDK_ERROR(LX("executeTrackChanged").d("resume","failed"));
               }  
               
         }else if(m_operation == "NEXT" ) {
               std::this_thread::sleep_for( std::chrono::microseconds(100));
-              if( !m_speechPlayer->stop(m_mediaSourceId)){
+              if( !m_resourcesPlayer->stop(m_mediaSourceId)){
                   AISDK_ERROR(LX("executeTrackChanged").d("NEXT","failed"));
               }else{
                   AISDK_INFO(LX("executeTrackChanged = clean current resources and stop player state ")); 
@@ -542,7 +531,7 @@ void ResourcesPlayer::responsePlayControl(std::shared_ptr<DirectiveInfo> info, s
               AISDK_ERROR(LX("executeTrackChanged").d("SWITCH","failed"));
         }else if(m_operation == "PREVIOUS"){
               std::this_thread::sleep_for( std::chrono::microseconds(100));
-              if( !m_speechPlayer->stop(m_mediaSourceId)){
+              if( !m_resourcesPlayer->stop(m_mediaSourceId)){
                   AISDK_ERROR(LX("executeTrackChanged").d("PREVIOUS","failed"));
               }else{
                   AISDK_INFO(LX("executeTrackChanged = clean current resources and stop player state ")); 
@@ -818,7 +807,7 @@ void ResourcesPlayer::executeTrackChanged(FocusState newTrace){
 
             if(flag_playControl_pause == 0 ){
                 AISDK_ERROR(LX("executeTrackChanged").d("flag_playControl_pause",flag_playControl_pause));
-                if( !m_speechPlayer->resume(m_mediaSourceId)){
+                if( !m_resourcesPlayer->resume(m_mediaSourceId)){
                     AISDK_ERROR(LX("executeTrackChanged").d("resume","failed"));
                 }
 
@@ -838,7 +827,7 @@ void ResourcesPlayer::executeTrackChanged(FocusState newTrace){
             
             break;
          case ResourcesPlayerObserverInterface::ResourcesPlayerState::PLAYING:
-            if( !m_speechPlayer->pause(m_mediaSourceId)){
+            if( !m_resourcesPlayer->pause(m_mediaSourceId)){
                 AISDK_ERROR(LX("executeTrackChanged").d("pause","failed"));
             }
             break;
@@ -981,12 +970,12 @@ void ResourcesPlayer::playNextItem() {
     					   .numChannels = 1,	
     					   .dataSigned = true
     	};
-        m_mediaSourceId = m_speechPlayer->setSource(std::move(m_attachmentReader), &format);
+        m_mediaSourceId = m_resourcesPlayer->setSource(std::move(m_attachmentReader), &format);
     }else{
 
          if( !AUDIO_URL_LIST.empty()){
              AISDK_INFO(LX("playNextItem").d("AUDIO_URL", AUDIO_URL_LIST.at(0)));
-             m_mediaSourceId = m_speechPlayer->setSource(AUDIO_URL_LIST.at(0));
+             m_mediaSourceId = m_resourcesPlayer->setSource(AUDIO_URL_LIST.at(0));
              AUDIO_URL_LIST.pop_front();
          }
 
@@ -995,7 +984,7 @@ void ResourcesPlayer::playNextItem() {
      if (MediaPlayerInterface::ERROR == m_mediaSourceId) {
  		AISDK_ERROR(LX("playNextItemFailed").d("reason", "setSourceFailed"));
          executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "playFailed");
-     } else if (!m_speechPlayer->play(m_mediaSourceId)) {
+     } else if (!m_resourcesPlayer->play(m_mediaSourceId)) {
          executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "playFailed");
      } else {
          // Execution of play is successful.
@@ -1005,12 +994,12 @@ void ResourcesPlayer::playNextItem() {
 
 void ResourcesPlayer::playResourceItem(std::string ResourceItem ) {
     AISDK_INFO(LX("playResourceItem").d("ResourceItem", ResourceItem));
-    m_mediaSourceId = m_speechPlayer->setSource(ResourceItem);
+    m_mediaSourceId = m_resourcesPlayer->setSource(ResourceItem);
     
      if (MediaPlayerInterface::ERROR == m_mediaSourceId) {
  		AISDK_ERROR(LX("playNextItemFailed").d("reason", "setSourceFailed"));
          executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "playFailed");
-     } else if (!m_speechPlayer->play(m_mediaSourceId)) {
+     } else if (!m_resourcesPlayer->play(m_mediaSourceId)) {
          executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "playFailed");
      } else {
          // Execution of play is successful.
@@ -1032,14 +1021,14 @@ void ResourcesPlayer::startPlaying() {
 					   .dataSigned = true
 	};
 	
-    m_mediaSourceId = m_speechPlayer->setSource(std::move(m_attachmentReader), &format);
+    m_mediaSourceId = m_resourcesPlayer->setSource(std::move(m_attachmentReader), &format);
 	#else
-	m_mediaSourceId = m_speechPlayer->setSource(m_currentInfo->url);
+	m_mediaSourceId = m_resourcesPlayer->setSource(m_currentInfo->url);
 	#endif
     if (MediaPlayerInterface::ERROR == m_mediaSourceId) {
 		AISDK_ERROR(LX("startPlayingFailed").d("reason", "setSourceFailed"));
         executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "playFailed");
-    } else if (!m_speechPlayer->play(m_mediaSourceId)) {
+    } else if (!m_resourcesPlayer->play(m_mediaSourceId)) {
         executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "playFailed");
     } else {
         // Execution of play is successful.
@@ -1054,7 +1043,7 @@ void ResourcesPlayer::stopPlaying() {
 		AISDK_ERROR(LX("stopPlayingFailed").d("reason", "invalidMediaSourceId").d("mediaSourceId", m_mediaSourceId));
     } else if (m_isAlreadyStopping) {
 		AISDK_WARN(LX("stopPlayingIgnored").d("reason", "isAlreadyStopping"));
-    } else if (!m_speechPlayer->stop(m_mediaSourceId)) {
+    } else if (!m_resourcesPlayer->stop(m_mediaSourceId)) {
         executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "stopFailed");
     } else {
         // Execution of stop is successful.
