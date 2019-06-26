@@ -411,54 +411,68 @@ void AlarmsPlayer::CheckRepeatAlarmList(sqlite3 *db)
     int ncolumnContent;
     char *zErrMsgContent =NULL;
     char **azResultContent=NULL;
-    char deleteAlarmContent[512];
+    char deleteAlarmContent[1024];
+    int nrowWeekday;
+    int ncolumWeekday;
+    char *zErrMsgWeekday =NULL;
+    char **azResultWeekday=NULL;
+    char deleteAlarmWeekday[1024];
 
     char const *alarmSql_repeat ="select *from alarmList_repeat;";    
     sqlite3_get_table( db , alarmSql_repeat , &azResult , &nrow , &ncolumn , &zErrMsg );
-    // AISDK_DEBUG(LX("CheckRepeatAlarmList").d("alarmList_repeat::nrow", nrow).d(" ncolumn", ncolumn));
 
     // current time
     time_t timesec;
+    struct tm *p;
     time(&timesec);
-    
+    p = localtime(&timesec);         
+    int m_weekday = p->tm_wday; 
+
     if((nrow >= 1) && (ncolumn != 0)) {
         for(int i=5;i<(nrow+1)*ncolumn;i=i+5) {
-            // AISDK_DEBUG(LX("CheckRepeatAlarmList").d("NO:", (i/5)).d("repeat alarm time ", azResult[i]));           
+            //AISDK_DEBUG(LX("CheckRepeatAlarmList").d("NO:", (i/5)).d("repeat alarm time ", azResult[i]));           
             long int alarmtimesec =(long int)( getMorningTime()+ (atoll(azResult[i])/1000));
        
-            // struct tm *alarmp_repeat;
-            // alarmp_repeat = localtime(&alarmtimesec);
-            // printf("AlarmsPlayer:CheckRepeatAlarmList::repeat time: %d:%d:%d\n", alarmp_repeat->tm_hour, alarmp_repeat->tm_min, alarmp_repeat->tm_sec);
-
             sprintf(deleteAlarmContent, "select content from alarmList_repeat where timestamp_day = %s;" ,azResult[i]);
             sqlite3_get_table( db , deleteAlarmContent , &azResultContent , &nrowContent , &ncolumnContent , &zErrMsgContent );
-            //AISDK_INFO(LX("deleteAlarmContent").d("select content from alarm where timestamp_day", azResultContent[nrowContent*ncolumnContent]));        
+            //AISDK_DEBUG5(LX("deleteAlarmContent").d("select content from alarmList_repeat where timestamp_day", azResultContent[nrowContent*ncolumnContent]));        
             std::string currentContent = azResultContent[nrowContent*ncolumnContent];
+            
+            sprintf(deleteAlarmWeekday, "select weekday from alarmList_repeat where timestamp_day = %s;" ,azResult[i]);
+            sqlite3_get_table( db , deleteAlarmWeekday , &azResultWeekday , &nrowWeekday , &ncolumWeekday , &zErrMsgWeekday );
+            //AISDK_DEBUG5(LX("deleteAlarmWeekday").d("select weekday from alarmList_repeat where timestamp_day", azResultWeekday[nrowWeekday*ncolumWeekday]));        
+            std::string currentWeekday = azResultWeekday[nrowWeekday*ncolumWeekday];
 
-            if((timesec/20) == (alarmtimesec/20)) {         
-                for(int i = 0; i < 1; i++) {
-                     AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
+           if( atoi(currentWeekday.c_str()) == 0 || atoi(currentWeekday.c_str()) == m_weekday ){
+                //AISDK_DEBUG5(LX("deleteAlarmWeekday").d("currentWeekday", atoi(currentWeekday.c_str()) ) );        
+                 if((timesec/20) == (alarmtimesec/20)) {    
+                     AISDK_INFO(LX("CheckRepeatAlarmList").d(" currentContent", currentContent)
+                                                          .d(" currentWeekday", currentWeekday)); 
+                     for(int i = 0; i < 1; i++) {
+                          AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
+     
+                          char contentId[37];
+                          CreateRandomUuid(contentId);
+                          auto writer = m_ttsDocker->createWriter(contentId);
+                          auto reader = m_ttsDocker->createReader(contentId, utils::sharedbuffer::ReaderPolicy::BLOCKING);
+                          AISDK_DEBUG(LX("deleteAlarmContent").d("currentContent", currentContent));
+                          m_asrEngine->acquireTextToSpeech(currentContent, std::move(writer));
+                          
+                          utils::AudioFormat format {
+                                  .encoding = aisdk::utils::AudioFormat::Encoding::LPCM,
+                                  .endianness = aisdk::utils::AudioFormat::Endianness::LITTLE,
+                                  .sampleRateHz = 16000,
+                                  .sampleSizeInBits = 16,
+                                  .numChannels = 1,
+                                  .dataSigned = true };
+                          
+                          auto sourceId = m_speechPlayer->setSource(std::move(reader), &format);
+                          m_speechPlayer->play(sourceId);
+                          
+                     }
+                 }
 
-                     char contentId[37];
-                     CreateRandomUuid(contentId);
-                     auto writer = m_ttsDocker->createWriter(contentId);
-                     auto reader = m_ttsDocker->createReader(contentId, utils::sharedbuffer::ReaderPolicy::BLOCKING);
-                     AISDK_DEBUG(LX("deleteAlarmContent").d("currentContent", currentContent));
-                     m_asrEngine->acquireTextToSpeech(currentContent, std::move(writer));
-                     
-                     utils::AudioFormat format {
-                             .encoding = aisdk::utils::AudioFormat::Encoding::LPCM,
-                             .endianness = aisdk::utils::AudioFormat::Endianness::LITTLE,
-                             .sampleRateHz = 16000,
-                             .sampleSizeInBits = 16,
-                             .numChannels = 1,
-                             .dataSigned = true };
-                     
-                     auto sourceId = m_speechPlayer->setSource(std::move(reader), &format);
-                     m_speechPlayer->play(sourceId);
-                     
-                }
-            }
+           }       
         }
     }
 
@@ -510,6 +524,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
      char deleteSql[1024];
      long long int timestamp = 0;
      long long int repeat_timestamp_day = 0;
+     int repeat_weekday = 0;
      char evt_type[64];
      int action_type = 0;
      int loop_mask = 0;
@@ -572,6 +587,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
                  continue ;
             json_repeat_timestamp_day = cJSON_GetObjectItem(it, "timestamp_day");
             json_repeat_type = cJSON_GetObjectItem(it, "type");
+            json_repeat_weekday = cJSON_GetObjectItem(it, "weekday");
             AISDK_DEBUG(LX("json_parameters").d("No:", i).d("json_repeat_timestamp_day", json_repeat_timestamp_day->valuestring));
             AISDK_DEBUG(LX("json_parameters").d("No:", i).d("json_repeat_type", json_repeat_type->valuestring));
             REPEAT_ALARM_LIST.push_back(json_repeat_timestamp_day->valuestring);
@@ -606,7 +622,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           char const *alarmList = " CREATE TABLE alarm(timestamp, evt_type, action_type, loop_mask, content); " ;
           sqlite3_exec(db,alarmList,NULL,NULL,&zErrMsg);
           sqlite3_free(zErrMsg);
-          char const *alarmList_repeat = " CREATE TABLE alarmList_repeat(timestamp_day, evt_type, action_type, loop_mask, content); " ;   
+          char const *alarmList_repeat = " CREATE TABLE alarmList_repeat(timestamp_day, evt_type, weekday, loop_mask, content); " ;   
           sqlite3_exec(db,alarmList_repeat,NULL,NULL,&zErrMsg);
           sqlite3_free(zErrMsg);
 
@@ -620,6 +636,13 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           if(json_repeat != NULL)
           //repeat alarm
           {
+          std::string repeat_type = json_repeat_type->valuestring;
+           if(repeat_type == "WEEKLY" ){
+              repeat_weekday = json_repeat_weekday->valueint;
+           }else{
+              repeat_weekday = 0;
+           }
+          
           json_event = cJSON_GetObjectItem(json_parameters, "event");  
           AISDK_DEBUG(LX("json_parameters").d("json_event", json_event->valuestring));
           sprintf(evt_type,"%s", json_event->valuestring);
@@ -639,10 +662,10 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           {
               sprintf(content, "重复闹钟：现在是北京时间%d点%d分，您有一个提醒时间到了",   p->tm_hour, p->tm_min);
           }
-          action_type = 1;
+          
           loop_mask = 1;
           
-          sprintf(alarmSql, "INSERT INTO 'alarmList_repeat'VALUES(%lld, '%s', %d, %d, '%s');" ,repeat_timestamp_day ,evt_type ,action_type ,loop_mask ,content);
+          sprintf(alarmSql, "INSERT INTO 'alarmList_repeat'VALUES(%lld, '%s', %d, %d, '%s');" ,repeat_timestamp_day ,evt_type ,repeat_weekday ,loop_mask ,content);
           sqlite3_exec(db, alarmSql, NULL, NULL, &zErrMsg);  
 
           
@@ -734,7 +757,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
               char const *rebulidalarmList = " CREATE TABLE alarm(timestamp, evt_type, action_type, loop_mask, content ); " ;
               sqlite3_exec(db,rebulidalarmList,NULL,NULL,&zErrMsg);
               sqlite3_free(zErrMsg);      
-              char const *rebulidalarmList_repeat = " CREATE TABLE alarmList_repeat(timestamp_day, evt_type, action_type, loop_mask, content ); " ;
+              char const *rebulidalarmList_repeat = " CREATE TABLE alarmList_repeat(timestamp_day, evt_type, weekday, loop_mask, content ); " ;
               sqlite3_exec(db,rebulidalarmList_repeat,NULL,NULL,&zErrMsg);
               sqlite3_free(zErrMsg);                 
            }
@@ -782,7 +805,7 @@ void AlarmsPlayer::executePreHandleAfterValidation(std::shared_ptr<AlarmDirectiv
 #else
         auto nlpDomain = info->directive;
         auto dateMessage = nlpDomain->getData();
-        std::cout << "dateMessage =  " << dateMessage.c_str() << std::endl;
+        AISDK_INFO(LX("executePreHandleAfterValidation").d("dateMessage", dateMessage.c_str()));
 
         cJSON* json = NULL, *json_data = NULL;
         (void )json;

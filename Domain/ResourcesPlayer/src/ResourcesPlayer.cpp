@@ -61,7 +61,9 @@ std::deque<std::string> AUDIO_URL_LIST;
 int flag_playControl_pause = 0; 
 
 int flag_playControl_flush = 0; 
-
+///add for use enable single loop;enable = 1;unable = 0;
+int enable_single_loop = 0;
+    
 bool m_isStopped = false;
 ///add for select resources num in audiolist;
 std::size_t currentItemNum = 0;
@@ -510,7 +512,7 @@ void ResourcesPlayer::responsePlayControl(std::shared_ptr<DirectiveInfo> info, s
                   AISDK_ERROR(LX("executeTrackChanged").d("resume","failed"));
               }  
               
-        }else if(m_operation == "NEXT" ) {
+        }else if(m_operation == "NEXT" || m_operation == "SWITCH" ) {
               std::this_thread::sleep_for( std::chrono::microseconds(100));
               if( !m_resourcesPlayer->stop(m_mediaSourceId)){
                   AISDK_ERROR(LX("executeTrackChanged").d("NEXT","failed"));
@@ -526,9 +528,6 @@ void ResourcesPlayer::responsePlayControl(std::shared_ptr<DirectiveInfo> info, s
               std::this_thread::sleep_for( std::chrono::microseconds(2000));
               executeHandle(nextInfo);
               
-        }else if(m_operation == "SWITCH"){
-                
-              AISDK_ERROR(LX("executeTrackChanged").d("SWITCH","failed"));
         }else if(m_operation == "PREVIOUS"){
               std::this_thread::sleep_for( std::chrono::microseconds(100));
               if( !m_resourcesPlayer->stop(m_mediaSourceId)){
@@ -548,10 +547,11 @@ void ResourcesPlayer::responsePlayControl(std::shared_ptr<DirectiveInfo> info, s
               executeHandle(previousInfo);
         
         }else if(m_operation == "SINGLE_LOOP"){
-        
-               AISDK_ERROR(LX("executeTrackChanged").d("SINGLE_LOOP","failed"));
+               enable_single_loop = 1;
+               AISDK_INFO(LX("executeTrackChanged").d("SINGLE_LOOP","success"));
+               
         }else{
-               AISDK_ERROR(LX("executeTrackChanged").d("operation","mull"));
+               AISDK_ERROR(LX("executeTrackChanged").d("operation","null"));
     
         }
         
@@ -631,10 +631,12 @@ void ResourcesPlayer::executePreHandle(std::shared_ptr<DirectiveInfo> info) {
     AUDIO_URL_LIST.clear();
     flag_playControl_pause = 0 ;
     currentItemNum = 0;
+    enable_single_loop = 0;
     AISDK_INFO(LX("executePreHandle")
                 .d(" initialization parameters ", "AUDIO_URL_LIST cleared ")
                 .d(" flag_playControl_pause ", flag_playControl_pause)
-                .d(" currentItemNum ", currentItemNum));
+                .d(" currentItemNum ", currentItemNum)
+                .d(" enable_single_loop ", enable_single_loop));
     executePreHandleAfterValidation(info);
 }
 
@@ -914,6 +916,11 @@ void ResourcesPlayer::executePlaybackFinished() {
      // playNextItem();
       AISDK_DEBUG5(LX("executePlaybackFinished").d("playResourceItem", "play type----->3"));
       currentItemNum ++;
+      if(enable_single_loop == 1 ){
+          currentItemNum --;
+          AISDK_DEBUG5(LX("executePlaybackFinished").d(" playResourceItem", "enter to single_loop")
+                                                    .d(" enable_single_loop", enable_single_loop));
+        }
        if(currentItemNum >= AUDIO_URL_LIST.size()){
            currentItemNum = 0;
        }
