@@ -16,6 +16,8 @@
 
 /// String to identify log entries originating from this file.
 static const std::string TAG("Bringup");
+static auto in = std::make_shared<std::ifstream>();
+
 /// Define output
 #define LX(event) aisdk::utils::logging::LogEntry(TAG, event)
 
@@ -64,8 +66,6 @@ void Bringup::onTrackChanged(utils::channel::FocusState newTrace) {
    switch(newTrace) {
         case utils::channel::FocusState::FOREGROUND:
         {
-            auto in = std::make_shared<std::ifstream>();
-            
             switch(m_status){
             case utils::bringup::eventType::BRINGUP_RESTART_CONFIG:
                 in->open("/cfg/sai_config/restartconfig.mp3", std::ifstream::in);
@@ -108,7 +108,7 @@ void Bringup::onTrackChanged(utils::channel::FocusState newTrace) {
         case utils::channel::FocusState::BACKGROUND:
         case utils::channel::FocusState::NONE:
         AISDK_INFO(LX("onTrackChangedNone").d("m_currentSourceId", m_currentSourceId));
-                m_bringupPlayer->stop(m_currentSourceId);           
+                m_bringupPlayer->stop(m_currentSourceId);
 
         break;
    }

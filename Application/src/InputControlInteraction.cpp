@@ -97,7 +97,7 @@ int InputControlInteraction::run() {
                     AISDK_INFO(LX("IPC::ReceiveMsg").d("ipcCmdMode","KEY_EVT_PAUSE_AND_RESUME"));
                     m_controlActionManager->playbackControl();
                     break;
-                case BRINGUP:
+                case MQ_EVT_BRINGUP:
                     AISDK_INFO(LX("IPC::ReceiveMsg BRINGUP").d("ipcStatus", ipcStatus));
                     m_controlActionManager->playBringupSound(static_cast<utils::bringup::eventType>(ipcStatus));
                     break;
