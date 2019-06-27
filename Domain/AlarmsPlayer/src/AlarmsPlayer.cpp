@@ -41,16 +41,16 @@ using namespace utils::channel;
 using namespace dmInterface;
 
 /// The name of the @c AudioTrackManager channel used by the @c SpeechSynthesizer.
-static const std::string CHANNEL_NAME = AudioTrackManagerInterface::DIALOG_CHANNEL_NAME;
+static const std::string CHANNEL_NAME = AudioTrackManagerInterface::ALARMS_CHANNEL_NAME;
 
 /// The name of DomainProxy and SpeechChat handler interface
 //static const std::string SPEECHCHAT{"SpeechChat"};
 
 /// The name of the @c SafeShutdown
-static const std::string SPEECHNAME{"AlarmsPlayer"};
+static const std::string ALARMSNAME{"AlarmsPlayer"};
 
 /// The duration to wait for a state change in @c onTrackChanged before failing.
-static const std::chrono::seconds STATE_CHANGE_TIMEOUT{5};
+static const std::chrono::seconds STATE_CHANGE_TIMEOUT{1};
 
 /// The duration to start playing offset position.
 static const std::chrono::milliseconds DEFAULT_OFFSET{0};
@@ -212,7 +212,7 @@ std::unordered_set<std::string> AlarmsPlayer::getHandlerName() const {
 
 void AlarmsPlayer::doShutdown() {
 	std::cout << "doShutdown" << std::endl;
-	m_speechPlayer->setObserver(nullptr);
+	m_alarmPlayer->setObserver(nullptr);
 	{
         std::unique_lock<std::mutex> lock(m_mutex);
         if (AlarmsPlayerObserverInterface::AlarmsPlayerState::PLAYING == m_currentState ||
@@ -237,7 +237,7 @@ void AlarmsPlayer::doShutdown() {
     }
 	
     m_executor.shutdown();
-    m_speechPlayer.reset();
+    m_alarmPlayer.reset();
     m_waitOnStateChange.notify_one();
     m_trackManager.reset();
     m_observers.clear();
@@ -262,10 +262,10 @@ AlarmsPlayer::AlarmsPlayer(
     std::shared_ptr<utils::attachment::AttachmentManagerInterface> ttsDocker,
 	std::shared_ptr<asr::GenericAutomaticSpeechRecognizer> asrEngine,
 	std::shared_ptr<AudioTrackManagerInterface> trackManager) :
-	DomainProxy{SPEECHNAME},
-	SafeShutdown{SPEECHNAME},
-	m_handlerName{SPEECHNAME},
-	m_speechPlayer{mediaPlayer},
+	DomainProxy{ALARMSNAME},
+	SafeShutdown{ALARMSNAME},
+	m_handlerName{ALARMSNAME},
+	m_alarmPlayer{mediaPlayer},
 	m_ttsDocker{ttsDocker},
 	m_asrEngine{asrEngine},
 	m_trackManager{trackManager},
@@ -360,7 +360,7 @@ void AlarmsPlayer::CheckAlarmList(sqlite3 *db)
         // printf("AlarmsPlayer:sqliteThreadHander::current system time:%d-%d-%d %d:%d:%d\n", 1900+p->tm_year, 1+p->tm_mon, p->tm_mday, p->tm_hour, p->tm_min, p->tm_sec);
 
 
-        if((timesec/20) == (alarmtimesec/20)) {
+        if((timesec/10) == (alarmtimesec/10)) {
             sprintf(deleteAlarmContent, "select content from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
             sqlite3_get_table( db , deleteAlarmContent , &azResultContent , &nrowContent , &ncolumnContent , &zErrMsgContent );
             AISDK_DEBUG(LX("deleteAlarmContent").d("select content from alarm where timestamp", azResultContent[nrowContent*ncolumnContent]));        
@@ -384,8 +384,8 @@ void AlarmsPlayer::CheckAlarmList(sqlite3 *db)
                         .numChannels = 1,
                         .dataSigned = true };
 
-                auto sourceId = m_speechPlayer->setSource(std::move(reader), &format);
-                m_speechPlayer->play(sourceId);
+                auto sourceId = m_alarmPlayer->setSource(std::move(reader), &format);
+                m_alarmPlayer->play(sourceId);
             }
             sprintf(deleteAlarmTime, "delete from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
             sqlite3_exec( db , deleteAlarmTime , NULL , NULL , &zErrMsg );
@@ -445,7 +445,7 @@ void AlarmsPlayer::CheckRepeatAlarmList(sqlite3 *db)
 
            if( atoi(currentWeekday.c_str()) == 0 || atoi(currentWeekday.c_str()) == m_weekday ){
                 //AISDK_DEBUG5(LX("deleteAlarmWeekday").d("currentWeekday", atoi(currentWeekday.c_str()) ) );        
-                 if((timesec/20) == (alarmtimesec/20)) {    
+                 if((timesec/10) == (alarmtimesec/10)) {    
                      AISDK_INFO(LX("CheckRepeatAlarmList").d(" currentContent", currentContent)
                                                           .d(" currentWeekday", currentWeekday)); 
                      for(int i = 0; i < 1; i++) {
@@ -466,8 +466,8 @@ void AlarmsPlayer::CheckRepeatAlarmList(sqlite3 *db)
                                   .numChannels = 1,
                                   .dataSigned = true };
                           
-                          auto sourceId = m_speechPlayer->setSource(std::move(reader), &format);
-                          m_speechPlayer->play(sourceId);
+                          auto sourceId = m_alarmPlayer->setSource(std::move(reader), &format);
+                          m_alarmPlayer->play(sourceId);
                           
                      }
                  }
@@ -494,13 +494,13 @@ void AlarmsPlayer::sqliteThreadHander() {
         CheckRepeatAlarmList(db);
         sqlite3_close(db);
         // sleep(10);
-        std::this_thread::sleep_for( std::chrono::seconds(10));
+        std::this_thread::sleep_for( std::chrono::seconds(5));
     }
 }
 
 
 void AlarmsPlayer::init() {
-    m_speechPlayer->setObserver(shared_from_this());  
+    m_alarmPlayer->setObserver(shared_from_this());  
     //add for check sqlite3 db
     m_sqliteThread = std::thread(&AlarmsPlayer::sqliteThreadHander, this);
 }
@@ -827,9 +827,9 @@ void AlarmsPlayer::executePreHandleAfterValidation(std::shared_ptr<AlarmDirectiv
 
 void AlarmsPlayer::executeHandleAfterValidation(std::shared_ptr<AlarmDirectiveInfo> info) {
     m_currentInfo = info;
-    AISDK_INFO(LX("executeHandleAfterValidation").d("m_currentInfo-url: ", m_currentInfo->url ));
-    if (!m_trackManager->acquireChannel(CHANNEL_NAME, shared_from_this(), SPEECHNAME)) {
-        static const std::string message = std::string("Could not acquire ") + CHANNEL_NAME + " for " + SPEECHNAME;
+    //AISDK_INFO(LX("executeHandleAfterValidation").d("m_currentInfo-url: ", m_currentInfo->url ));
+    if (!m_trackManager->acquireChannel(CHANNEL_NAME, shared_from_this(), ALARMSNAME)) {
+        static const std::string message = std::string("Could not acquire ") + CHANNEL_NAME + " for " + ALARMSNAME;
         AISDK_ERROR(LX("executeHandleFailed").d("reason:CouldNotAcquireChannel:messageId:", m_currentInfo->directive->getMessageId()));
         reportExceptionFailed(info, message);
     }
@@ -1010,14 +1010,14 @@ void AlarmsPlayer::startPlaying() {
 					   .dataSigned = true
 	};
 	
-    m_mediaSourceId = m_speechPlayer->setSource(std::move(m_currentInfo->attachmentReader), &format);
+    m_mediaSourceId = m_alarmPlayer->setSource(std::move(m_currentInfo->attachmentReader), &format);
 	#else
-	m_mediaSourceId = m_speechPlayer->setSource(m_currentInfo->url);
+	m_mediaSourceId = m_alarmPlayer->setSource(m_currentInfo->url);
 	#endif
     if (MediaPlayerInterface::ERROR == m_mediaSourceId) {
 		AISDK_ERROR(LX("startPlayingFailed").d("reason", "setSourceFailed"));
         executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "playFailed");
-    } else if (!m_speechPlayer->play(m_mediaSourceId)) {
+    } else if (!m_alarmPlayer->play(m_mediaSourceId)) {
         executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "playFailed");
     } else {
         // Execution of play is successful.
@@ -1032,7 +1032,7 @@ void AlarmsPlayer::stopPlaying() {
 		AISDK_ERROR(LX("stopPlayingFailed").d("reason", "invalidMediaSourceId").d("mediaSourceId", m_mediaSourceId));
     } else if (m_isAlreadyStopping) {
 		AISDK_WARN(LX("stopPlayingIgnored").d("reason", "isAlreadyStopping"));
-    } else if (!m_speechPlayer->stop(m_mediaSourceId)) {
+    } else if (!m_alarmPlayer->stop(m_mediaSourceId)) {
         executePlaybackError(ErrorType::MEDIA_ERROR_INTERNAL_DEVICE_ERROR, "stopFailed");
     } else {
         // Execution of stop is successful.
@@ -1166,6 +1166,7 @@ void AlarmsPlayer::addToDirectiveQueue(std::shared_ptr<AlarmDirectiveInfo> info)
     if (m_chatInfoQueue.empty()) {
         m_chatInfoQueue.push_back(info);
         executeHandleAfterValidation(info);
+        info->result->setCompleted();
     } else {
         AISDK_INFO(LX("addToDirectiveQueue").d("queueSize: ", m_chatInfoQueue.size()));
         m_chatInfoQueue.push_back(info);
