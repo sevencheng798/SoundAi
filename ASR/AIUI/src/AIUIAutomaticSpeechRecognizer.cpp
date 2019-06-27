@@ -742,7 +742,7 @@ bool AIUIAutomaticSpeechRecognizer::executeTTSResult(const std::string info, con
 	if(dts == 2 && errorinfo == "AIUI DATA NULL") {
 		AISDK_DEBUG5(LX("executeTTSResult").d("reason", errorinfo));
 	} else if (3 == dts) {
-		AISDK_INFO(LX("executeTTSResult").d("dts", dts).d("expected", "Reserve"));
+		AISDK_INFO(LX("executeTTSResult").d("dts", dts).d("length", data.length()).d("expected", "Reserve"));
 	#ifdef TTS_RECORD
 		if(!recoder.is_open()) {
 			recoder.clear();
@@ -751,6 +751,9 @@ bool AIUIAutomaticSpeechRecognizer::executeTTSResult(const std::string info, con
 		recoder.write((const char*) data.c_str(), data.length());
 		recoder.close();
 	#endif
+		// Start writing tts data to a specail attachment docker.
+		writeDataToAttachment(data.c_str(), data.length());
+		closeActiveAttachmentWriter();
 	} else {
 		if (0 == dts) {
 			AISDK_INFO(LX("executeTTSResult").d("dts", "Started0"));
@@ -783,7 +786,7 @@ void AIUIAutomaticSpeechRecognizer::sendStreamProcessing() {
 	std::vector<int16_t> audioDataToPush(640); // 640*2 = 1280 = 80ms
 	ssize_t wordsRead;
 
-	std::this_thread::sleep_for(std::chrono::seconds(1));
+	std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
 	// Seek keyword begin position.
 	m_reader->seek(0, Reader::Reference::BEFORE_WRITER);
