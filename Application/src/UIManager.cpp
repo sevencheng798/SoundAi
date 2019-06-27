@@ -228,7 +228,7 @@ void UIManager::printState() {
              m_mqSndInfo.msg_info.sub_msg_info.status = 1;
              creatMsg(m_mqSndInfo);
              AISDK_INFO(LX(LISTEN_MESSAGE));
-             system("aplay /cfg/sai_config/wakeup/ding.wav");
+             system("aplay /cfg/sai_config/ding.wav");
              break;	
      	case DialogUXStateObserverInterface::DialogUXState::THINKING:
              m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_WAKEUP;
