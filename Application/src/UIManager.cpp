@@ -30,7 +30,8 @@ struct MqSndInfo m_mqSndInfo;
 
 namespace aisdk {
 namespace application {
-    
+
+//use for store wake up audio resources from @wakeUpAudioPath.    
 std::deque<std::string> WAKEUP_AUDIO_LIST; 
 
 static const std::string HELP_MESSAGE =
@@ -81,12 +82,10 @@ int UIManager::creatMsg(MqSndInfo mqSndInfo){
         char* tmp = NULL;
         memset(&snd_info, 0x00, sizeof(MQ_SND_INFO_T));
         tmp = (char*)malloc(sizeof(char)*255);
-
-        if (NULL != tmp)
-        {
+        if (NULL != tmp) {
             memset(tmp, 0x00, sizeof(char)*255);
-            // snprintf(tmp, sizeof(char)* 255, "");
         }
+        
         snd_info.msg_info.msg_type = GM_MSG_SAMPLE;
         snd_info.msg_info.sub_msg_info.sub_id = mqSndInfo.msg_info.sub_msg_info.sub_id;
         snd_info.msg_info.sub_msg_info.status = mqSndInfo.msg_info.sub_msg_info.status;
@@ -100,14 +99,12 @@ int UIManager::creatMsg(MqSndInfo mqSndInfo){
             .d("mode ",mqSndInfo.msg_info.sub_msg_info.sub_id)
             .d("status ",mqSndInfo.msg_info.sub_msg_info.status));
         ret = mq_send(&snd_info);
-        if (0 > ret)
-        {
+        
+        if (0 > ret) {
             return -1;
         }
-        
         free(tmp);
         tmp = NULL;
-
         return 0;
 
 }
@@ -142,8 +139,23 @@ void UIManager::printHelpScreen() {
     m_executor.submit([]() { AISDK_INFO(LX(HELP_MESSAGE)); });
 }
 
+void UIManager::setVolume() {
+#if 0
+    memset(&m_mqSndInfo, 0x00, sizeof(m_mqSndInfo));   
+    m_mqSndInfo.msg_info.sub_msg_info.sub_id = MQ_EVT_VOL_UP;
+    m_mqSndInfo.msg_info.sub_msg_info.status = 1;
+
+    m_mqSndInfo.msg_info.sub_msg_info.sub_id = MQ_EVT_VOL_DOWN;
+    m_mqSndInfo.msg_info.sub_msg_info.status = 1;
+
+    m_mqSndInfo.msg_info.sub_msg_info.sub_id = MQ_EVT_VOL_VALUE;
+    m_mqSndInfo.msg_info.sub_msg_info.status = 50;
+
+    creatMsg(m_mqSndInfo);
+#endif
+}
+
 void UIManager::microphoneOff() {
-	// TODO: LED to indicate.
     memset(&m_mqSndInfo, 0x00, sizeof(m_mqSndInfo));   
     m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_MUTE;
     m_mqSndInfo.msg_info.sub_msg_info.status = 1;
@@ -162,17 +174,13 @@ void UIManager::microphoneOn() {
     m_executor.submit([this]() { printState(); });
 }
 
-void UIManager::readWakeupAudioDir(char *path, std::deque<std::string> &wakeUpAudioList)
-{
+void UIManager::readWakeupAudioDir(char *path, std::deque<std::string> &wakeUpAudioList) {
     AISDK_INFO(LX("readWakeupAudioDir").d("Wake Up Audio Dir Path ",path));
     struct dirent* ent = NULL;
     DIR *pDir;
     pDir=opendir(path);
-    //d_reclen：16表示子目录或以.开头的隐藏文件，24表示普通文本文件,28为二进制文件，还有其他.
-    //d_type：4表示为目录，8表示为文件.
     while (NULL != (ent=readdir(pDir)))
     {
-    //printf("reclen=%d    type=%d\t", ent->d_reclen, ent->d_type);
      if ((ent->d_reclen != 0 )&&(ent->d_type==8))
      {    
          AISDK_INFO(LX("readWakeupAudioDir").d("WAKEUP_AUDIO_LIST ",ent->d_name));
@@ -181,8 +189,7 @@ void UIManager::readWakeupAudioDir(char *path, std::deque<std::string> &wakeUpAu
     }    
 }
 
-int UIManager::responseWakeUp(std::deque<std::string> wakeUpAudioList)
-{  
+int UIManager::responseWakeUp(std::deque<std::string> wakeUpAudioList) {  
     char operationText[512];
     int i ;
     if(0 == (int)(wakeUpAudioList.size())){
@@ -205,7 +212,7 @@ void UIManager::printState() {
      if(flag_Time_read_audioDir == 0)
      {
         WAKEUP_AUDIO_LIST.clear();
-        readWakeupAudioDir(wakeUpAudioPath,WAKEUP_AUDIO_LIST);
+        readWakeupAudioDir(wakeUpAudioPath, WAKEUP_AUDIO_LIST);
      }
      
      memset(&m_mqSndInfo, 0x00, sizeof(m_mqSndInfo));

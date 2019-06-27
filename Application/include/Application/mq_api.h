@@ -62,6 +62,8 @@ typedef enum {
 
 typedef enum {
     MQ_EVT_BRINGUP = KEY_EVT_LED + 1,
+    MQ_EVT_VOL_UP,
+    MQ_EVT_VOL_DOWN,
     MQ_EVT_VOL_VALUE,
     MQ_EVT_DEFAULT
 }e_MQ_EVT_TYPE;

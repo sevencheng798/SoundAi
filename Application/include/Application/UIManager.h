@@ -17,7 +17,6 @@
 #include <Utils/NetworkStateObserverInterface.h>
 #include <Utils/Threading/Executor.h>
 #include "Application/mq_api.h"
-#include "Bringup.h"
 
 
 namespace aisdk {
@@ -60,6 +59,9 @@ public:
 	/// Prints the help option.
 	void printHelpScreen();
 
+    ///set volume to ipc;
+    void setVolume();
+    
 	/// Prints the mic off info.
 	void microphoneOff();
 
