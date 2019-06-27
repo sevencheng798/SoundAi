@@ -125,12 +125,14 @@ void Bringup::onPlaybackFinished(SourceId id) {
     // no-op
     AISDK_INFO(LX("onPlaybackFinished").d("GM SourceId", id));
     m_playFlag = PLAY_FINISHED_FLAG;
+    in->close();
     m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this());
 }
 
 void Bringup::onPlaybackError(SourceId id, const utils::mediaPlayer::ErrorType& type, std::string error) {
     // no-op
     AISDK_INFO(LX("onPlaybackError").d("GM SourceId", id));
+    in->close();
     m_playFlag = PLAY_ERROR_FLAG; 
 
 }
@@ -138,6 +140,7 @@ void Bringup::onPlaybackError(SourceId id, const utils::mediaPlayer::ErrorType& 
 void Bringup::onPlaybackStopped(SourceId id) {
     // no-op
     AISDK_INFO(LX("onPlaybackStopped").d("GM SourceId", id));
+    in->close();
     m_playFlag = PLAY_STOP_FLAG; 
 
 }
