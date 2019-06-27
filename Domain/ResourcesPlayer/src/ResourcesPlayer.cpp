@@ -423,24 +423,30 @@ void ResourcesPlayer::AnalysisNlpDataForResourcesPlayer(cJSON          * datain 
          
          int array_size = cJSON_GetArraySize(js_list);
          AISDK_DEBUG(LX("AnalysisNlpDataForResourcesPlayer").d("audio_list size", array_size));
-         int i = 0;
-         cJSON *item,*it;
-         char *p  = NULL;
-         for(i=0; i< array_size; i++) {
-            item = cJSON_GetArrayItem(js_list, i);
-            if(!item) {
-               //TODO...
-            }
-            p = cJSON_PrintUnformatted(item);
-            it = cJSON_Parse(p);
-            if(!it)
-            continue ;
-        json_title = cJSON_GetObjectItem(it, "title");
-        json_audio_url = cJSON_GetObjectItem(it, "audio_url");
-        //std::cout << "NO: " << i << ":json_title =  "<< json_title->valuestring << std::endl;
-        //std::cout << "NO: " << i << ":json_audio_url =  " << json_audio_url->valuestring << std::endl;
-        audiourllist.push_back(json_audio_url->valuestring);
+
+         if(array_size == 0){
+               AISDK_ERROR(LX("AnalysisNlpDataForResourcesPlayer").d("audio_list", "NULL"));
+         }else{
+              int i = 0;
+              cJSON *item,*it;
+              char *p  = NULL;
+              for(i=0; i< array_size; i++) {
+                 item = cJSON_GetArrayItem(js_list, i);
+                 if(!item) {
+                    //TODO...
+                 }
+                 p = cJSON_PrintUnformatted(item);
+                 it = cJSON_Parse(p);
+                 if(!it)
+                 continue ;
+             json_title = cJSON_GetObjectItem(it, "title");
+             json_audio_url = cJSON_GetObjectItem(it, "audio_url");
+             //std::cout << "NO: " << i << ":json_title =  "<< json_title->valuestring << std::endl;
+             //std::cout << "NO: " << i << ":json_audio_url =  " << json_audio_url->valuestring << std::endl;
+             audiourllist.push_back(json_audio_url->valuestring);
+              }
          }
+         
            
      }
 
@@ -590,17 +596,7 @@ void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<DirectiveI
         AISDK_DEBUG(LX("AUDIO_URL_LIST").d("audio_url:",  AUDIO_URL_LIST.at(i)));
         }
 
-
-        // m_attachmentReader = info->directive->getAttachmentReader(
-        //     info->directive->getMessageId(), utils::sharedbuffer::ReaderPolicy::BLOCKING);
-        //auto resourceSourceId = setSource(AUDIO_URL_LIST.at(0));
 #endif	
-        // If everything checks out, add the resourcesInfo to the map.
-        //  if (!setResourcesDirectiveInfo(info->directive->getMessageId(), info)) {
-        //      AISDK_ERROR(LX("executePreHandleFailed")
-        //                  .d("reason", "prehandleCalledTwiceOnSameDirective")
-        //                  .d("messageId", info->directive->getMessageId()));
-        //  }   
 }
 
 
