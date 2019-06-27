@@ -243,8 +243,12 @@ private:
      *
      * @param newTrace The track state to change to.
      */
-    void executeOnTracKChanged(utils::channel::FocusState newTrace);
+    void executeOnTrackChanged(utils::channel::FocusState newTrace);
 	
+    /**
+     * Release the @c FOREGROUND trace focus (if we have it).
+     */
+	void releaseForegroundTrace();
     /**
      * This function forces the @c AIUIAutimaticSpeechRecognizer back to the @c IDLE state.  This function 
      * can be called in any state, and will end any Event which is currently in progress.
@@ -306,6 +310,9 @@ private:
 
 	std::atomic<bool> m_running;
 
+	/// A flag that user barge in the wake-up event again.
+	std::atomic<bool> m_bargeIn;
+
 	// The special sessionId for each interaction.
 	std::string m_sessionId;
 
@@ -330,10 +337,15 @@ private:
 	/// A timer to transition out of the THINKING state.
 	ASRTimer m_timeoutForThinkingTimer;
 	
-	//FileUtil::DataFileHelper* mFileHelper;
-	
+	/// A thread that reader feed data thread.
 	std::thread m_readerThread;
 
+	/// Mutex to protect barge-in.
+	std::mutex m_bargeMutex;
+	
+	/// Condition variable used to barge-in channel state when waiting.
+	std::condition_variable m_conditionBarge;
+	
 	utils::threading::Executor m_executor;
 };
 

@@ -56,6 +56,9 @@ static const std::string CHANNEL_INTERFACE_NAME{"AIUIAutomaticSpeechRecognizer"}
 
 const std::chrono::milliseconds TIMEOUT_FOR_READ_CALLS = std::chrono::milliseconds(200);
 
+/// Set barge-in timeout that wait release audio channel normaly.
+const auto BARGEIN_TIMEOUT = std::chrono::milliseconds{500};
+
 /// Set Thinking to IDLE timeout time
 const auto THINKING_TIMEOUT = std::chrono::seconds{4};
 
@@ -67,7 +70,7 @@ const auto THINKING_TIMEOUT = std::chrono::seconds{4};
 const auto LISTENG_TIMEOUT = std::chrono::seconds{5};
 
 /// Set check Activing audio timeout time.
-const auto ACTIVING_TIMEOUT = std::chrono::seconds{3};
+const auto ACTIVING_TIMEOUT = std::chrono::seconds{8};
 
 // #define TTS_RECORD
 #ifdef TTS_RECORD
@@ -127,14 +130,79 @@ std::future<bool> AIUIAutomaticSpeechRecognizer::recognize(
 	std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream,
     utils::sharedbuffer::SharedBuffer::Index begin,
     utils::sharedbuffer::SharedBuffer::Index keywordEnd) {
-	// AISDK_DEBUG5(LX("recognize").d("reason", "entry"));
 	if(stream && INVALID_INDEX == begin) {
 		AISDK_DEBUG5(LX("recognize").d("begin", "INVALID_INDEX"));
+		// Should to get current reader index.
+	#if 0
 		auto startWithNewData = true;
 		auto reader = stream->createReader(Reader::Policy::NONBLOCKING, startWithNewData);
 		begin = reader->tell();
+	#endif
 	}
 
+	// Clear the @c m_bargeIn flags.	
+	m_bargeIn = false;
+	
+	// If this is a barge-in, verify that it is permitted.
+	auto currentState = getState();
+	switch(currentState) {
+		case ObserverInterface::State::IDLE:
+        {
+			std::unique_lock<std::mutex> lock(m_bargeMutex);
+			// Release channel.
+			releaseForegroundTrace();
+			m_conditionBarge.wait_for(
+					lock, BARGEIN_TIMEOUT, [this]{ 
+					return m_trackState == utils::channel::FocusState::NONE;
+			});
+		}
+			break;
+		case ObserverInterface::State::EXPECTING_SPEECH:
+		case ObserverInterface::State::RECOGNIZING:
+		{
+			#if 0
+			// For barge-in, we should close the previous reader before creating another one.
+            if (m_reader) {
+                m_reader->close();
+                m_reader.reset();
+            }
+			#endif
+			AISDK_WARN(LX("executeRecognizeFailed").d("reason", "Barge-in is not permitted while recognizing"));
+			/**
+			 * For barge-in, we should close the previous reader before creating another one.
+			 * first to clear state to IDLE.
+			 * then to set the barge-in flags - @c m_bargeIn.
+			 * final to set vad finished flas - notify the @c sendStreamProcessing to terminate the feed data..
+			 */
+			setState(ObserverInterface::State::IDLE);
+			m_bargeIn = true;
+			setVaildVad(true);
+			// Release channel.
+			releaseForegroundTrace();
+			std::unique_lock<std::mutex> lock(m_bargeMutex);
+			auto cv_status = m_conditionBarge.wait_for(
+					lock, BARGEIN_TIMEOUT, [this]{ 
+					return m_trackState == utils::channel::FocusState::NONE;
+			});
+
+			if(!cv_status) {
+				AISDK_ERROR(LX("executeRecognizeFailed").d("reason", "Barge-in is not permitted while recognizing timeout"));
+				// Release channel again.
+				releaseForegroundTrace();
+				std::promise<bool> p;
+				std::future<bool> ret = p.get_future();
+				return ret;
+			}
+		}
+			break;
+			//return false;
+		case ObserverInterface::State::BUSY:
+			AISDK_ERROR(LX("executeRecognizeFailed").d("reason", "Barge-in is not permitted while busy"));
+			std::promise<bool> p;
+			std::future<bool> ret = p.get_future();
+			return ret;
+	}
+	
     return m_executor.submit([this, stream, begin, keywordEnd]() {
         return executeRecognize(stream, begin, keywordEnd);
     });
@@ -167,12 +235,13 @@ void AIUIAutomaticSpeechRecognizer::handleEventStateWorking() {
 }
 
 void AIUIAutomaticSpeechRecognizer::handleEventVadBegin() {
-	tryEntryListeningStateOnTimer();
+	// disable the timer.
+	// tryEntryListeningStateOnTimer();
 }
 
 void AIUIAutomaticSpeechRecognizer::handleEventVadEnd() {
 	setVaildVad(true);
-	m_timeoutForListeningTimer.stop();
+	m_timeoutForActivingAudioTimer.stop();
 	if(!m_timeoutForThinkingTimer.isActive()) {
 		if(!m_timeoutForThinkingTimer.start(
 			THINKING_TIMEOUT,
@@ -226,7 +295,7 @@ void AIUIAutomaticSpeechRecognizer::handleEventResultIAT(const std::string unpar
 void AIUIAutomaticSpeechRecognizer::onTrackChanged(utils::channel::FocusState newTrace) {
 	AISDK_DEBUG5(LX("onTrackChanged").d("newTrace", newTrace));
 	m_executor.submit([this, newTrace]() {
-		return executeOnTracKChanged(newTrace);
+		return executeOnTrackChanged(newTrace);
 	});
 }
 
@@ -309,6 +378,7 @@ AIUIAutomaticSpeechRecognizer::AIUIAutomaticSpeechRecognizer(
 	m_aiuiDir{aiuiDir}, 
 	m_aiuiLogDir{aiuiLogDir},
 	m_running{false},
+	m_bargeIn{false},
 	m_attachmentWriter{nullptr},
 	m_gainTune{nullptr} {
 
@@ -424,28 +494,6 @@ bool AIUIAutomaticSpeechRecognizer::executeRecognize(
     utils::sharedbuffer::SharedBuffer::Index keywordEnd,
     ObserverInterface::State state) {
 
-	// If this is a barge-in, verify that it is permitted.
-	auto currentState = getState();
-	switch(currentState) {
-		case ObserverInterface::State::IDLE:
-			break;
-		case ObserverInterface::State::EXPECTING_SPEECH:
-			break;
-		case ObserverInterface::State::RECOGNIZING:
-			#if 0
-			// For barge-in, we should close the previous reader before creating another one.
-            if (m_reader) {
-                m_reader->close();
-                m_reader.reset();
-            }
-			#endif
-			AISDK_ERROR(LX("executeRecognizeFailed").d("reason", "Barge-in is not permitted while recognizing"));
-			return false;
-		case ObserverInterface::State::BUSY:
-			AISDK_ERROR(LX("executeRecognizeFailed").d("reason", "Barge-in is not permitted while busy"));
-			return false;
-	}
-
 	// Check network state.
 	if(!m_deviceInfo->isConnected()) {
 		AISDK_WARN(LX("executeRecognizeFailed").d("reason", "networkIsDisconnected"));
@@ -453,7 +501,7 @@ bool AIUIAutomaticSpeechRecognizer::executeRecognize(
 		return false;
 	}
 	
-	// Accique channel prority.
+	// Acquire channel prority.
 	if (!m_trackManager->acquireChannel(CHANNEL_NAME, shared_from_this(), CHANNEL_INTERFACE_NAME)) {
 		AISDK_ERROR(LX("executeRecognizeFailed").d("reason", "Unable to acquire channel"));
 		executeResetState();
@@ -471,6 +519,7 @@ bool AIUIAutomaticSpeechRecognizer::executeRecognize(
 	}
 	
 	// Formally update state now.
+	m_bargeIn = false;
 	setVaildVad(false);
 	setState(state);
 
@@ -552,17 +601,10 @@ void AIUIAutomaticSpeechRecognizer::intentRepackingConsumeMessage(const std::str
 		repacking = true;
 	} else {
 		Json::Value data = root["data"];
-#if 0
-		std::string audio_url = data["audio_list"][0]["audio_url"].asString();
-		if(!audio_url.empty()) {
+		auto resource = data["resource"].asBool();
+		if(resource) {
 			repacking = true;
 		}
-#else 
-       bool resource = data["resource"].asBool();
-       if(resource) {
-           repacking = true;
-       } 
-#endif
 	}
 
 	// Should repacking to consume message.
@@ -789,6 +831,7 @@ void AIUIAutomaticSpeechRecognizer::sendStreamProcessing() {
 		}
 	} while(!isVaildVad());
 
+	if(!m_bargeIn) {
 	// Notify AIUI Cloud to terminate data writing.
 	aiui::IAIUIMessage * stopWrite = 
 	aiui::IAIUIMessage::create(aiui::AIUIConstant::CMD_STOP_WRITE,
@@ -799,7 +842,13 @@ void AIUIAutomaticSpeechRecognizer::sendStreamProcessing() {
 
 	m_aiuiAgent->sendMessage(stopWrite);
 	stopWrite->destroy();
-
+	}else {
+		// CMD_RESET_WAKEUP
+		//IAIUIMessage * resetMsg = aiui::IAIUIMessage::create(aiui::AIUIConstant::CMD_RESET);
+		//m_aiuiAgent->sendMessage(resetMsg);
+		//resetMsg->destroy();
+	}
+	
 	if(m_reader) {
 		m_reader->close();
 		m_reader.reset();
@@ -846,9 +895,10 @@ bool AIUIAutomaticSpeechRecognizer::executeTextToSpeech(
 	*/
 	std::string paramStr = "vcn=x_chongchong";
 	paramStr += ",speed=50";
-	paramStr += ",pitch=40";
-	paramStr += ",volume=60";
+	paramStr += ",pitch=50";
+	paramStr += ",volume=50";
 	paramStr += ",ent=xtts";
+	
 	aiui::IAIUIMessage * ttsMsg = aiui::IAIUIMessage::create(aiui::AIUIConstant::CMD_TTS,
 		aiui::AIUIConstant::START, 0, paramStr.c_str(), textData);
 
@@ -870,9 +920,12 @@ bool AIUIAutomaticSpeechRecognizer::executeCancelTextToSpeech() {
 	return true;
 }
 
-void AIUIAutomaticSpeechRecognizer::executeOnTracKChanged(utils::channel::FocusState newTrace) {
+void AIUIAutomaticSpeechRecognizer::executeOnTrackChanged(utils::channel::FocusState newTrace) {
 	// Note new focus state.
-	m_trackState = newTrace;
+	{
+		std::lock_guard<std::mutex> lock(m_bargeMutex);
+	    m_trackState = newTrace;
+	}
 	
     // If we're losing focus, stop using the channel.
 	if(newTrace != utils::channel::FocusState::FOREGROUND) {
@@ -880,6 +933,11 @@ void AIUIAutomaticSpeechRecognizer::executeOnTracKChanged(utils::channel::FocusS
 		executeResetState();
 		return;
 	}
+}
+
+void AIUIAutomaticSpeechRecognizer::releaseForegroundTrace() {
+	if(m_trackState != utils::channel::FocusState::NONE)
+    	m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this());
 }
 
 void AIUIAutomaticSpeechRecognizer::executeResetState() {
@@ -900,6 +958,11 @@ void AIUIAutomaticSpeechRecognizer::executeResetState() {
 	
 	if(ObserverInterface::State::IDLE != getState())
 		setState(ObserverInterface::State::IDLE);
+
+	if(m_bargeIn) {
+		AISDK_DEBUG5(LX("executeResetState").d("reason", "notifyBargeIn"));
+		m_conditionBarge.notify_one();
+	}
 }
 
 void AIUIAutomaticSpeechRecognizer::transitionFromThinkingTimedOut() {
@@ -944,6 +1007,6 @@ void AIUIAutomaticSpeechRecognizer::tryEntryIdleStateOnTimer() {
 	}
 }
 
-} // namespace aiui
+} // namespace aiuiEngine
 } // namespace asr
 } // namespace aisdk
