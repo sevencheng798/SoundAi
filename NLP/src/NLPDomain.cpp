@@ -67,8 +67,7 @@ std::pair<std::unique_ptr<NLPDomain>, NLPDomain::ParseStatus> NLPDomain::create(
     struct NlpData outnlpdata;
     cJSON* json = NULL;
     GetNLPData(unparsedDomain.c_str(),&outnlpdata);
-  //  std::cout << "======20190328 dubuglog:NlpData_dataMsg:========>" <<outnlpdata.NlpData_dataMsg<< std::endl;
-	AISDK_INFO(LX("Create").d("NlpData_dataMsg", outnlpdata.NlpData_dataMsg));   
+	//AISDK_INFO(LX("Create").d("NlpData_dataMsg", outnlpdata.NlpData_dataMsg));   
  
     // To-Do to prase json key:value from the unparsedDomain    
         int code = outnlpdata.NlpData_code;
@@ -138,7 +137,6 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
        || strcmp(json_domain->valuestring, "stock")== 0)
     {
     nlpdata->NlpData_domain = "SpeechSynthesizer";
-    AISDK_INFO(LX("domain").d("domain", "SpeechSynthesizer"));
     }
 
     //music,audio,listenBook,news,FM,story,joke
@@ -152,7 +150,6 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
        ||strcmp(json_domain->valuestring, "joke")== 0)
     {
     nlpdata->NlpData_domain = "ResourcesPlayer";
-    AISDK_INFO(LX("domain").d("domain", "ResourcesPlayer"));
     }
        
     //alarm,schedule
@@ -160,12 +157,10 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
            ||strcmp(json_domain->valuestring, "schedule")== 0)
        {
        nlpdata->NlpData_domain = "AlarmsPlayer";
-       AISDK_INFO(LX("domain").d("domain", "AlarmsPlayer"));
        }      //playcontrol
      else if(strcmp(json_domain->valuestring, "playcontrol")== 0)
        {
        nlpdata->NlpData_domain = "PlayControl";
-       AISDK_INFO(LX("domain").d("domain", "PlayControl"));
        }  
   //   else if(strcmp(json_domain->valuestring, "volume")== 0)
   //     {
@@ -177,7 +172,6 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
        }
      else{
         nlpdata->NlpData_domain = "SpeechSynthesizer";
-        AISDK_INFO(LX("domain").d("domain", "others unknow"));
     }
 
     #if 0
@@ -197,7 +191,7 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
        }
      #endif  
 
-       AISDK_INFO(LX("i'm here!!!-领域分类nlp domain:").d("domain:", nlpdata->NlpData_domain));
+       AISDK_INFO(LX("GetNLPData").d("domain", nlpdata->NlpData_domain));
   // cJSON_Delete(json);  //释放内存
 }
 
