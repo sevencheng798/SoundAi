@@ -552,10 +552,17 @@ void AIUIAutomaticSpeechRecognizer::intentRepackingConsumeMessage(const std::str
 		repacking = true;
 	} else {
 		Json::Value data = root["data"];
+#if 0
 		std::string audio_url = data["audio_list"][0]["audio_url"].asString();
 		if(!audio_url.empty()) {
 			repacking = true;
 		}
+#else 
+       bool resource = data["resource"].asBool();
+       if(resource) {
+           repacking = true;
+       } 
+#endif
 	}
 
 	// Should repacking to consume message.
