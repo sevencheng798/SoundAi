@@ -37,7 +37,7 @@ using namespace utils::mediaPlayer;
 using namespace utils::channel;
 using namespace dmInterface;
 
-/// The name of the @c AudioTrackManager channel used by the @c SpeechSynthesizer.
+/// The name of the @c AudioTrackManager channel used by the @c AlarmsPlayer.
 static const std::string CHANNEL_NAME = AudioTrackManagerInterface::ALARMS_CHANNEL_NAME;
 
 /// The name of the @c SafeShutdown
@@ -55,8 +55,6 @@ std::deque<std::string> TTS_URL_LIST;
 //add deque for store repeat_alarm;
 std::deque<std::string> REPEAT_ALARM_LIST; 
 
-
-
 std::shared_ptr<AlarmsPlayer> AlarmsPlayer::create(
 	std::shared_ptr<MediaPlayerInterface> mediaPlayer,
 	std::shared_ptr<utils::attachment::AttachmentManagerInterface> ttsDocker,
@@ -64,7 +62,6 @@ std::shared_ptr<AlarmsPlayer> AlarmsPlayer::create(
 	std::shared_ptr<AudioTrackManagerInterface> trackManager,
 	std::shared_ptr<utils::dialogRelay::DialogUXStateRelay> dialogUXStateRelay){
 	if(!mediaPlayer){
-        
         AISDK_ERROR(LX("AlarmsPlayerCreationFailed").d("reason: ", "mediaPlayerNull"));
 		return nullptr;
 	}
@@ -485,11 +482,9 @@ void AlarmsPlayer::sqliteThreadHander() {
         CheckAlarmList(db);
         CheckRepeatAlarmList(db);
         sqlite3_close(db);
-        // sleep(10);
         std::this_thread::sleep_for( std::chrono::seconds(5));
     }
 }
-
 
 void AlarmsPlayer::init() {
     m_alarmPlayer->setObserver(shared_from_this());  
@@ -1135,7 +1130,12 @@ bool AlarmsPlayer::setAlarmDirectiveInfo(
 
 void AlarmsPlayer::addToDirectiveQueue(std::shared_ptr<AlarmDirectiveInfo> info) {
     std::lock_guard<std::mutex> lock(m_chatInfoQueueMutex);
+    
+    executeHandleAfterValidation(info);
+    info->result->setCompleted();
+    AISDK_INFO(LX("addToDirectiveQueue").d("executeHandleAfterValidation"," info->result->setCompleted();"));
 
+#if 0
     if (m_chatInfoQueue.empty()) {
         m_chatInfoQueue.push_back(info);
         executeHandleAfterValidation(info);
@@ -1144,6 +1144,8 @@ void AlarmsPlayer::addToDirectiveQueue(std::shared_ptr<AlarmDirectiveInfo> info)
         AISDK_INFO(LX("addToDirectiveQueue").d("queueSize: ", m_chatInfoQueue.size()));
         m_chatInfoQueue.push_back(info);
     }
+
+#endif    
 }
 
 void AlarmsPlayer::removeChatDirectiveInfo(const std::string& messageId) {
