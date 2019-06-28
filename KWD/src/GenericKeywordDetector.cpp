@@ -91,7 +91,7 @@ ssize_t GenericKeywordDetector::readFromStream(
                 reader->seek(0, Reader::Reference::BEFORE_WRITER);
                 break;
             case Reader::Error::TIMEDOUT:
-                AISDK_DEBUG1(LX("readFromStreamFailed").d("reason", "readerTimeOut"));
+                //AISDK_DEBUG1(LX("readFromStreamFailed").d("reason", "readerTimeOut"));
                 break;
             default:
                 // We should never get this since we are using a Blocking Reader.
