@@ -100,7 +100,7 @@ bool VolumeManager::handleSpeakerSettingsValidation(std::string &data) {
 		return false;
 	}
 
-	auto vol = root["value"].asInt();
+	auto vol = root["parameters"]["value"].asInt();
 	AISDK_DEBUG5(LX("handleSpeakerSettingsValidation").d("value", vol));
 
 	if(operation == VOLUME_INCREASE) {
