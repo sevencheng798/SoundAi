@@ -902,6 +902,13 @@ void ResourcesPlayer::executePlaybackFinished() {
     }
 
     resetMediaSourceId();
+
+    //Play only once when the audio resource is just one.
+    if(AUDIO_URL_LIST.size() == 1 ) {
+        AUDIO_URL_LIST.clear();
+        AISDK_INFO(LX("executePlaybackFinished").d("reason", "AUDIO_URL_LIST.size=1"));
+    }
+    
     if(AUDIO_URL_LIST.empty()){
           AISDK_INFO(LX("executePlaybackFinished").d("reason", "audioUrlListNull"));
           if(m_currentFocus != FocusState::NONE){
@@ -909,18 +916,18 @@ void ResourcesPlayer::executePlaybackFinished() {
           }
           
     }else{
-     // playNextItem();
-      AISDK_DEBUG5(LX("executePlaybackFinished").d("playResourceItem", "play type----->3"));
-      currentItemNum ++;
-      if(enable_single_loop == 1 ){
-          currentItemNum --;
-          AISDK_DEBUG5(LX("executePlaybackFinished").d(" playResourceItem", "enter to single_loop")
-                                                    .d(" enable_single_loop", enable_single_loop));
-        }
-       if(currentItemNum >= AUDIO_URL_LIST.size()){
-           currentItemNum = 0;
-       }
-       playResourceItem(AUDIO_URL_LIST.at(currentItemNum));
+         // playNextItem();
+         AISDK_DEBUG5(LX("executePlaybackFinished").d("playResourceItem", "play type----->3"));
+         currentItemNum ++;
+         if(enable_single_loop == 1 ){
+             currentItemNum --;
+             AISDK_DEBUG5(LX("executePlaybackFinished").d(" playResourceItem", "enter to single_loop")
+                                                       .d(" enable_single_loop", enable_single_loop));
+           }
+         if(currentItemNum >= AUDIO_URL_LIST.size()){
+             currentItemNum = 0;
+         }
+         playResourceItem(AUDIO_URL_LIST.at(currentItemNum));
    
     }
 
