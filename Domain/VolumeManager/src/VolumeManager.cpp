@@ -111,13 +111,13 @@ bool VolumeManager::handleSpeakerSettingsValidation(std::string &data) {
 		m_setting.volumeType = VolumeInterface::Type::NLP_VOLUME_SET;
 		m_setting.volume = 100;
 	} else if(operation == VOLUME_MIN) {
-		m_setting.volumeType = VolumeInterface::Type::NLP_VOLUME_DOWN;
+		m_setting.volumeType = VolumeInterface::Type::NLP_VOLUME_SET;
 		m_setting.volume = 0;
 	} else if(operation == VOLUME_SET) {
-		m_setting.volumeType = VolumeInterface::Type::NLP_VOLUME_DOWN;
+		m_setting.volumeType = VolumeInterface::Type::NLP_VOLUME_SET;
 		m_setting.volume = static_cast<int8_t>(vol);
 	} else if(operation == VOLUME_MID) {
-		m_setting.volumeType = VolumeInterface::Type::NLP_VOLUME_DOWN;
+		m_setting.volumeType = VolumeInterface::Type::NLP_VOLUME_SET;
 		m_setting.volume = 50;
 	} else {
 		AISDK_ERROR(LX("handleSpeakerSettingsValidationFailed").d("reason", "operationUnknow"));
