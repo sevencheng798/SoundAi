@@ -147,22 +147,6 @@ void UIManager::printHelpScreen() {
     m_executor.submit([]() { AISDK_INFO(LX(HELP_MESSAGE)); });
 }
 
-void UIManager::setVolume() {
-#if 0
-    memset(&m_mqSndInfo, 0x00, sizeof(m_mqSndInfo));   
-    m_mqSndInfo.msg_info.sub_msg_info.sub_id = MQ_EVT_VOL_UP;
-    m_mqSndInfo.msg_info.sub_msg_info.status = 1;
-
-    m_mqSndInfo.msg_info.sub_msg_info.sub_id = MQ_EVT_VOL_DOWN;
-    m_mqSndInfo.msg_info.sub_msg_info.status = 1;
-
-    m_mqSndInfo.msg_info.sub_msg_info.sub_id = MQ_EVT_VOL_VALUE;
-    m_mqSndInfo.msg_info.sub_msg_info.status = 50;
-
-    creatMsg(m_mqSndInfo);
-#endif
-}
-
 void UIManager::microphoneOff() {
     memset(&m_mqSndInfo, 0x00, sizeof(m_mqSndInfo));   
     m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_MUTE;
@@ -183,7 +167,23 @@ void UIManager::microphoneOn() {
 }
 
 void UIManager::adjustVolume(dmInterface::VolumeObserverInterface::Type volumeType, int volume) {
-	//to-do
+	AISDK_INFO(LX("adjustVolume").d("volumeType", volumeType));
+	memset(&m_mqSndInfo, 0x00, sizeof(m_mqSndInfo));   
+    switch (volumeType) {
+        case dmInterface::VolumeObserverInterface::Type::NLP_VOLUME_UP:
+            m_mqSndInfo.msg_info.sub_msg_info.sub_id = MQ_EVT_VOL_UP;
+        break;
+        case dmInterface::VolumeObserverInterface::Type::NLP_VOLUME_DOWN:
+            m_mqSndInfo.msg_info.sub_msg_info.sub_id = MQ_EVT_VOL_DOWN;
+        break;
+        case dmInterface::VolumeObserverInterface::Type::NLP_VOLUME_SET:
+            m_mqSndInfo.msg_info.sub_msg_info.sub_id = MQ_EVT_VOL_VALUE;
+            m_mqSndInfo.msg_info.sub_msg_info.status = volume;
+        break;
+        default:
+        break; 
+    }
+    creatMsg(m_mqSndInfo);
 }
 
 void UIManager::readWakeupAudioDir(char *path, std::deque<std::string> &wakeUpAudioList) {

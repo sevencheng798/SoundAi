@@ -65,9 +65,6 @@ public:
 
 	/// Prints the help option.
 	void printHelpScreen();
-
-    ///set volume to ipc;
-    void setVolume();
     
 	/// Prints the mic off info.
 	void microphoneOff();
