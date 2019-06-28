@@ -112,7 +112,7 @@ bool VolumeManager::handleSpeakerSettingsValidation(std::string &data) {
 		m_setting.volume = 100;
 	} else if(operation == VOLUME_MIN) {
 		m_setting.volumeType = VolumeInterface::Type::NLP_VOLUME_SET;
-		m_setting.volume = 0;
+		m_setting.volume = 10;
 	} else if(operation == VOLUME_SET) {
 		m_setting.volumeType = VolumeInterface::Type::NLP_VOLUME_SET;
 		m_setting.volume = static_cast<int8_t>(vol);
