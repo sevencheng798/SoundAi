@@ -159,22 +159,21 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
        nlpdata->NlpData_domain = "AlarmsPlayer";
        }      //playcontrol
      else if(strcmp(json_domain->valuestring, "playcontrol")== 0)
-       {
+     {
        nlpdata->NlpData_domain = "PlayControl";
-       }  
-  //   else if(strcmp(json_domain->valuestring, "volume")== 0)
-  //     {
-  //     nlpdata->NlpData_domain = "Volume";
-  //     AISDK_INFO(LX("domain").d("domain", "Volume"));
-  //     } 
+     }  
+     else if(strcmp(json_domain->valuestring, "volume")== 0)
+     {
+       nlpdata->NlpData_domain = "VolumeManager";
+       AISDK_INFO(LX("domain").d("domain", "VolumeManager"));
+     } 
 	 else if(strcmp(json_domain->valuestring, "ExpectSpeech")== 0) {
 		nlpdata->NlpData_domain = "ExpectSpeech";
-       }
+     }
      else{
         nlpdata->NlpData_domain = "SpeechSynthesizer";
     }
-
-    #if 0
+#if 0
     //volume
       else if(strcmp(json_domain->valuestring, "volume")== 0 
            ||strcmp(json_domain->valuestring, "VOLUME")== 0)
@@ -183,6 +182,7 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
        AISDK_INFO(LX("domain").d("domain", "PlayControl"));
        }
 
+    
     //customization
        if(strcmp(json_domain->valuestring, "customization")== 0 )
        {
