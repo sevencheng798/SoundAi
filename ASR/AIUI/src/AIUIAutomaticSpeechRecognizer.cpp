@@ -44,6 +44,9 @@ static const std::string DOMAIN_SCHEDULE{"schedule"};
 // The name of playcontrol domain.
 static const std::string DOMAIN_PLAYCONTROL{"playcontrol"};
 
+// The name of playcontrol domain.
+static const std::string DOMAIN_VOLUME{"volume"};
+
 // A name of expectSpeech be used to match directive handle.
 static const std::string EXPECT_SPEECH{"ExpectSpeech"};
 // Used within generate ExpectSpeech ID().
@@ -597,7 +600,8 @@ void AIUIAutomaticSpeechRecognizer::intentRepackingConsumeMessage(const std::str
 
 	bool repacking = false;
 	// Compare domain whether is equal.
-	if(domain == DOMAIN_ALARM || domain == DOMAIN_SCHEDULE || domain == DOMAIN_PLAYCONTROL) {
+	if(domain == DOMAIN_ALARM || domain == DOMAIN_SCHEDULE || \
+		domain == DOMAIN_PLAYCONTROL || domain == DOMAIN_VOLUME) {
 		repacking = true;
 	} else {
 		Json::Value data = root["data"];
