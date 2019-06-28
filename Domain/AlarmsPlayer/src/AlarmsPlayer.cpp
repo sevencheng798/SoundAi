@@ -16,14 +16,11 @@
 #include "AlarmsPlayer/AlarmsPlayer.h"
 #include <Utils/cJSON.h>
 #include "string.h"
-
 #include<deque>  
 #include <Utils/Logging/Logger.h>
-
-//#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <unistd.h>   //sleep 
+#include <unistd.h>    
 
 
 /// String to identify log entries originating from this file.
@@ -42,9 +39,6 @@ using namespace dmInterface;
 
 /// The name of the @c AudioTrackManager channel used by the @c SpeechSynthesizer.
 static const std::string CHANNEL_NAME = AudioTrackManagerInterface::ALARMS_CHANNEL_NAME;
-
-/// The name of DomainProxy and SpeechChat handler interface
-//static const std::string SPEECHCHAT{"SpeechChat"};
 
 /// The name of the @c SafeShutdown
 static const std::string ALARMSNAME{"AlarmsPlayer"};
@@ -339,14 +333,12 @@ void AlarmsPlayer::CheckAlarmList(sqlite3 *db)
 
     char const *alarmSql= "select *from alarm;";
     sqlite3_get_table( db , alarmSql , &azResult , &nrow , &ncolumn , &zErrMsg );
-    //AISDK_DEBUG(LX("CheckAlarmList").d("alarm::nrow", nrow).d(" ncolumn", ncolumn));
 
     if((nrow >= 1) && (ncolumn != 0))
     {
         char const *minsql = "select min(timestamp) from alarm;";
         sqlite3_get_table( db , minsql , &azResult , &nrow , &ncolumn , &zErrMsg );
 
-        // AISDK_DEBUG(LX("CheckAlarmList").d("min(timestamp) from alarm:", azResult[nrow*ncolumn]));        
         long int alarmtimesec = (long int)(atoll(azResult[nrow*ncolumn])/1000);   //long long int --> long int;
         // struct tm *alarmp;
         // alarmp = localtime(&alarmtimesec);
@@ -390,7 +382,7 @@ void AlarmsPlayer::CheckAlarmList(sqlite3 *db)
             sprintf(deleteAlarmTime, "delete from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
             sqlite3_exec( db , deleteAlarmTime , NULL , NULL , &zErrMsg );
             sqlite3_free(zErrMsg);
-        }else if((timesec/20) > (alarmtimesec/20)) { 
+        }else if((timesec/10) > (alarmtimesec/10)) { 
             sprintf(deleteAlarmTime, "delete from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
             sqlite3_exec( db , deleteAlarmTime , NULL , NULL , &zErrMsg );
             sqlite3_free(zErrMsg);
@@ -445,7 +437,7 @@ void AlarmsPlayer::CheckRepeatAlarmList(sqlite3 *db)
 
            if( atoi(currentWeekday.c_str()) == 0 || atoi(currentWeekday.c_str()) == m_weekday ){
                 //AISDK_DEBUG5(LX("deleteAlarmWeekday").d("currentWeekday", atoi(currentWeekday.c_str()) ) );        
-                 if((timesec/10) == (alarmtimesec/10)) {    
+                 if((timesec/5) == (alarmtimesec/5)) {    
                      AISDK_INFO(LX("CheckRepeatAlarmList").d(" currentContent", currentContent)
                                                           .d(" currentWeekday", currentWeekday)); 
                      for(int i = 0; i < 1; i++) {
@@ -501,12 +493,9 @@ void AlarmsPlayer::sqliteThreadHander() {
 
 void AlarmsPlayer::init() {
     m_alarmPlayer->setObserver(shared_from_this());  
-    //add for check sqlite3 db
     m_sqliteThread = std::thread(&AlarmsPlayer::sqliteThreadHander, this);
 }
 
-//--------------------add by wx @190402-----------------
-#if 1
 void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::string> &ttsurllist );
 
 void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::string> &ttsurllist )
@@ -609,9 +598,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
             len = sqlite3_open("/data/alarm.db",&db);
             if( len )
             {
-                //fprintf函数格式化输出错误信息到指定的stderr文件流中  
                 fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-                //sqlite3_errmsg(db)用以获得数据库打开错误码的英文描述。
                 sqlite3_close(db);
                 exit(1);
             }
@@ -778,16 +765,12 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           }
 
       }
-    //   ttsurllist.push_back(json_tts_url->valuestring);
       
 }
 
-#endif
 
 void AlarmsPlayer::executePreHandleAfterValidation(std::shared_ptr<AlarmDirectiveInfo> info) {
 	/// To-Do parse tts url and insert chatInfo map
-    /// add by wx @201904
-   
 #ifdef ENABLE_SOUNDAI_ASR
      auto nlpDomain = info->directive;
      auto dateMessage = nlpDomain->getData();
@@ -801,7 +784,6 @@ void AlarmsPlayer::executePreHandleAfterValidation(std::shared_ptr<AlarmDirectiv
      info->url = TTS_URL_LIST.at(0);
      
      AISDK_INFO(LX("alarmplayer").d("当前播放内容:", info->url ));
-
 #else
         auto nlpDomain = info->directive;
         auto dateMessage = nlpDomain->getData();
@@ -813,16 +795,7 @@ void AlarmsPlayer::executePreHandleAfterValidation(std::shared_ptr<AlarmDirectiv
         json_data = cJSON_Parse(dateMessage.c_str());
         AnalysisNlpDataForAlarmsPlayer(json_data, TTS_URL_LIST);
         cJSON_Delete(json_data);  
-
-//        info->attachmentReader = info->directive->getAttachmentReader(
-//                info->directive->getMessageId(), utils::sharedbuffer::ReaderPolicy::BLOCKING);
-    
 #endif
-//    if (!setAlarmDirectiveInfo(info->directive->getMessageId(), info)) {
-//		AISDK_ERROR(LX("executePreHandleFailed")
-//					.d("reason", "prehandleCalledTwiceOnSameDirective")
-//					.d("messageId", info->directive->getMessageId()));
-//    }
 }
 
 void AlarmsPlayer::executeHandleAfterValidation(std::shared_ptr<AlarmDirectiveInfo> info) {
@@ -1198,168 +1171,7 @@ void AlarmsPlayer::executeOnDialogUXStateChanged(
 }
 
 
-
-#if 0
-
-void testsqlites()
-{
-     sqlite3 *db=NULL;
-     int len;
-
-     char *zErrMsg =NULL;
-   //  char **azResult=NULL; //二维数组存放结果
-     /* 打开数据库 */
-     len = sqlite3_open("alarm.db",&db);  //create test db named user.db 
-     if( len )
-     {
-        /*  fprintf函数格式化输出错误信息到指定的stderr文件流中  */
-        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-            //sqlite3_errmsg(db)用以获得数据库打开错误码的英文描述。
-        sqlite3_close(db);
-        exit(1);
-     }
-     else printf("You have opened a sqlite3 database named user.db successfully created by WX!\n");
- 
-     /* 创建表 */
-     
-      char const *sql = " CREATE TABLE alarmlist(num, time, repeat, enable, execute ); " ;
-      //char *sql = (char*)" CREATE TABLE TestData(num,time,repeat,enable,execute); " ;
-      sqlite3_exec(db,sql,NULL,NULL,&zErrMsg);
-      sqlite3_free(zErrMsg);
-      char alarm1[100];
-      int a = 1;
-      char b[100] = "aaaaaa";
-      sprintf(alarm1, "INSERT INTO 'alarmlist'VALUES(%d, '%s', 1, 0, 0);" ,a ,b);
-      //char const *alarm1 = "INSERT INTO 'alarmlist'VALUES(1, 12334455, 1, 0, 0);"; 
-      sqlite3_exec(db,alarm1,NULL,NULL,&zErrMsg);
-      char const *alarm2 = "INSERT INTO 'alarmlist'VALUES(2, 55567767, 1, 0, 1);"; 
-      sqlite3_exec(db,alarm2,NULL,NULL,&zErrMsg);
-      char const *alarm3 = "INSERT INTO 'alarmlist'VALUES(3, 89898989, 1, 1, 1);"; 
-      sqlite3_exec(db,alarm3,NULL,NULL,&zErrMsg);
-
-
-
-#if 0
-
-      /*插入数据  */
-      char *sql1 ="INSERT INTO 'TestData'VALUES(0,11,22,33,44);";
-      sqlite3_exec(db,sql1,NULL,NULL,&zErrMsg);
-      char*sql2 ="INSERT INTO 'TestData'VALUES(1,111,222,333,444);";
-      sqlite3_exec(db,sql2,NULL,NULL,&zErrMsg);
-      char*sql3 ="INSERT INTO 'TestData'VALUES(2,1111,2222,3333,4444);";
-      sqlite3_exec(db,sql3,NULL,NULL,&zErrMsg);
- 
-      /* 查询数据 */
-      sql="select *from TestData";
-      sqlite3_get_table( db , sql , &azResult , &nrow , &ncolumn , &zErrMsg );
-      printf("nrow=%d ncolumn=%d\n",nrow,ncolumn);
-      printf("the result is:\n");
-      for(i=0;i<(nrow+1)*ncolumn;i++)
-        {
-          printf("=======here!!!======azResult[%d]=%s\n",i,azResult[i]);
-        }
- 
-     /* 删除某个特定的数据 */
-      sql="delete from TestData where ID = 1;";
-      sqlite3_exec( db , sql , NULL , NULL , &zErrMsg );
-      printf("zErrMsg = %s \n", zErrMsg);
-      sqlite3_free(zErrMsg);
- 
-      /* 查询删除后的数据 */
-      sql = "SELECT * FROM TestData ";
-      sqlite3_get_table( db , sql , &azResult , &nrow , &ncolumn , &zErrMsg );
-      printf( "row:%d column=%d\n " , nrow , ncolumn );
-      printf( "After deleting , the result is : \n" );
-      for( i=0 ; i<( nrow + 1 ) * ncolumn ; i++ )
-      {
-            printf( "azResult[%d] = %s\n", i , azResult[i] );
-      }
-      sqlite3_free_table(azResult);
-   printf("zErrMsg = %s \n", zErrMsg);
-   sqlite3_free(zErrMsg);
-#endif 
-      sqlite3_close(db);
-   //   return 0;
-
-}
-
-#endif
-
-#if 0
-
-int test();
-void test_string();
-
-
-//-------------
-int test()
-{
-    std::deque<int> test;
-    test.push_back(10);
-    test.push_back(20);
-    test.push_back(30);
-    std::cout << "=========================i'm here!!!我是队列测试demo-start===========================" << std::endl;
-    std::cout <<"原始双端队列："<< std::endl;  
-    
-    for(std::size_t i = 0; i< test.size(); i++)
-    {
-     std::cout << "test: = " << test.at(i) << std::endl;
-    }
-
-    test.push_front(99);
-    test.push_front(88);
-    test.push_front(77);
-    std::cout <<"从前端插入：" << std::endl;
-
-    for(std::size_t i = 0; i < test.size(); i++)
-    {
-    std::cout << "push front: = " << test.at(i) << std::endl;
-    }
-
-    test.pop_front();    
-    for(std::size_t i = 0; i < test.size(); i++)
-    {
-    std::cout << "after pop front: = " << test.at(i) << std::endl;
-    }
-
-    test.pop_back();
-    for(std::size_t i = 0; i < test.size(); i++)
-    {
-    std::cout << "after pop back: = " << test.at(i) << std::endl;
-    }
-
-    
-
-    std::cout << "=========================i'm here!!!我是队列测试demo-end===========================" << std::endl;
-    return 0;
-}
-
-
-
-//-------------
-void test_string()
-{
-    std::deque<std::string> d;
-    d.push_back("aaaa");
-   // test.push_back(20);
-   // test.push_back(30);
-    std::cout << "=========================i'm here!!!我是队列测试demo-start===========================" << std::endl;
-    std::cout <<"原始双端队列："<< std::endl;  
-    
-    for(std::size_t i = 0; i< d.size(); i++)
-    {
-     std::cout << "test: = " << d.at(i) << std::endl;
-    }
-    
-    std::cout << "=========================i'm here!!!我是队列测试demo-end===========================" << std::endl;
-    //return 0;
-}
-
-#endif
-    
-//-------------
-
-}	// namespace speechSynthesizer
+}	// namespace AlarmsPlayer
 }	// namespace domain
 }	// namespace aisdk
 
