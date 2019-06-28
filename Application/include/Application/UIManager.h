@@ -13,6 +13,7 @@
 #ifndef __UI_MANAGER_H_
 #define __UI_MANAGER_H_
 
+#include <DMInterface/VolumeObserverInterface.h>
 #include <Utils/DialogRelay/DialogUXStateObserverInterface.h>
 #include <Utils/NetworkStateObserverInterface.h>
 #include <Utils/Threading/Executor.h>
@@ -27,7 +28,8 @@ namespace application {
  */
 class UIManager 
 	: public utils::dialogRelay::DialogUXStateObserverInterface
-	, public utils::NetworkStateObserverInterface {
+	, public utils::NetworkStateObserverInterface
+	, public dmInterface::VolumeObserverInterface {
 	
 public:
 	/// A alias @c DialogUXStateObserverInterface
@@ -53,6 +55,11 @@ public:
 	void onNetworkStatusChanged(const Status newState) override;
 	/// }
 
+	/// @name VolumeObserverInterface methods.
+	/// @{
+	bool onVolumeChange(Type volumeType = Type::NLP_VOLUME_SET, int volume = 50) override;
+	/// }
+	
 	/// Prints the Error Message for Wrong Input.
 	void printErrorScreen();
 
@@ -68,6 +75,9 @@ public:
 	/// Prints the mic off info.
 	void microphoneOn();
 
+	/// Set volume.
+	void adjustVolume(dmInterface::VolumeObserverInterface::Type volumeType, int volume);
+	
     ///use for read wake up audio dir and push audio list to deque.
     void readWakeupAudioDir(char *path, std::deque<std::string> &wakeUpAudioList);
 

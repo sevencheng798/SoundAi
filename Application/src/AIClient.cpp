@@ -209,6 +209,16 @@ bool AIClient::initialize(
         AISDK_ERROR(LX("initializeFailed").d("reason", "unableToCreatebringupPlayer"));
         return false;
     }
+	
+	/*
+	 * Creating the VolumeManager. This is the commponent that deals with real-time interactive domain.
+	 */
+	m_volumeManager = domain::volumeManager::VolumeManager::create();
+	if(!m_volumeManager) {
+        AISDK_ERROR(LX("initializeFailed").d("reason", "unableToCreateVolumeManager"));
+        return false;
+	}
+	
 	// TODO: Continue to add other domain commponent.
 	/// ...
 	/// ...
@@ -240,12 +250,19 @@ bool AIClient::initialize(
 
 	///alarms play add by wx @190412
 	if (!m_domainSequencer->addDomainHandler(m_alarmsPlayer)) {
-	AISDK_ERROR(LX("initializeFailed")
+	    AISDK_ERROR(LX("initializeFailed")
 					.d("reason", "unableToRegisterDomainHandler")
 					.d("domainHandler", "AlarmMediaPlayer"));
-	return false;
+	    return false;
 	}
   
+    if (!m_domainSequencer->addDomainHandler(m_volumeManager)) {
+	    AISDK_ERROR(LX("initializeFailed")
+					.d("reason", "unableToRegisterDomainHandler")
+					.d("domainHandler", "VolumeManager"));
+	    return false;
+	}
+	
 	// TODO: Continue to add other domain commponent.
 	/// ...
 	/// ...
@@ -270,7 +287,6 @@ bool AIClient::notifyOfWakeWord(
 	std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream,
 	utils::sharedbuffer::SharedBuffer::Index beginIndex,
 	utils::sharedbuffer::SharedBuffer::Index endIndex) {
-	AISDK_DEBUG5(LX("notifyOfWakeWord").d("wakeup", "COMING"));
 
 	m_asrEngine->recognize(stream, beginIndex, endIndex);
 	return true;

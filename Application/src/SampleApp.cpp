@@ -159,6 +159,10 @@ bool SampleApp::initialize() {
 	// Adding network observer to @c AIClient.
 	deviceInfo->addObserver(m_aiClient);
     
+	// Adding the UI manager to volume manager.
+	auto volumeManager = m_aiClient->getVolumeManager();
+	volumeManager->setObserver(userInterfaceManager);
+	
 #if defined(KWD)
 	// Step1.
 	/*

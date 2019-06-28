@@ -30,6 +30,7 @@ target_link_libraries(SampleApp
 		SpeechSynthesizer
 		ResourcesPlayer
 		AlarmsPlayer
+		VolumeManager
 		ASR
 		KWD
 		Bringup

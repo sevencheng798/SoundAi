@@ -131,6 +131,14 @@ void UIManager::onNetworkStatusChanged(const Status newState) {
 		});
 }
 
+bool UIManager::onVolumeChange(dmInterface::VolumeObserverInterface::Type volumeType, int volume) {
+	AISDK_DEBUG5(LX("onVolumeChange").d("Type", volumeType).d("volume", volume));
+	
+	m_executor.submit([this, volumeType, volume]() { adjustVolume(volumeType, volume); });
+
+	return true;
+}
+
 void UIManager::printErrorScreen() {
     m_executor.submit([]() { AISDK_INFO(LX("Invalid Option")); });
 }
@@ -172,6 +180,10 @@ void UIManager::microphoneOn() {
     creatMsg(m_mqSndInfo);
 
     m_executor.submit([this]() { printState(); });
+}
+
+void UIManager::adjustVolume(dmInterface::VolumeObserverInterface::Type volumeType, int volume) {
+	//to-do
 }
 
 void UIManager::readWakeupAudioDir(char *path, std::deque<std::string> &wakeUpAudioList) {

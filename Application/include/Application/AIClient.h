@@ -32,6 +32,7 @@
 #include "SpeechSynthesizer/SpeechSynthesizer.h"
 #include "ResourcesPlayer/ResourcesPlayer.h"
 #include "AlarmsPlayer/AlarmsPlayer.h"
+#include "VolumeManager/VolumeManager.h"
 #include "Bringup.h"
 
 
@@ -73,6 +74,10 @@ public:
 	 * Stop service to allow the client to initiate disconnect sai sdk.
 	 */
 	void disconnect();
+	
+	std::shared_ptr<domain::volumeManager::VolumeManager>& getVolumeManager() {
+		return m_volumeManager;
+	}
 	/**
 	 * This method can be called by the client when a Button is pressed on a physical button or on the GUI.
 	 */
@@ -130,6 +135,9 @@ private:
     std::shared_ptr<domain::alarmsPlayer::AlarmsPlayer> m_alarmsPlayer;
 
     std::shared_ptr<modules::bringup::Bringup> m_bringupPlayer;
+	
+	/// The volume manager.
+	std::shared_ptr<domain::volumeManager::VolumeManager> m_volumeManager;
 	/// ...
 	/// ...
 };
