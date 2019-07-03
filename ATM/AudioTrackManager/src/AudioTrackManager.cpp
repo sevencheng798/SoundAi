@@ -13,6 +13,13 @@
  
 #include <iostream>
 #include "AudioTrackManager/AudioTrackManager.h"
+#include <Utils/Logging/Logger.h>
+
+
+/// String to identify log entries originating from this file.
+static const std::string TAG("AudioTrackManager");
+/// Define output
+#define LX(event) aisdk::utils::logging::LogEntry(TAG, event)
 
 namespace aisdk {
 namespace atm {
@@ -39,7 +46,7 @@ bool AudioTrackManager::acquireChannel(
     const std::string& channelName,
     std::shared_ptr<ChannelObserverInterface> channelObserver,
     const std::string &interface) {
-	std::cout << "acquireChannel:channel:" << channelName << std::endl;
+    AISDK_INFO(LX("acquireChannel").d("channel", channelName));
     std::shared_ptr<Channel> channelToAcquire = getChannel(channelName);
     if (!channelToAcquire) {
 		std::cout << "acquireChannelFailed:reason:channelNotFound:channel: " << channelName << std::endl;
@@ -56,7 +63,7 @@ bool AudioTrackManager::acquireChannel(
 std::future<bool> AudioTrackManager::releaseChannel(
     const std::string& channelName,
     std::shared_ptr<ChannelObserverInterface> channelObserver) {
-	std::cout << "releaseChannel:channel: " << channelName << std::endl;
+    AISDK_INFO(LX("releaseChannel").d("channel", channelName));
     // Using a shared_ptr here so that the promise stays in scope by the time the Executor picks up the task.
     auto releaseChannelSuccess = std::make_shared<std::promise<bool>>();
     std::future<bool> returnValue = releaseChannelSuccess->get_future();
