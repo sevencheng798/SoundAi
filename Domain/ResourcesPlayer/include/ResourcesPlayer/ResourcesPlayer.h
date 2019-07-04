@@ -30,7 +30,8 @@
 #include <DMInterface/ResourcesPlayerObserverInterface.h>
 #include <NLP/DomainProxy.h>
 #include <Utils/cJSON.h>
-
+#include <Utils/DeviceInfo.h>
+#include "http.h"
 
 namespace aisdk {
 namespace domain {
@@ -117,7 +118,9 @@ public:
 	/// @{
     /// Stop playing speech audio.
     void buttonPressedPlayback() override;
-        
+
+    void setKuGouParam(const char *aiuiUid, const char *appId, const char *clientDeviceId);
+    
 protected:
 
 	/// @name SafeShutdown method.
@@ -176,6 +179,9 @@ private:
     ///
     void AnalysisNlpDataForResourcesPlayer(cJSON          * datain , std::deque<std::string> &audiourllist );
 
+    ///
+    void AnalysisAudioIdForResourcesPlayer(std::shared_ptr<DirectiveInfo> info , std::deque<std::string> &audioidlist );
+    
     ///
     void AnalysisNlpDataForPlayControl(std::shared_ptr<DirectiveInfo> info, std::string &operation );
 
@@ -266,6 +272,8 @@ private:
     void playNextItem();
 
     void playResourceItem(std::string ResourceItem );
+
+    void playKuGouResourceItemID(std::string ResourceItemID );
     
     void executePlaybackError(const utils::mediaPlayer::ErrorType& type, std::string error);
 
@@ -450,6 +458,11 @@ private:
     
     /// The attachment reader @c AttachmentReader to read speech audio('text to speech').
     std::unique_ptr<utils::attachment::AttachmentReader> m_attachmentReader;
+
+    ///use for store kugou param;
+    std::string m_aiuiUid;
+    std::string m_appId;
+    std::string m_clientDeviceId;
     
 	/// An internal thread pool which queues up operations from asynchronous API calls
 	utils::threading::Executor m_executor;

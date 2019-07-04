@@ -265,7 +265,7 @@ static char *httpPost(const char *url, const char *postStr)
  *   Return:         0成功、-1获取失败、-2字符串JSON 解析失败
  *   Others:         无
  ************************************************************************/
-int getMusicUrl(char *aiuiUid, char *appId, char *kugouUserId, char *kugouUserToken, char *clientDeviceId, char *itemId, char *albumId, char *kugouMusicUrl)
+int getMusicUrl(const char *aiuiUid,const char *appId,const char *kugouUserId,const char *kugouUserToken,const char *clientDeviceId,const char *itemId,const char *albumId, char *kugouMusicUrl)
 {
 	char *p = NULL;
 	char token[64] = {'\0'};
