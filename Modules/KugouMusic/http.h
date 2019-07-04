@@ -20,5 +20,7 @@
 #define HTTP_POST "POST /%s HTTP/1.1\r\nHOST: %s:%d\r\nAccept: */*\r\n"\
     "Content-Type:application/json\r\nContent-Length: %d\r\n\r\n%s"
 #define TRACK_LINK_URI "http://content.xfyun.cn/music/tracklink?&timestamp=%llu&deviceId=%s&token=%s&appId=%s&kugouUserId=%s&kugouUserToken=%s&clientId=%s&clientDeviceId=%s&itemid=%s"
+
+int getMusicUrl(char *aiuiUid, char *appId, char *kugouUserId, char *kugouUserToken, char *clientDeviceId, char *itemId, char *albumId, char *kugouMusicUrl);
  
 #endif
