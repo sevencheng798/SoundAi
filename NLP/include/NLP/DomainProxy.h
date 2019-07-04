@@ -106,11 +106,6 @@ protected:
         std::atomic<bool> isCancelled;
     };
 
-    ///use for play next resources;
-    std::shared_ptr<DirectiveInfo> nextInfo;
-
-    ///use for play previous resources;
-     std::shared_ptr<DirectiveInfo> previousInfo;
     /**
      * Create a DirectiveInfo instance with which to track the handling of an @c NLPDomain.
      * @note This method is virtual to allow derived DomainProxy's to extend DirectiveInfo
