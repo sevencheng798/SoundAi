@@ -40,8 +40,6 @@ public:
 	UIManager();
 
     ///use for ipc communication(key, led, event and so on);
-    // int creatMsg(int argc, char* argv[]);
-   // int creatMsg(e_LED_MODE mode, int status);
     int creatMsg(MqSndInfo mqSndInfo);
 
     int reveiceMsg(MqRecvInfo &mqRecvinfo);
