@@ -22,9 +22,9 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "http.h"
-#include "cJSON.h"
-#include "Md5Compute.h"
+#include "ResourcesPlayer/http.h"
+#include "ResourcesPlayer/cJSON.h"
+#include "ResourcesPlayer/Md5Compute.h"
  
 static int httpTcpClientCreate(const char *host, int port)
 {
@@ -202,10 +202,8 @@ static char *httpParseResult(const char *lpbuf)
  
 static char *httpPost(const char *url, const char *postStr)
 {
-    int len=0;
     int port = 0;
     int socketFd = -1;
-	char *response = NULL;
     char file[BUFFER_SIZE] = {'\0'};
     char hostAddr[BUFFER_SIZE] = {'\0'};
     char sendBuf[BUFFER_SIZE*10] = {'\0'};
@@ -283,7 +281,7 @@ int getMusicUrl(char *aiuiUid, char *appId, char *kugouUserId, char *kugouUserTo
 	long long timeStamp = (long long)tv.tv_sec*1000 + tv.tv_usec/1000;
 	sprintf(token, "%s%s%llu", "5c3d4427", "914a80c33bda12e993559f79ae898205", timeStamp);
     printf("token:%s\n", token);  //毫秒
-	compute_string_md5(token, strlen(token), md5Token);
+	compute_string_md5((unsigned char *)token, strlen(token), md5Token);
 
 	sprintf(postSendBuf, TRACK_LINK_URI, timeStamp, aiuiUid, md5Token, appId, kugouUserId, kugouUserToken, appId, clientDeviceId, itemId);
 	if(NULL != albumId)

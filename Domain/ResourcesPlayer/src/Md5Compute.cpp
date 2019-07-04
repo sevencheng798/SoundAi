@@ -20,8 +20,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "md5.h"
-#include "Md5Compute.h"
+#include "ResourcesPlayer/md5.h"
+#include "ResourcesPlayer/Md5Compute.h"
 
 /*************************************************************************
  *   Function:       compute_file_md5

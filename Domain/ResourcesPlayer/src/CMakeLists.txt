@@ -2,7 +2,7 @@
 # Creator by Sven
 #
 add_library(ResourcesPlayer SHARED
-        ResourcesPlayer.cpp)
+	ResourcesPlayer.cpp http.cpp md5.cpp Md5Compute.cpp cJSON.cpp)
 
 target_include_directories(ResourcesPlayer PUBLIC
         "${ResourcesPlayer_SOURCE_DIR}/include")

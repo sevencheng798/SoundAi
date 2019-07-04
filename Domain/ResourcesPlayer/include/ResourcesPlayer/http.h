@@ -14,16 +14,16 @@
 
 #ifndef _MY_HTTP_H
 #define _MY_HTTP_H
+
+#ifdef __cplusplus
+extern "C"{
+#endif // __cplusplus
  
 #define BUFFER_SIZE 1024
 #define MY_HTTP_DEFAULT_PORT 80
 #define HTTP_POST "POST /%s HTTP/1.1\r\nHOST: %s:%d\r\nAccept: */*\r\n"\
     "Content-Type:application/json\r\nContent-Length: %d\r\n\r\n%s"
 #define TRACK_LINK_URI "http://content.xfyun.cn/music/tracklink?&timestamp=%llu&deviceId=%s&token=%s&appId=%s&kugouUserId=%s&kugouUserToken=%s&clientId=%s&clientDeviceId=%s&itemid=%s"
-
-#ifdef __cplusplus
-extern "C"{
-#endif // __cplusplus
  
 int getMusicUrl(char *aiuiUid, char *appId, char *kugouUserId, char *kugouUserToken, char *clientDeviceId, char *itemId, char *albumId, char *kugouMusicUrl);
 #ifdef __cplusplus

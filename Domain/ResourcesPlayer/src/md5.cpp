@@ -1,4 +1,4 @@
-#include "md5.h"
+#include "ResourcesPlayer/md5.h"
 #include <memory.h>
 
 unsigned char PADDING[] =
