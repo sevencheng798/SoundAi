@@ -265,7 +265,7 @@ static char *httpPost(const char *url, const char *postStr)
  *   Return:         0成功、-1获取失败、-2字符串JSON 解析失败
  *   Others:         无
  ************************************************************************/
-int getMusicUrl(const char *aiuiUid,const char *appId,const char *kugouUserId,const char *kugouUserToken,const char *clientDeviceId,const char *itemId,const char *albumId, char *kugouMusicUrl)
+int getMusicUrl(const char *aiuiUid,const char *appId, const char *appKey, const char *kugouUserId,const char *kugouUserToken,const char *clientDeviceId,const char *itemId,const char *albumId, char *kugouMusicUrl)
 {
 	char *p = NULL;
 	char token[64] = {'\0'};
@@ -279,7 +279,7 @@ int getMusicUrl(const char *aiuiUid,const char *appId,const char *kugouUserId,co
     struct timeval tv;
     gettimeofday(&tv,NULL);
 	long long timeStamp = (long long)tv.tv_sec*1000 + tv.tv_usec/1000;
-	sprintf(token, "%s%s%llu", "5c3d4427", "914a80c33bda12e993559f79ae898205", timeStamp);
+	sprintf(token, "%s%s%llu", appId, appKey, timeStamp);
     printf("token:%s\n", token);  //毫秒
 	compute_string_md5((unsigned char *)token, strlen(token), md5Token);
 
@@ -346,7 +346,7 @@ int getMusicUrl(const char *aiuiUid,const char *appId,const char *kugouUserId,co
 int main(int argc, char **argv)
 {
 	char url[256] = {'\0'};
-	getMusicUrl("d12960427664", "5c3d4427", "1479797450", "5729e8f82e004e73ceb3f698447becfe4f3320140e43e49a7f50817407c8de1bd9a36348c9bb5d3b7103f6b4381292c3", "250b4200d9a496548ed88afd61054193", "03F38ED9AA6B0E6105302F69D8C0C03A", NULL, url);
+	getMusicUrl("d12960427664", "5c3d4427", "914a80c33bda12e993559f79ae898205", "1479797450", "5729e8f82e004e73ceb3f698447becfe4f3320140e43e49a7f50817407c8de1bd9a36348c9bb5d3b7103f6b4381292c3", "250b4200d9a496548ed88afd61054193", "03F38ED9AA6B0E6105302F69D8C0C03A", NULL, url);
 	return 0;
 }
 #endif

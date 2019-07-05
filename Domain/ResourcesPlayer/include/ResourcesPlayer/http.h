@@ -25,7 +25,7 @@ extern "C"{
     "Content-Type:application/json\r\nContent-Length: %d\r\n\r\n%s"
 #define TRACK_LINK_URI "http://content.xfyun.cn/music/tracklink?&timestamp=%llu&deviceId=%s&token=%s&appId=%s&kugouUserId=%s&kugouUserToken=%s&clientId=%s&clientDeviceId=%s&itemid=%s"
 
-int getMusicUrl(const char *aiuiUid,const char *appId,const char *kugouUserId,const char *kugouUserToken,const char *clientDeviceId,const char *itemId,const char *albumId, char *kugouMusicUrl);
+int getMusicUrl(const char *aiuiUid,const char *appId, const char *appKey, const char *kugouUserId,const char *kugouUserToken,const char *clientDeviceId,const char *itemId,const char *albumId, char *kugouMusicUrl);
 #ifdef __cplusplus
 }
 #endif
