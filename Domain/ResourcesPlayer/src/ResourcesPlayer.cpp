@@ -364,10 +364,11 @@ void ResourcesPlayer::buttonPressedPlayback() {
 	});
 }
 
-void ResourcesPlayer::setKuGouParam(const char *aiuiUid, const char *appId, const char *clientDeviceId) {
+void ResourcesPlayer::setKuGouParam(const char *aiuiUid, const char *appId, const char *appKey, const char *clientDeviceId) {
 //todo 
     m_aiuiUid = aiuiUid;
     m_appId = appId;
+    m_appKey = appKey;
     m_clientDeviceId = clientDeviceId;
 }
 
@@ -650,6 +651,7 @@ void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<DirectiveI
         Json::Value audiolist = root["audio_list"][0];
         
         if(audiolist.isMember("itemid")){
+            //kugou resources     
             AISDK_INFO(LX("executePreHandleAfterValidation").d("RESOURCES_FROM", "KUGOU_MUSIC_ITEAMID"));
             enable_kugou_resources = true;
             AnalysisAudioIdForResourcesPlayer(info, AUDIO_ID_LIST);
@@ -1220,6 +1222,7 @@ void ResourcesPlayer::playKuGouResourceItemID(std::string ResourceItemID){
     char url[1024];
     const char* aiuiUid = "d12960427664";
     const char* appId = "5c3d4427";
+    const char* appKey = "914a80c33bda12e993559f79ae898205";
     const char* kugouUserId = "1479797450";
     const char* kugouUserToken = "5729e8f82e004e73ceb3f698447becfe4f3320140e43e49a7f50817407c8de1bd9a36348c9bb5d3b7103f6b4381292c3";
     const char* clientDeviceId = "250b4200d9a496548ed88afd61054193";
@@ -1228,9 +1231,10 @@ void ResourcesPlayer::playKuGouResourceItemID(std::string ResourceItemID){
 
    // aiuiUid = m_aiuiUid;
    // appId = m_appId;
+   // appKey = m_appKey;
    // clientDeviceId = m_clientDeviceId;
     
-    getMusicUrl(aiuiUid, appId, kugouUserId, kugouUserToken, clientDeviceId, itemId, albumId, url);
+    getMusicUrl(aiuiUid, appId, appKey, kugouUserId, kugouUserToken, clientDeviceId, itemId, albumId, url);
     AISDK_INFO(LX("playKuGouResourceItemID").d("getMusicUrl", url));
     playResourceItem(std::string (url));
 }

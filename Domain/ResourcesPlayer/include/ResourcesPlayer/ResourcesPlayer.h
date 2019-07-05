@@ -119,8 +119,8 @@ public:
     /// Stop playing speech audio.
     void buttonPressedPlayback() override;
 
-    void setKuGouParam(const char *aiuiUid, const char *appId, const char *clientDeviceId);
-    
+    ///get kugou param;
+    void setKuGouParam(const char *aiuiUid, const char *appId, const char *appKey, const char *clientDeviceId);
 protected:
 
 	/// @name SafeShutdown method.
@@ -462,6 +462,7 @@ private:
     ///use for store kugou param;
     std::string m_aiuiUid;
     std::string m_appId;
+    std::string m_appKey;
     std::string m_clientDeviceId;
     
 	/// An internal thread pool which queues up operations from asynchronous API calls
