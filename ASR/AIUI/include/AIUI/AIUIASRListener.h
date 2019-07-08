@@ -32,11 +32,6 @@ namespace aiuiEngine {
 // A class Listener that handle respond data.
 class AIUIASRListener : public aiui::AIUIListener {
 public:
-	enum class AIUIState {
-		IDLE,
-		LISTENING,
-		SPEAKING
-	};
 	/**
      * Sets an observer to be notified when have state changes on @c onEvent() be called.
      *
@@ -75,16 +70,6 @@ private:
 
 	/// Lock to protect m_listenerObserver when users wish to set or remove observers.
     std::mutex m_listenerObserverMutex;
-		
-	/// The current state of the @c AudioInputProcessor.
-    ///ObserverInterface::State m_state;
-
-	//std::shared_ptr<utils::sharedbuffer::Reader> m_reader;
-		
-	//FileUtil::DataFileHelper* mFileHelper;
-	
-
-	//utils::threading::Executor m_executor;
 };
 
 } // namespace aiui
