@@ -150,7 +150,7 @@ static int httpTcpClientRecv(int socket, char *lpbuff)
 			}
 		}
 		//printf("func = %s[%d] \n__________buf = %s______________\n", __func__,__LINE__, buf);
-        AISDK_INFO(LX("httpTcpClientRecv").d("reason: ", buf));
+        //AISDK_INFO(LX("httpTcpClientRecv").d("reason: ", buf));
 		strcat(lpbuff, buf);
 		//printf("func = %s[%d] num = %d\n, content-length = %d\n", __func__,__LINE__, num, length);
 		recvnum += num;
@@ -187,7 +187,7 @@ static char *httpParseResult(const char *lpbuf)
     }
     if(atoi(ptmp + 9)!=200)
 	{
-        AISDK_INFO(LX("httpParseResult").d("lpbuf: ", lpbuf));
+        //AISDK_INFO(LX("httpParseResult").d("lpbuf: ", lpbuf));
         return NULL;
     }
  
@@ -204,7 +204,7 @@ static char *httpParseResult(const char *lpbuf)
         return NULL;
     }
     strcpy(response, ptmp+4);
-    AISDK_INFO(LX("httpParseResult").d("response: ", response));
+    //AISDK_INFO(LX("httpParseResult").d("response: ", response));
     return response;
 }
  
@@ -249,7 +249,7 @@ static char *httpPost(const char *url, const char *postStr)
         AISDK_ERROR(LX("httpPost").d("reason: ", "httpTcpClientSend failed"));
         return NULL;
     }
-    AISDK_INFO(LX("httpPost").d("sendBuf: ", sendBuf));
+    //AISDK_INFO(LX("httpPost").d("sendBuf: ", sendBuf));
  
     /*it's time to recv from server*/
     if(httpTcpClientRecv(socketFd, recvBuf) <= 0)
@@ -257,7 +257,7 @@ static char *httpPost(const char *url, const char *postStr)
         AISDK_ERROR(LX("httpPost").d("reason: ", "httpTcpClientRecv failed"));
         return NULL;
     }
-    AISDK_INFO(LX("httpPost").d("recvBuf: ", recvBuf));
+    //AISDK_INFO(LX("httpPost").d("recvBuf: ", recvBuf));
  
     httpTcpClientClose(socketFd);
  
@@ -288,7 +288,7 @@ int getMusicUrl(const char *aiuiUid,const char *appId, const char *appKey, const
     gettimeofday(&tv,NULL);
 	long long timeStamp = (long long)tv.tv_sec*1000 + tv.tv_usec/1000;
 	sprintf(token, "%s%s%llu", appId, appKey, timeStamp);
-    AISDK_INFO(LX("getMusicUrl").d("token: ", token));
+    //AISDK_INFO(LX("getMusicUrl").d("token: ", token));
 
 	compute_string_md5((unsigned char *)token, strlen(token), md5Token);
 
@@ -297,12 +297,12 @@ int getMusicUrl(const char *aiuiUid,const char *appId, const char *appKey, const
 	{
 		sprintf(postSendBuf, "%s&albumid=%s", postSendBuf, albumId);
 	}
-    AISDK_INFO(LX("getMusicUrl").d("postSendBuf: ", postSendBuf));
+    //AISDK_INFO(LX("getMusicUrl").d("postSendBuf: ", postSendBuf));
 
 	p = httpPost(postSendBuf, "");
 	if(p != NULL)
 	{
-    	AISDK_INFO(LX("getMusicUrl").d("p: ", p));
+    	//AISDK_INFO(LX("getMusicUrl").d("p: ", p));
 
 		cJSON *json = NULL, *json_msg = NULL, *json_result = NULL, *json_audiopath = NULL;
 		json = cJSON_Parse(p);
@@ -316,7 +316,7 @@ int getMusicUrl(const char *aiuiUid,const char *appId, const char *appKey, const
 			json_msg = cJSON_GetObjectItem( json , "msg" );  //获取键值内容
 			if(0 == strcmp(json_msg->valuestring, "success"))
 			{
-    			AISDK_INFO(LX("getMusicUrl").d("json_msg: ", json_msg->valuestring));
+    			//AISDK_INFO(LX("getMusicUrl").d("json_msg: ", json_msg->valuestring));
 				json_result = cJSON_GetObjectItem( json , "result" );  //获取键值内容
 				if(json_result != NULL)
 				{
@@ -334,7 +334,7 @@ int getMusicUrl(const char *aiuiUid,const char *appId, const char *appKey, const
 						{
 							json_audiopath = cJSON_GetObjectItem(pSub, "audiopath");
 							sprintf(kugouMusicUrl, "%s", json_audiopath->valuestring);
-    						AISDK_INFO(LX("getMusicUrl").d("kugouMusicUrl: ", kugouMusicUrl));
+    						//AISDK_INFO(LX("getMusicUrl").d("kugouMusicUrl: ", kugouMusicUrl));
 						}
 					}
 				}
@@ -344,7 +344,7 @@ int getMusicUrl(const char *aiuiUid,const char *appId, const char *appKey, const
 	}
 	else
 	{
-    	AISDK_INFO(LX("getMusicUrl").d("kugouMusicUrl: ", "url is null"));
+    	//AISDK_INFO(LX("getMusicUrl").d("kugouMusicUrl: ", "url is null"));
 		return -1;
 	}
 
