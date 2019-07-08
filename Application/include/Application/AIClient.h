@@ -87,7 +87,7 @@ public:
 	 */
 	void buttonPressed();
 
-    void bringupSound(utils::bringup::eventType type);
+	void bringupSound(utils::bringup::eventType type, std::string ttsTxt);
 
     /// @name NetworkStateObserverInterface methods
 	/// @{

@@ -69,7 +69,7 @@ public:
     /*
      * start up music
     */
-    void playBringupSound(utils::bringup::eventType type);
+    void playBringupSound(utils::bringup::eventType type, std::string ttsTxt);
 	
     /**
      * Should be called whenever a user presses and releases the tap button.

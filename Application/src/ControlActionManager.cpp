@@ -12,6 +12,7 @@
 #include "Application/UIManager.h"
 #include "Application/ControlActionManager.h"
 #include <Utils/Logging/Logger.h>
+#include "string.h"
 
 
 // String to identify log entries originating from this file.
@@ -54,13 +55,13 @@ void ControlActionManager::microphoneToggle() {
             m_isMicOn = false;
             m_micWrapper->stopStreamingMicrophoneData();
             m_userInterface->microphoneOff();
-            playBringupSound(utils::bringup::eventType::MICROPHONE_OFF);
+            playBringupSound(utils::bringup::eventType::MICROPHONE_OFF, (char *)"");
 
         } else {
             m_isMicOn = true;
             m_micWrapper->startStreamingMicrophoneData();
             m_userInterface->microphoneOn();
-            playBringupSound(utils::bringup::eventType::MICROPHONE_ON);
+            playBringupSound(utils::bringup::eventType::MICROPHONE_ON, (char *)"");
             
         }
     });	
@@ -70,9 +71,10 @@ void ControlActionManager::playbackControl() {
     m_executor.submit([this]() { m_client->buttonPressed(); });
 }
 
-void ControlActionManager::playBringupSound(utils::bringup::eventType type) {
+void ControlActionManager::playBringupSound(utils::bringup::eventType type, std::string ttsTxt) {
+    AISDK_INFO(LX("playBringupSound").d("ttsTxt", ttsTxt));
 
-    m_executor.submit([this, type]() { m_client->bringupSound(type);});
+    m_executor.submit([this, type, ttsTxt]() { m_client->bringupSound(type, ttsTxt);});
 }
 
 void ControlActionManager::tap() {

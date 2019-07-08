@@ -324,7 +324,7 @@ void AIClient::buttonPressed() {
 
 void AIClient::onNetworkStatusChanged(const Status newState) {
     if(newState == utils::NetworkStateObserverInterface::Status::DISCONNECTED) {
-        bringupSound(utils::bringup::eventType::NET_DISCONNECTED);
+		bringupSound(utils::bringup::eventType::NET_DISCONNECTED, (char *)"");
     }else if(newState == utils::NetworkStateObserverInterface::Status::CONNECTED) {
 
     }
@@ -352,8 +352,9 @@ AIClient::~AIClient() {
 	}
 }
 
-void AIClient::bringupSound(utils::bringup::eventType type) {
-    m_bringupPlayer->start(type);
+void AIClient::bringupSound(utils::bringup::eventType type, std::string ttsTxt) {
+    AISDK_INFO(LX("bringupSound").d("ttsTxt", ttsTxt));
+	m_bringupPlayer->start(type, ttsTxt);
 }
 }  // namespace application
 }  // namespace aisdk

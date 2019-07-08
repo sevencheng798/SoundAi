@@ -64,7 +64,7 @@ public:
 
      void init();
 
-    bool start(utils::bringup::eventType type);
+    bool start(utils::bringup::eventType type,  std::string ttsTxt);
      
      ~Bringup();
 
@@ -85,6 +85,8 @@ private:
     utils::bringup::eventType m_status;
     int m_playFlag;
     utils::channel::FocusState m_Tracep;
+
+    std::string m_ttsTxt;
     
     enum PLAY_FLAG{
         IDLE = 0,
@@ -93,6 +95,10 @@ private:
         PLAY_ERROR_FLAG,
         PLAY_STOP_FLAG
     };
+
+    ///
+    const char* CreateRandomUuid(char *uuid);
+    void inOpenFile(const char *filePath);
 
     utils::threading::Executor  m_executor;
 };

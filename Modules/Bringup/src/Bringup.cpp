@@ -12,6 +12,7 @@
 #include <fstream>
 #include <Utils/Logging/Logger.h>
 #include <Utils/BringUp/BringUpEventType.h>
+#include "string.h"
 #include "Bringup.h"
 
 /// String to identify log entries originating from this file.
@@ -60,6 +61,21 @@ Bringup::Bringup(
 
 Bringup::~Bringup() { }
 
+void Bringup::inOpenFile(const char *filePath)
+{
+    in->open(filePath, std::ifstream::in);
+    if(!in->is_open())
+    {
+        AISDK_ERROR(LX("onTrackChanged").d("reason", "notFileBeOpened"));
+        //return;
+    }
+    else
+    {
+        m_currentSourceId = m_bringupPlayer->setSource(in, false);
+        AISDK_INFO(LX("onTrackChanged").d("m_currentSourceId", m_currentSourceId));
+    }
+}
+
 void Bringup::onTrackChanged(utils::channel::FocusState newTrace) { 
     AISDK_INFO(LX("onTrackChanged").d("FocusState", newTrace));
     m_Tracep = newTrace;
@@ -68,42 +84,74 @@ void Bringup::onTrackChanged(utils::channel::FocusState newTrace) {
         {
             switch(m_status){
             case utils::bringup::eventType::BRINGUP_RESTART_CONFIG:
-                in->open("/cfg/sai_config/restartconfig.mp3", std::ifstream::in);
+                inOpenFile("/cfg/sai_config/restartconfig.mp3");
+                //in->open("/cfg/sai_config/restartconfig.mp3", std::ifstream::in);
             break;
             case utils::bringup::eventType::BRINGUP_START_BIND:
-                in->open("/cfg/sai_config/startbind.mp3", std::ifstream::in);
+                inOpenFile("/cfg/sai_config/startbind.mp3");
+                //in->open("/cfg/sai_config/startbind.mp3", std::ifstream::in);
             break;
             case utils::bringup::eventType::BRINGUP_BIND_COMPLETE:
-                in->open("/cfg/sai_config/bind_ok.mp3", std::ifstream::in);
+                inOpenFile("/cfg/sai_config/bind_ok.mp3");
+                //in->open("/cfg/sai_config/bind_ok.mp3", std::ifstream::in);
             break;
             case utils::bringup::eventType::BRINGUP_GMJK_START:
-                in->open("/cfg/sai_config/gmjkstart.mp3", std::ifstream::in);
+                inOpenFile("/cfg/sai_config/gmjkstart.mp3");
+                //in->open("/cfg/sai_config/gmjkstart.mp3", std::ifstream::in);
             break;
             case utils::bringup::eventType::MICROPHONE_OFF:
-                in->open("/cfg/sai_config/mic_close.mp3", std::ifstream::in);
+                inOpenFile("/cfg/sai_config/mic_close.mp3");
+                //in->open("/cfg/sai_config/mic_close.mp3", std::ifstream::in);
             break;
              case utils::bringup::eventType::MICROPHONE_ON:
-                in->open("/cfg/sai_config/mic_open.mp3", std::ifstream::in);
+                inOpenFile("/cfg/sai_config/mic_open.mp3");
+                //in->open("/cfg/sai_config/mic_open.mp3", std::ifstream::in);
             break;
              case utils::bringup::eventType::NET_DISCONNECTED:
-                in->open("/cfg/sai_config/net_connecting.mp3", std::ifstream::in);
+                inOpenFile("/cfg/sai_config/net_connecting.mp3");
+                //in->open("/cfg/sai_config/net_connecting.mp3", std::ifstream::in);
              break;
              case utils::bringup::eventType::BRINGUP_UPGRADE_START:
-                in->open("/cfg/sai_config/upgrade_start.mp3", std::ifstream::in);
+                inOpenFile("/cfg/sai_config/upgrade_start.mp3");
+                //in->open("/cfg/sai_config/upgrade_start.mp3", std::ifstream::in);
+             break;
+             case utils::bringup::eventType::BRINGUP_PULSE_SCORE:
+             {
+                #if 1
+                char contentId[37];
+                //char currentContent[1024] = "文本播放成功.";
+                CreateRandomUuid(contentId);
+                auto writer = m_attachmentDocker->createWriter(contentId);
+                auto reader = m_attachmentDocker->createReader(contentId, utils::sharedbuffer::ReaderPolicy::BLOCKING);
+                AISDK_DEBUG(LX("start").d("PULSESCORE:", m_ttsTxt));
+                m_asrEngine->acquireTextToSpeech(m_ttsTxt, std::move(writer));
+
+                utils::AudioFormat format {
+                    .encoding = aisdk::utils::AudioFormat::Encoding::LPCM,
+                    .endianness = aisdk::utils::AudioFormat::Endianness::LITTLE,
+                    .sampleRateHz = 16000,
+                    .sampleSizeInBits = 16,
+                    .numChannels = 1,
+                    .dataSigned = true };
+
+                m_currentSourceId = m_bringupPlayer->setSource(std::move(reader), &format);
+                
+                #endif  
+             }
              break;
             default:
             break; 
 
-            if(!in->is_open()) {
-                AISDK_ERROR(LX("onTrackChanged").d("reason", "notFileBeOpened"));
-                return;
-            }
+            //if(!in->is_open()) {
+            //    AISDK_ERROR(LX("onTrackChanged").d("reason", "notFileBeOpened"));
+            //    return;
+            //}
                     
             }            
                         
 
-            m_currentSourceId = m_bringupPlayer->setSource(in, false);
-            AISDK_INFO(LX("onTrackChanged").d("m_currentSourceId", m_currentSourceId));
+            //m_currentSourceId = m_bringupPlayer->setSource(in, false);
+            //AISDK_INFO(LX("onTrackChanged").d("m_currentSourceId", m_currentSourceId));
       
             m_bringupPlayer->play(m_currentSourceId);
         }
@@ -148,18 +196,54 @@ void Bringup::onPlaybackStopped(SourceId id) {
 
 }
 
+/* Create random UUID */
+/* @param uuid[37] - buffer to be filled with the uuid string */
+const char* Bringup::CreateRandomUuid(char *uuid)
+{
+    const char *c = "89ab";
+    char *p = uuid;
+    int n;
+    for( n = 0; n < 16; ++n ) {
+        int b = rand()%255;
+        switch(n)
+        {
+            case 6:
+                sprintf(p, "4%x", b%15 );
+            break;
+            case 8:
+                sprintf(p, "%c%x", c[rand()%strlen(c)], b%15 );
+            break;
+            default:
+                sprintf(p, "%02x", b);
+            break;
+        }
+        p += 2;
+        switch(n) {
+            case 3:
+            case 5:
+            case 7:
+            case 9:
+                *p++ = '-';
+                break;
+        }
+    }
+    *p = 0;
+    return uuid;
+}
 
 void Bringup::init() {
     m_bringupPlayer->setObserver(shared_from_this());
 }
 
 
-bool Bringup::start(utils::bringup::eventType type) {
+bool Bringup::start(utils::bringup::eventType type, std::string ttsTxt) {
     m_status = type;
-
+    m_ttsTxt = ttsTxt;
     AISDK_INFO(LX("start").d("m_currentSourceId", m_currentSourceId)
                           .d("m_playFlag", m_playFlag)
-                          .d("m_Tracep", m_Tracep));
+                          .d("m_Tracep", m_Tracep)
+                          .d("ttsTxt", ttsTxt)
+                          .d("m_ttsTxt", m_ttsTxt));
     if(m_Tracep != utils::channel::FocusState::NONE)
     {
         m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this());

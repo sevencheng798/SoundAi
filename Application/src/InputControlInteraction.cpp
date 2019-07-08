@@ -79,6 +79,7 @@ int InputControlInteraction::run() {
                 .d("msg_type", GM_MSG_GM_TASK)
                 .d("mode", m_mqRecvInfo.msg_info.sub_msg_info.sub_id)
                 .d("status", m_mqRecvInfo.msg_info.sub_msg_info.status)
+                .d("content", m_mqRecvInfo.msg_info.sub_msg_info.content)
                 .d("content_len", m_mqRecvInfo.msg_info.sub_msg_info.content_len)
                 .d("iparam", m_mqRecvInfo.msg_info.sub_msg_info.iparam));             
         }
@@ -99,7 +100,7 @@ int InputControlInteraction::run() {
                     break;
                 case MQ_EVT_BRINGUP:
                     AISDK_INFO(LX("IPC::ReceiveMsg BRINGUP").d("ipcStatus", ipcStatus));
-                    m_controlActionManager->playBringupSound(static_cast<utils::bringup::eventType>(ipcStatus));
+                    m_controlActionManager->playBringupSound(static_cast<utils::bringup::eventType>(ipcStatus), (char *)(m_mqRecvInfo.msg_info.sub_msg_info.content));
                     break;
                 default:
                     break;
