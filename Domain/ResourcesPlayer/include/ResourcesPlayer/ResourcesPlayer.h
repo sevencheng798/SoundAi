@@ -130,8 +130,6 @@ public:
 		const std::string &deviceId) override;
 	/// }
 
-    ///get kugou param;
-    void setKuGouParam(const char *aiuiUid, const char *appId, const char *appKey, const char *clientDeviceId);
 protected:
 
 	/// @name SafeShutdown method.
@@ -284,7 +282,7 @@ private:
 
     void playResourceItem(std::string ResourceItem );
 
-    void playKuGouResourceItemID(std::string ResourceItemID );
+    void playKuGouResourceItemID(std::string ResourceItemID, std::string ResourceAlbumIdID);
     
     void executePlaybackError(const utils::mediaPlayer::ErrorType& type, std::string error);
 
@@ -472,9 +470,16 @@ private:
 
     ///use for store kugou param;
     std::string m_aiuiUid;
+    
     std::string m_appId;
+    
     std::string m_appKey;
+    
     std::string m_clientDeviceId;
+
+    std::string m_kugouUserToken;
+
+    std::string m_kugouUserId;
     
 	/// An internal thread pool which queues up operations from asynchronous API calls
 	utils::threading::Executor m_executor;
