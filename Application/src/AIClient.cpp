@@ -190,7 +190,9 @@ bool AIClient::initialize(
     }
 
 	m_resourcesPlayer->addObserver(m_dialogUXStateRelay);
-    
+
+	// Adding UID observer to @c m_resourcesPlayer.
+	m_asrRefreshConfig->addObserver(m_resourcesPlayer);    
     AISDK_INFO(LX("initializeSucessed").d("reason", "CreateResourcesPlayer============here!!!!!!!!"));
 
      /*
