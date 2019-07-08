@@ -30,7 +30,7 @@ public:
 	virtual void handleEventStateReady() = 0;
 
 	virtual void handleEventStateWorking() = 0;
-
+	virtual void handleEventConnectToSever(std::string uid) = 0;
 	virtual void handleEventVadBegin() = 0;
 	virtual void handleEventVadEnd() = 0;
 	/**
