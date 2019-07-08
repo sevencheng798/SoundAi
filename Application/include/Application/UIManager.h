@@ -13,6 +13,7 @@
 #ifndef __UI_MANAGER_H_
 #define __UI_MANAGER_H_
 
+#include <DMInterface/AutomaticSpeechRecognizerUIDObserverInterface.h>
 #include <DMInterface/VolumeObserverInterface.h>
 #include <Utils/DialogRelay/DialogUXStateObserverInterface.h>
 #include <Utils/NetworkStateObserverInterface.h>
@@ -29,7 +30,8 @@ namespace application {
 class UIManager 
 	: public utils::dialogRelay::DialogUXStateObserverInterface
 	, public utils::NetworkStateObserverInterface
-	, public dmInterface::VolumeObserverInterface {
+	, public dmInterface::VolumeObserverInterface
+	, public dmInterface::AutomaticSpeechRecognizerUIDObserverInterface {
 	
 public:
 	/// A alias @c DialogUXStateObserverInterface
@@ -56,6 +58,15 @@ public:
 	/// @name VolumeObserverInterface methods.
 	/// @{
 	bool onVolumeChange(Type volumeType = Type::NLP_VOLUME_SET, int volume = 50) override;
+	/// }
+
+    /// @name AutomaticSpeechRecognizerUIDObserverInterface method.
+    /// @{
+	void asrRefreshConfiguration(
+		const std::string &uid,
+		const std::string &appid,
+		const std::string &key,
+		const std::string &deviceId) override;
 	/// }
 	
 	/// Prints the Error Message for Wrong Input.

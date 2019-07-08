@@ -149,8 +149,9 @@ bool SampleApp::initialize() {
         /// ...
         /// ...
 		m_streamMediaPlayer,
+		m_alarmMediaPlayer,
 		{userInterfaceManager},
-		m_alarmMediaPlayer);
+		{userInterfaceManager});
 	if (!m_aiClient) {
         AISDK_ERROR(LX("Failed to create AI SDK client!"));
         return false;

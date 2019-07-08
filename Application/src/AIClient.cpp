@@ -32,9 +32,11 @@ std::unique_ptr<AIClient> AIClient::createNew(
     std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> resourceMediaPlayer,
 	
 	std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> streamMediaPlayer,
+  	std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> alarmMediaPlayer,
 	std::unordered_set<std::shared_ptr<utils::dialogRelay::DialogUXStateObserverInterface>>
     	dialogStateObservers,
-  	std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> alarmMediaPlayer) {
+    std::unordered_set<std::shared_ptr<dmInterface::AutomaticSpeechRecognizerUIDObserverInterface>>
+		asrRefreshUid) {
     std::unique_ptr<AIClient> aiClient(new AIClient());
 	if(!aiClient->initialize(
 		deviceInfo,
@@ -42,7 +44,8 @@ std::unique_ptr<AIClient> AIClient::createNew(
 		resourceMediaPlayer,
 		streamMediaPlayer,
 		alarmMediaPlayer,
-		dialogStateObservers
+		dialogStateObservers,
+		asrRefreshUid
 	)) {
 		return nullptr;
 	}
@@ -59,7 +62,9 @@ bool AIClient::initialize(
 	std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> streamMediaPlayer,
 	std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> alarmMediaPlayer,
 	std::unordered_set<std::shared_ptr<utils::dialogRelay::DialogUXStateObserverInterface>>
-    	dialogStateObservers) {
+    	dialogStateObservers,
+    std::unordered_set<std::shared_ptr<dmInterface::AutomaticSpeechRecognizerUIDObserverInterface>>
+		asrRefreshUid) {
 	if(!deviceInfo){
 		AISDK_ERROR(LX("initializeFailed").d("reason", "nulldeviceInfo"));
 		return false;
@@ -86,10 +91,14 @@ bool AIClient::initialize(
 	}
 
 	m_dialogUXStateRelay = std::make_shared<utils::dialogRelay::DialogUXStateRelay>();
-
     for (auto observer : dialogStateObservers) {
         m_dialogUXStateRelay->addObserver(observer);
     }
+
+	m_asrRefreshConfig = std::make_shared<asr::ASRRefreshConfiguration>();
+	for(auto observer : asrRefreshUid) {
+		m_asrRefreshConfig->addObserver(observer);
+	}
 
 	/*
 	* Creating the Domain directive Sequencer - This is the component that deals with the sequencing and ordering of
@@ -133,6 +142,7 @@ bool AIClient::initialize(
 		m_audioTrackManager,
 		attachmentDocker,
 		messageConsumer,
+		m_asrRefreshConfig,
 		config);
 	if(!m_asrEngine) {
 		AISDK_ERROR(LX("initializeFailed").d("reason", "unableToCreateASREngine"));
@@ -143,7 +153,8 @@ bool AIClient::initialize(
 		deviceInfo, 
 		m_audioTrackManager,
 		attachmentDocker,
-		messageConsumer);
+		messageConsumer,
+		m_asrRefreshConfig);
 	if(!m_asrEngine) {
 		AISDK_ERROR(LX("initializeFailed").d("reason", "unableToCreateASREngine"));
 		return false;

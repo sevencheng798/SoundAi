@@ -16,7 +16,7 @@
 
 #include "Application/UIManager.h"
 #include <dirent.h>
-
+#include "properties.h"
 
 static const std::string TAG{"UIManager"};
 #define LX(event) aisdk::utils::logging::LogEntry(TAG, event)
@@ -137,6 +137,21 @@ bool UIManager::onVolumeChange(dmInterface::VolumeObserverInterface::Type volume
 	m_executor.submit([this, volumeType, volume]() { adjustVolume(volumeType, volume); });
 
 	return true;
+}
+
+void UIManager::asrRefreshConfiguration(
+		const std::string &uid,
+		const std::string &appid, 
+		const std::string &key,
+		const std::string &deviceId) {
+	AISDK_DEBUG5(LX("asrRefreshConfiguration").d("uid", uid));
+	if(uid.empty()) {
+		AISDK_ERROR(LX("asrRefreshConfigurationFailed").d("reason", "uidIsEmpty"));
+	}else{
+		//setprop((char *)"xf.aiui.uid", (char *)uid.c_str());
+		// TODO: IPC to notify gm_task
+		
+	}
 }
 
 void UIManager::printErrorScreen() {

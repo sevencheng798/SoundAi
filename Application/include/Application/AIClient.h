@@ -25,10 +25,12 @@
 #include <Utils/SharedBuffer/SharedBuffer.h>
 #include <DMInterface/DomainSequencerInterface.h>
 #include <DMInterface/PlaybackRouterInterface.h>
+#include <DMInterface/AutomaticSpeechRecognizerUIDObserverInterface.h>
 
 #include "AudioTrackManager/AudioTrackManager.h"
 
 #include <ASR/GenericAutomaticSpeechRecognizer.h>
+#include <ASR/ASRRefreshConfiguration.h>
 #include "SpeechSynthesizer/SpeechSynthesizer.h"
 #include "ResourcesPlayer/ResourcesPlayer.h"
 #include "AlarmsPlayer/AlarmsPlayer.h"
@@ -56,9 +58,11 @@ public:
     	/// ...
     	/// ...
 		std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> streamMediaPlayer,
+        std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> alarmMediaPlayer,
 		std::unordered_set<std::shared_ptr<utils::dialogRelay::DialogUXStateObserverInterface>>
         	dialogStateObservers,
-        std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> alarmMediaPlayer);
+        std::unordered_set<std::shared_ptr<dmInterface::AutomaticSpeechRecognizerUIDObserverInterface>>
+			asrRefreshUid);
 
 	bool notifyOfWakeWord(
 		std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream,
@@ -108,11 +112,16 @@ private:
 		std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> streamMediaPlayer,
 		std::shared_ptr<utils::mediaPlayer::MediaPlayerInterface> alarmMediaPlayer,
 		std::unordered_set<std::shared_ptr<utils::dialogRelay::DialogUXStateObserverInterface>>
-			dialogStateObservers);
+			dialogStateObservers,
+		std::unordered_set<std::shared_ptr<dmInterface::AutomaticSpeechRecognizerUIDObserverInterface>>
+			asrRefreshUid);
 
 	/// The AI dialog UX State.
 	std::shared_ptr<utils::dialogRelay::DialogUXStateRelay> m_dialogUXStateRelay;
 
+	/// The UID refresh .
+	std::shared_ptr<asr::ASRRefreshConfiguration> m_asrRefreshConfig;
+	
 	/// The domain directive sequence.
 	std::shared_ptr<dmInterface::DomainSequencerInterface> m_domainSequencer;
 
