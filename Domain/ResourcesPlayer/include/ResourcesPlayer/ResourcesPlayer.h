@@ -28,6 +28,7 @@
 #include <Utils/SafeShutdown.h>
 #include <DMInterface/PlaybackRouterInterface.h>
 #include <DMInterface/ResourcesPlayerObserverInterface.h>
+#include <DMInterface/AutomaticSpeechRecognizerUIDObserverInterface.h>
 #include <NLP/DomainProxy.h>
 #include <Utils/cJSON.h>
 #include <Utils/DeviceInfo.h>
@@ -47,6 +48,7 @@ class ResourcesPlayer
 		, public utils::SafeShutdown
 		, public utils::mediaPlayer::MediaPlayerObserverInterface
 		, public dmInterface::PlaybackRouterInterface
+		, public dmInterface::AutomaticSpeechRecognizerUIDObserverInterface
 		, public std::enable_shared_from_this<ResourcesPlayer> {
 public:
 
@@ -118,6 +120,15 @@ public:
 	/// @{
     /// Stop playing speech audio.
     void buttonPressedPlayback() override;
+
+    /// @name AutomaticSpeechRecognizerUIDObserverInterface method.
+    /// @{
+	void asrRefreshConfiguration(
+		const std::string &uid,
+		const std::string &appid,
+		const std::string &key,
+		const std::string &deviceId) override;
+	/// }
 
     ///get kugou param;
     void setKuGouParam(const char *aiuiUid, const char *appId, const char *appKey, const char *clientDeviceId);

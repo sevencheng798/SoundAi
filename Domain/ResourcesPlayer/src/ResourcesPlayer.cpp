@@ -364,6 +364,23 @@ void ResourcesPlayer::buttonPressedPlayback() {
 	});
 }
 
+void ResourcesPlayer::asrRefreshConfiguration(
+		const std::string &uid,
+		const std::string &appid, 
+		const std::string &key,
+		const std::string &deviceId) {
+	if(uid.empty() || appid.empty() || key.empty() || deviceId.empty()) {
+		AISDK_ERROR(LX("asrRefreshConfigurationFailed").d("reason", "paramsIsEmpty"));
+	} else {
+		AISDK_DEBUG5(LX("asrRefreshConfiguration")
+				.d("uid", uid)
+				.d("appid", appid)
+				.d("key", key)
+				.d("deviceId", deviceId));
+		// TODO:	
+	}
+}
+
 void ResourcesPlayer::setKuGouParam(const char *aiuiUid, const char *appId, const char *appKey, const char *clientDeviceId) {
 //todo 
     m_aiuiUid = aiuiUid;
