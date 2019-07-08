@@ -90,14 +90,16 @@ int UIManager::creatMsg(MqSndInfo mqSndInfo){
         snd_info.msg_info.sub_msg_info.sub_id = mqSndInfo.msg_info.sub_msg_info.sub_id;
         snd_info.msg_info.sub_msg_info.status = mqSndInfo.msg_info.sub_msg_info.status;
         memcpy(snd_info.msg_info.sub_msg_info.content, tmp, sizeof(char)* 255);
+        memcpy(snd_info.msg_info.sub_msg_info.content, mqSndInfo.msg_info.sub_msg_info.content, sizeof(mqSndInfo.msg_info.sub_msg_info.content));
         snd_info.msg_info.sub_msg_info.content_len = sizeof(char) * 255;
         snd_info.msg_info.sub_msg_info.iparam = 0xffffffff;
         snd_info.mq_flag = IPC_NOWAIT;
 
         AISDK_INFO(LX("IPC::creatMsg")
-            .d("msg_type ",GM_MSG_SAMPLE)
-            .d("mode ",mqSndInfo.msg_info.sub_msg_info.sub_id)
-            .d("status ",mqSndInfo.msg_info.sub_msg_info.status));
+            .d("msg_type ", GM_MSG_SAMPLE)
+            .d("mode ", mqSndInfo.msg_info.sub_msg_info.sub_id)
+            .d("status ", mqSndInfo.msg_info.sub_msg_info.status)
+            .d("content", snd_info.msg_info.sub_msg_info.content));
         ret = mq_send(&snd_info);
         
         if (0 > ret) {
@@ -150,7 +152,10 @@ void UIManager::asrRefreshConfiguration(
 	}else{
 		//setprop((char *)"xf.aiui.uid", (char *)uid.c_str());
 		// TODO: IPC to notify gm_task
-		
+        memset(&m_mqSndInfo, 0x00, sizeof(m_mqSndInfo));   
+        m_mqSndInfo.msg_info.sub_msg_info.sub_id = MQ_EVT_SET_PROP;
+        memcpy(m_mqSndInfo.msg_info.sub_msg_info.content, uid.c_str(), uid.length());
+        creatMsg(m_mqSndInfo);
 	}
 }
 
