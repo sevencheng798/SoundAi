@@ -67,6 +67,13 @@ void AIUIASRListener::onEvent(const aiui::IAIUIEvent& event) const {
 	case aiui::AIUIConstant::EVENT_SLEEP:
 		AISDK_INFO(LX("EVENT_SLEEP").d("arg1", event.getArg1()));
 		break;
+    case aiui::AIUIConstant::EVENT_CONNECTED_TO_SERVER:
+        {
+        std::string key("uid");
+        std::string value;
+        AISDK_INFO(LX("EVENT_CONNECTED_TO_SERVER").d("uid", event.getData()->getString(key.c_str(), value.c_str())));
+        }
+        break;
 	//VAD事件回调，如找到前后端点
 	case aiui::AIUIConstant::EVENT_VAD:
 	{
