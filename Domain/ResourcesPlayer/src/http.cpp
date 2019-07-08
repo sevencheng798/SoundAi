@@ -25,6 +25,14 @@
 #include "ResourcesPlayer/http.h"
 #include "ResourcesPlayer/cJSON.h"
 #include "ResourcesPlayer/Md5Compute.h"
+
+#include <Utils/Logging/Logger.h>
+
+
+/// String to identify log entries originating from this file.
+static const std::string TAG{"HTTP"};
+//
+#define LX(event) aisdk::utils::logging::LogEntry(TAG, event)
  
 static int httpTcpClientCreate(const char *host, int port)
 {
@@ -142,8 +150,9 @@ static int httpTcpClientRecv(int socket, char *lpbuff)
 			}
 		}
 		//printf("func = %s[%d] \n__________buf = %s______________\n", __func__,__LINE__, buf);
+        AISDK_INFO(LX("httpTcpClientRecv").d("reason: ", buf));
 		strcat(lpbuff, buf);
-		printf("func = %s[%d] num = %d\n, content-length = %d\n", __func__,__LINE__, num, length);
+		//printf("func = %s[%d] num = %d\n, content-length = %d\n", __func__,__LINE__, num, length);
 		recvnum += num;
 	}
  
@@ -173,30 +182,29 @@ static char *httpParseResult(const char *lpbuf)
     ptmp = (char*)strstr(lpbuf,"HTTP/1.1");
     if(!ptmp)
 	{
-        printf("http/1.1 not find\n");
+        AISDK_ERROR(LX("httpParseResult").d("reason: ", "http/1.1 not find"));
         return NULL;
     }
     if(atoi(ptmp + 9)!=200)
 	{
-        printf("result:\n%s\n",lpbuf);
+        AISDK_INFO(LX("httpParseResult").d("lpbuf: ", lpbuf));
         return NULL;
     }
-	printf("ptmp = %s\n", ptmp);
  
     ptmp = (char*)strstr(lpbuf,"\r\n\r\n");
     if(!ptmp)
 	{
-        printf("ptmp is NULL\n");
+        AISDK_ERROR(LX("httpParseResult").d("reason: ", "ptmp is NULL"));
         return NULL;
     }
     response = (char *)malloc(strlen(ptmp)+1);
     if(!response)
 	{
-        printf("malloc failed \n");
+        AISDK_ERROR(LX("httpParseResult").d("reason: ", "malloc failed"));
         return NULL;
     }
     strcpy(response, ptmp+4);
-	//printf("response = %s\n", response);
+    AISDK_INFO(LX("httpParseResult").d("response: ", response));
     return response;
 }
  
@@ -216,13 +224,13 @@ static char *httpPost(const char *url, const char *postStr)
  
     if(!url || !postStr)
 	{
-        printf("http post failed!\n");
+        AISDK_ERROR(LX("httpPost").d("reason: ", "http post failed"));
         return NULL;
     }
  
     if(httpParseUrl(url, hostAddr, file, &port))
 	{
-        printf("httpParseUrl failed!\n");
+        AISDK_ERROR(LX("httpPost").d("reason: ", "httpParseUrl failed"));
         return NULL;
     }
     //printf("hostAddr : %s\tfile:%s\t,%d\n",hostAddr,file,port);
@@ -230,7 +238,7 @@ static char *httpPost(const char *url, const char *postStr)
     socketFd = httpTcpClientCreate(hostAddr, port);
     if(socketFd < 0)
 	{
-        printf("httpTcpClientCreate failed\n");
+        AISDK_ERROR(LX("httpPost").d("reason: ", "httpTcpClientCreate failed"));
         return NULL;
     }
      
@@ -238,18 +246,18 @@ static char *httpPost(const char *url, const char *postStr)
  
     if(httpTcpClientSend(socketFd, sendBuf, strlen(sendBuf)) < 0)
 	{
-        printf("httpTcpClientSend failed..\n");
+        AISDK_ERROR(LX("httpPost").d("reason: ", "httpTcpClientSend failed"));
         return NULL;
     }
-	printf("sendBuf:\n%s\n", sendBuf);
+    AISDK_INFO(LX("httpPost").d("sendBuf: ", sendBuf));
  
     /*it's time to recv from server*/
     if(httpTcpClientRecv(socketFd, recvBuf) <= 0)
 	{
-        printf("httpTcpClientRecv failed\n");
+        AISDK_ERROR(LX("httpPost").d("reason: ", "httpTcpClientRecv failed"));
         return NULL;
     }
-	printf("result:\n%s\n",recvBuf);
+    AISDK_INFO(LX("httpPost").d("recvBuf: ", recvBuf));
  
     httpTcpClientClose(socketFd);
  
@@ -280,7 +288,8 @@ int getMusicUrl(const char *aiuiUid,const char *appId, const char *appKey, const
     gettimeofday(&tv,NULL);
 	long long timeStamp = (long long)tv.tv_sec*1000 + tv.tv_usec/1000;
 	sprintf(token, "%s%s%llu", appId, appKey, timeStamp);
-    printf("token:%s\n", token);  //毫秒
+    AISDK_INFO(LX("getMusicUrl").d("token: ", token));
+
 	compute_string_md5((unsigned char *)token, strlen(token), md5Token);
 
 	sprintf(postSendBuf, TRACK_LINK_URI, timeStamp, aiuiUid, md5Token, appId, kugouUserId, kugouUserToken, appId, clientDeviceId, itemId);
@@ -288,18 +297,18 @@ int getMusicUrl(const char *aiuiUid,const char *appId, const char *appKey, const
 	{
 		sprintf(postSendBuf, "%s&albumid=%s", postSendBuf, albumId);
 	}
-    printf("postSendBuf:%s\n", postSendBuf);
+    AISDK_INFO(LX("getMusicUrl").d("postSendBuf: ", postSendBuf));
 
 	p = httpPost(postSendBuf, "");
 	if(p != NULL)
 	{
-		printf("p = %s\n", p);
+    	AISDK_INFO(LX("getMusicUrl").d("p: ", p));
 
 		cJSON *json = NULL, *json_msg = NULL, *json_result = NULL, *json_audiopath = NULL;
 		json = cJSON_Parse(p);
 		if(!json)
 		{
-			printf("json Error before: [%s].",cJSON_GetErrorPtr());
+    		AISDK_ERROR(LX("getMusicUrl").d("JSON ERROR before: ", cJSON_GetErrorPtr()));
 			return -2;
 		}
 		else
@@ -307,7 +316,7 @@ int getMusicUrl(const char *aiuiUid,const char *appId, const char *appKey, const
 			json_msg = cJSON_GetObjectItem( json , "msg" );  //获取键值内容
 			if(0 == strcmp(json_msg->valuestring, "success"))
 			{
-				printf("json_msg = %s\n", json_msg->valuestring);
+    			AISDK_INFO(LX("getMusicUrl").d("json_msg: ", json_msg->valuestring));
 				json_result = cJSON_GetObjectItem( json , "result" );  //获取键值内容
 				if(json_result != NULL)
 				{
@@ -325,7 +334,7 @@ int getMusicUrl(const char *aiuiUid,const char *appId, const char *appKey, const
 						{
 							json_audiopath = cJSON_GetObjectItem(pSub, "audiopath");
 							sprintf(kugouMusicUrl, "%s", json_audiopath->valuestring);
-							printf("kugouMusicUrl = %s\n", kugouMusicUrl);
+    						AISDK_INFO(LX("getMusicUrl").d("kugouMusicUrl: ", kugouMusicUrl));
 						}
 					}
 				}
@@ -335,18 +344,9 @@ int getMusicUrl(const char *aiuiUid,const char *appId, const char *appKey, const
 	}
 	else
 	{
-		printf("kugou music url is null\n");
+    	AISDK_INFO(LX("getMusicUrl").d("kugouMusicUrl: ", "url is null"));
 		return -1;
 	}
 
 	return 0;
 }
-
-#if 0
-int main(int argc, char **argv)
-{
-	char url[256] = {'\0'};
-	getMusicUrl("d12960427664", "5c3d4427", "914a80c33bda12e993559f79ae898205", "1479797450", "5729e8f82e004e73ceb3f698447becfe4f3320140e43e49a7f50817407c8de1bd9a36348c9bb5d3b7103f6b4381292c3", "250b4200d9a496548ed88afd61054193", "03F38ED9AA6B0E6105302F69D8C0C03A", NULL, url);
-	return 0;
-}
-#endif
