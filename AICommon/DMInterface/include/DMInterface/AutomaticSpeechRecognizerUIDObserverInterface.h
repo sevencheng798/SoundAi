@@ -29,9 +29,10 @@ public:
     ~AutomaticSpeechRecognizerUIDObserverInterface() = default;
 
 	virtual void asrRefreshConfiguration(
+		const std::string &uid,
 		const std::string &appid, 
 		const std::string &key,
-		const std::string &uid) = 0;
+		const std::string &deviceId) = 0;
 };
 
 }  // namespace dmInterface
