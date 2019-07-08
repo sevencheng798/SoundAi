@@ -71,7 +71,7 @@ void AIUIASRListener::onEvent(const aiui::IAIUIEvent& event) const {
 	{
 		std::string key("uid");
         std::string value;
-		std::string uid = event.getData()->getString(key.c_str(), value.c_str());
+		const std::string uid = event.getData()->getString(key.c_str(), value.c_str());
 		if(m_listenerObserver) {
 			m_listenerObserver->handleEventConnectToSever(uid);
 		}

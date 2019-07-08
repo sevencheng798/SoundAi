@@ -22,6 +22,7 @@
 #include <Utils/Channel/AudioTrackManagerInterface.h>
 #include <Utils/SoundAi/SoundAiObserverInterface.h>
 #include "ASR/GenericAutomaticSpeechRecognizer.h"
+#include "ASR/ASRRefreshConfiguration.h"
 #include "ASR/AutomaticSpeechRecognizerConfiguration.h"
 
 namespace aisdk {
@@ -47,6 +48,7 @@ public:
 		std::shared_ptr<utils::channel::AudioTrackManagerInterface> trackManager,
 		std::shared_ptr<utils::attachment::AttachmentManagerInterface> attachmentDocker,
 		std::shared_ptr<dmInterface::MessageConsumerInterface> messageConsumer,
+		std::shared_ptr<asr::ASRRefreshConfiguration> asrRefreshConfig,
 		const AutomaticSpeechRecognizerConfiguration& config = AutomaticSpeechRecognizerConfiguration());
 
 };

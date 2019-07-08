@@ -28,6 +28,7 @@
 #include <Utils/Channel/ChannelObserverInterface.h>
 #include "ASR/GenericAutomaticSpeechRecognizer.h"
 #include "ASR/AutomaticSpeechRecognizerConfiguration.h"
+#include "ASR/ASRRefreshConfiguration.h"
 #include "ASR/ASRTimer.h"
 #include "ASR/ASRGainTune.h"
 #include "AIUI/AIUIASRListener.h"
@@ -69,6 +70,7 @@ public:
 		std::shared_ptr<utils::channel::AudioTrackManagerInterface> trackManager,
 		std::shared_ptr<utils::attachment::AttachmentManagerInterface> attachmentDocker,
 		std::shared_ptr<dmInterface::MessageConsumerInterface> messageConsumer,
+		std::shared_ptr<asr::ASRRefreshConfiguration> asrRefreshConfig,
 		const AutomaticSpeechRecognizerConfiguration& config);
 
 	/// @name GenericAutomaticSpeechRecognizer method:
@@ -90,6 +92,7 @@ public:
 	/// @{
 	void handleEventStateReady() override;
 	void handleEventStateWorking() override;
+	void handleEventConnectToSever(std::string uid) override;
 	void handleEventVadBegin() override;
 	void handleEventVadEnd() override;
 	void handleEventResultNLP(const std::string unparsedIntent) override;
@@ -149,6 +152,7 @@ private:
 		std::shared_ptr<utils::channel::AudioTrackManagerInterface> trackManager,
 		std::shared_ptr<utils::attachment::AttachmentManagerInterface> attachmentDocker,
 		std::shared_ptr<dmInterface::MessageConsumerInterface> messageConsumer,
+		std::shared_ptr<asr::ASRRefreshConfiguration> asrRefreshConfig,
 		const std::string &appId,
 		const std::string &aiuiConfigFile,
 		const std::string &aiuiDir,
@@ -293,7 +297,10 @@ private:
 	
 	/// A consumer which the semantics message has been receive from NLP Cloud('sai sdk' or 'Iflytek AIUI').
 	std::shared_ptr<dmInterface::MessageConsumerInterface> m_messageConsumer;
-		
+
+    //// A ASR refresh uid notify observer.
+    std::shared_ptr<asr::ASRRefreshConfiguration> m_asrRefreshConfig;
+	
 	/// A unique ID from Iflytek.
 	const std::string m_appId;
 

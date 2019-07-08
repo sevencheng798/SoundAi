@@ -34,6 +34,7 @@ std::shared_ptr<GenericAutomaticSpeechRecognizer> AutomaticSpeechRecognizerRegis
 	std::shared_ptr<utils::channel::AudioTrackManagerInterface> trackManager,
 	std::shared_ptr<utils::attachment::AttachmentManagerInterface> attachmentDocker,
 	std::shared_ptr<dmInterface::MessageConsumerInterface> messageConsumer,
+	std::shared_ptr<asr::ASRRefreshConfiguration> asrRefreshConfig,
 	const AutomaticSpeechRecognizerConfiguration& config) {
 
 #if defined(ENABLE_SOUNDAI_ASR)
@@ -41,7 +42,7 @@ std::shared_ptr<GenericAutomaticSpeechRecognizer> AutomaticSpeechRecognizerRegis
 		deviceInfo, trackManager, attachmentDocker, messageConsumer, config);
 #elif defined(ENABLE_IFLYTEK_AIUI_ASR)
 	return aiuiEngine::AIUIAutomaticSpeechRecognizer::create(
-		deviceInfo, trackManager, attachmentDocker, messageConsumer, config);
+		deviceInfo, trackManager, attachmentDocker, messageConsumer, asrRefreshConfig, config);
 #else
 	#error "No set any ASR enginer."
 	return nullptr;

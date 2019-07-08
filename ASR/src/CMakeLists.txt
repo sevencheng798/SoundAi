@@ -12,10 +12,11 @@ endif ()
 add_library(ASR SHARED
     GenericAutomaticSpeechRecognizer.cpp
     AutomaticSpeechRecognizerRegister.cpp
-	MessageConsumer.cpp
+    MessageConsumer.cpp
+    ASRRefreshConfiguration.cpp
     ASRTimer.cpp
     ASRGainTune.cpp
-	${asr_SOURCES})
+    ${asr_SOURCES})
 
 include_directories(ASR 
 	"${ASR_SOURCE_DIR}/include"

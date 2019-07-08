@@ -85,6 +85,7 @@ std::shared_ptr<AIUIAutomaticSpeechRecognizer> AIUIAutomaticSpeechRecognizer::cr
 	std::shared_ptr<utils::channel::AudioTrackManagerInterface> trackManager,
 	std::shared_ptr<utils::attachment::AttachmentManagerInterface> attachmentDocker,
 	std::shared_ptr<dmInterface::MessageConsumerInterface> messageConsumer,
+	std::shared_ptr<asr::ASRRefreshConfiguration> asrRefreshConfig,
 	const AutomaticSpeechRecognizerConfiguration& config) {
 	if(!trackManager) {
 		AISDK_ERROR(LX("CreateFailed").d("reason", "trackManagerIsnullptr."));
@@ -99,18 +100,23 @@ std::shared_ptr<AIUIAutomaticSpeechRecognizer> AIUIAutomaticSpeechRecognizer::cr
 		AISDK_ERROR(LX("CreateFailed").d("reason", "messageConsumerIsnullptr."));
 		return nullptr;
 	}
+
+	if(!asrRefreshConfig) {
+		AISDK_ERROR(LX("CreateFailed").d("reason", "asrRefreshConfigIsnullptr"));
+		return nullptr;
+	}
 	
 	auto appid = config.getAiuiAppId();
 	auto configFile = config.getAiuiConfigFile();
 	auto aiuiDir = config.getAiuiDir();
 	auto logDir = config.getAiuiLogDir();
 	auto engine = std::shared_ptr<AIUIAutomaticSpeechRecognizer>( new AIUIAutomaticSpeechRecognizer(
-			deviceInfo, trackManager, attachmentDocker, messageConsumer, appid, configFile, aiuiDir, logDir));
+			deviceInfo, trackManager, attachmentDocker, messageConsumer, asrRefreshConfig, appid, configFile, aiuiDir, logDir));
 	if(!engine->init()) {
 		AISDK_ERROR(LX("CreateFailed").d("reason", "initedFailed."));
 		return nullptr;
 	}
-	
+
 	return engine;
 }
 
@@ -235,6 +241,17 @@ void AIUIAutomaticSpeechRecognizer::handleEventStateReady() {
 
 void AIUIAutomaticSpeechRecognizer::handleEventStateWorking() {
 	m_readerThread = std::thread(&AIUIAutomaticSpeechRecognizer::sendStreamProcessing, this);
+}
+
+void AIUIAutomaticSpeechRecognizer::handleEventConnectToSever(std::string uid) {
+	if(uid.empty()) {
+		AISDK_ERROR(LX("EVENT_CONNECTED_TO_SERVERFailed").d("reason", "uidIsEmpty"));
+	} else {
+		AISDK_INFO(LX("EVENT_CONNECTED_TO_SERVER").d("uid", uid));
+		auto deviceId = m_deviceInfo->getDeviceSerialNumber();
+		if(m_asrRefreshConfig)
+			m_asrRefreshConfig->notifyAsrRefresh(uid, m_appId, "914a80c33bda12e993559f79ae898205", deviceId);
+	}
 }
 
 void AIUIAutomaticSpeechRecognizer::handleEventVadBegin() {
@@ -367,6 +384,7 @@ AIUIAutomaticSpeechRecognizer::AIUIAutomaticSpeechRecognizer(
 	std::shared_ptr<utils::channel::AudioTrackManagerInterface> trackManager,
 	std::shared_ptr<utils::attachment::AttachmentManagerInterface> attachmentDocker,
 	std::shared_ptr<dmInterface::MessageConsumerInterface> messageConsumer,
+	std::shared_ptr<asr::ASRRefreshConfiguration> asrRefreshConfig,
 	const std::string &appId,
 	const std::string &aiuiConfigFile,
 	const std::string &aiuiDir,
@@ -376,6 +394,7 @@ AIUIAutomaticSpeechRecognizer::AIUIAutomaticSpeechRecognizer(
 	m_trackState{utils::channel::FocusState::NONE},
 	m_attachmentDocker{attachmentDocker},
 	m_messageConsumer{messageConsumer},
+	m_asrRefreshConfig{asrRefreshConfig},
 	m_appId{appId},
 	m_aiuiConfigFile{aiuiConfigFile}, 
 	m_aiuiDir{aiuiDir}, 
