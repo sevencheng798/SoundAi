@@ -85,6 +85,11 @@ void ControlActionManager::errorValue() {
     m_executor.submit([this]() { m_userInterface->printErrorScreen(); });
 }
 
+void ControlActionManager::onDialogUXStateChanged(DialogUXState newState) {
+	if(newState == DialogUXState::FINISHED)
+		 playBringupSound(utils::bringup::eventType::BRINGUP_DEFAULT, "");
+}
+
 void ControlActionManager::onAlarmAckStatusChanged(const Status newState, std::string ttsTxt) {
    if(newState == dmInterface::AlarmAckObserverInterface::Status::PLAYING){
         playBringupSound(utils::bringup::eventType::ALARM_ACK, ttsTxt);

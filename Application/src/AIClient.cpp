@@ -305,6 +305,16 @@ bool AIClient::notifyOfWakeWord(
 	return true;
 }
 
+void AIClient::addDialogStateObserver(
+   std::shared_ptr<utils::dialogRelay::DialogUXStateObserverInterface> observer) {
+	m_dialogUXStateRelay->addObserver(observer);
+}
+
+void AIClient::removeDialogStateObserver(
+   std::shared_ptr<utils::dialogRelay::DialogUXStateObserverInterface> observer) {
+	m_dialogUXStateRelay->removeObserver(observer);
+}
+
 void AIClient::connect() {
 #ifdef ENABLE_SOUNDAI_ASR	
 	m_asrEngine->start();

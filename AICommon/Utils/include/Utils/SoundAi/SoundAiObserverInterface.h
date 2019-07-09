@@ -35,7 +35,10 @@ public:
         RECOGNIZING,
 
         /// In this state, the @c SoundAi has finished streaming and is waiting for completion of an Event.
-        BUSY
+        BUSY,
+
+		/// In this state, the @c SoundAi wait for streaming timeout.
+		TIMEOUT
     };
 		
 	/**
@@ -78,6 +81,8 @@ public:
                 return "RECOGNIZING";
             case State::BUSY:
                 return "BUSY";
+			case State::TIMEOUT:
+				return "TIMEOUT";
         }
         return "Unknown State";
     }

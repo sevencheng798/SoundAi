@@ -211,6 +211,9 @@ bool SampleApp::initialize() {
 		AISDK_ERROR(LX("Failed to create InputControlInteraction!"));
 		return false;
 	}
+	
+	// Adding the DialogUX observer to @c ControlActionManager.
+	m_aiClient->addDialogStateObserver(m_controlActionManager);
 #endif
 
     // Adding the alarmack observer to @c ControlActionManager.

@@ -75,6 +75,9 @@ void DialogUXStateRelay::onStateChanged(soundai::SoundAiObserverInterface::State
 			case soundai::SoundAiObserverInterface::State::BUSY:
 				setState(dialogRelay::DialogUXStateObserverInterface::DialogUXState::THINKING);
 				return;
+			case soundai::SoundAiObserverInterface::State::TIMEOUT:
+				setState(dialogRelay::DialogUXStateObserverInterface::DialogUXState::FINISHED);
+				return;
 		}
 		
 		AISDK_WARN(LX("unknownSoundAiProcessorState"));

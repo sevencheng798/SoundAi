@@ -156,6 +156,7 @@ std::future<bool> AIUIAutomaticSpeechRecognizer::recognize(
 	auto currentState = getState();
 	switch(currentState) {
 		case ObserverInterface::State::IDLE:
+		case ObserverInterface::State::TIMEOUT:
         {
 			std::unique_lock<std::mutex> lock(m_bargeMutex);
 			// Release channel.
@@ -460,6 +461,13 @@ bool AIUIAutomaticSpeechRecognizer::init() {
 	Json::Value userParamsJson;
 	userParamsJson["deviceId"] = m_deviceInfo->getDeviceSerialNumber();
 	root["userparams"] = userParamsJson;
+
+	// Set interactive scene - main or main_box
+	if(!m_deviceInfo->getDeviceScene()) {
+		Json::Value sceneJson;
+		sceneJson["scene"] = std::string("main_box");
+		root["global"] = sceneJson;
+	}
 	
 	/**
 	 * This is a old JSON API already be deprecated.
@@ -468,7 +476,7 @@ bool AIUIAutomaticSpeechRecognizer::init() {
 	std::unique_ptr<Json::StreamWriter> writer(writerBuilder.newStreamWriter());
 	std::ostringstream os;
 	writer->write(root, &os);
-	
+
 	//  注：该方法总是返回非空对象，非空并不代表创建过程中无错误发生。- from Iflytek aiui
 	m_aiuiAgent = aiui::IAIUIAgent::createAgent(os.str().c_str(), this);
 
@@ -483,7 +491,9 @@ void AIUIAutomaticSpeechRecognizer::executeExpectSpeech(std::shared_ptr<Directiv
         return ;
     }
 	auto state = getState();
-    if (state != ObserverInterface::State::IDLE && state != ObserverInterface::State::BUSY) {
+    if (state != ObserverInterface::State::IDLE && \
+        state != ObserverInterface::State::TIMEOUT && \
+		state != ObserverInterface::State::BUSY) {
         static const char* errorMessage = "ExpectSpeech only allowed in IDLE or BUSY state.";
         if (info->result) {
             info->result->setFailed(errorMessage);
@@ -995,6 +1005,7 @@ void AIUIAutomaticSpeechRecognizer::transitionFromThinkingTimedOut() {
 	m_executor.submit([this]() {
 		AISDK_DEBUG0(LX("transitionFromThinkingTimedOut"));
 		setVaildVad(true);
+		setState(ObserverInterface::State::TIMEOUT);
 		executeResetState();
 	});
 }
@@ -1010,6 +1021,7 @@ void AIUIAutomaticSpeechRecognizer::transitionFromActivingTimedOut() {
 	m_executor.submit([this]() {
 		AISDK_DEBUG0(LX("transitionFromActivingTimedOut"));
 		setVaildVad(true);
+		setState(ObserverInterface::State::TIMEOUT);
 		executeResetState();
 	});
 }

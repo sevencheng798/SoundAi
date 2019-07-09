@@ -32,7 +32,8 @@ namespace application {
  * userInterface (the view) accordingly.
  */
 class ControlActionManager
-        : public utils::SafeShutdown 
+        : public utils::SafeShutdown
+		, public utils::dialogRelay::DialogUXStateObserverInterface
         , public dmInterface::AlarmAckObserverInterface {
 public:
     /**
@@ -87,6 +88,11 @@ public:
      */
     void resetDevice();
 
+	/// @name DialogUXStateObserverInterface methods
+	/// @{
+	void onDialogUXStateChanged(DialogUXState newState) override;
+	/// @}
+	
     // Query alarm clock response status.
     void onAlarmAckStatusChanged(const Status newState, std::string ttsTxt) override;
 private:

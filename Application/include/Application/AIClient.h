@@ -68,6 +68,21 @@ public:
 		std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream,
 		utils::sharedbuffer::SharedBuffer::Index beginIndex,
 		utils::sharedbuffer::SharedBuffer::Index endIndex);
+    /**     
+     * Adds an observer to be notified of NLP dialog related UX state.
+     *
+     * @param observer The observer to add.
+     */
+     void addDialogStateObserver(
+     	std::shared_ptr<utils::dialogRelay::DialogUXStateObserverInterface> observer);
+	
+	/**
+	 * Removes an observer to be notified of NLP dialog related UX state.
+	 *
+	 * @param observer The observer to remove.
+	 */
+	 void removeDialogStateObserver(
+	 	std::shared_ptr<utils::dialogRelay::DialogUXStateObserverInterface> observer);
 
 	/**
 	 * Start service to allow the client to initiate connect sai sdk service. 
