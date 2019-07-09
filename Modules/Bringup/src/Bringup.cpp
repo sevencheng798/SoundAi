@@ -167,7 +167,7 @@ void Bringup::onTrackChanged(utils::channel::FocusState newTrace) {
              }
              break;
             case utils::bringup::eventType::BRINGUP_DEFAULT:
-                inOpenFile("/cfg/sai_config/default/default_1.wav");
+                inOpenFile("/cfg/sai_config/default/default_1.mp3");
             break;
             default:                
             break; 
