@@ -25,6 +25,13 @@ static const std::string TAG("DeviceInfo");
 namespace aisdk {
 namespace utils {
 
+/// Application scene key:value in the /data/default.prop.
+static const char *keyScene = "gm.domain.name";
+static const char *matchScene = "device.prod";
+
+/// Wi-Fi state detect.
+static const char *keyWifi = "net.wifi.state";
+
 static const std::string DEFAULT_CPUINFO{"/proc/cpuinfo"};
 static const char DELIM = ':';
 bool getProcCPUInfo(std::string &serial);
@@ -58,10 +65,18 @@ std::string DeviceInfo::getDeviceSerialNumber() const {
     return m_deviceSerialNumber;
 }
 
+bool DeviceInfo::getDeviceScene() {
+	char scene[64]={0};
+	getprop((char *)keyScene, (char *)&scene);
+	if(strstr(scene, matchScene) == NULL )
+		return false;
+	else 
+		return true;
+}
+
 bool DeviceInfo::isConnected() {
-	char *key = (char *)"net.wifi.state";
 	char state[4]={0};
-	getprop(key, (char *)&state);
+	getprop((char *)keyWifi, (char *)&state);
 	AISDK_DEBUG5(LX("isConnected").d("networkState", state));
 	
 	if(state[0] == '1') {

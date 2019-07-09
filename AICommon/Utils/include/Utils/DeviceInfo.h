@@ -45,6 +45,17 @@ public:
     std::string getDeviceSerialNumber() const;
 
 	/**
+	 * Gets current device execution environment. Acturally only for AIUI application scene.
+	 * the scene include: deviceScene and testScene. 
+	 * the prop key is: 'gm.domain.name'
+	 * the prop value is:
+	 * value of deviceScene - 'device.prod.nhf.cn'
+	 * value of testScene - 'xushihong.nhf.cn'
+	 *
+	 * @return @c true if success, otherwise return @c false.
+	 */
+	 bool getDeviceScene();
+	/**
 	 * Check network state.
 	 *
 	 * @return @c true is connected, otherwise @c false.
