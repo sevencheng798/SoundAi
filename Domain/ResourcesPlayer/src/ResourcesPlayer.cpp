@@ -372,11 +372,11 @@ void ResourcesPlayer::asrRefreshConfiguration(
 	if(uid.empty() || appid.empty() || key.empty() || deviceId.empty()) {
 		AISDK_ERROR(LX("asrRefreshConfigurationFailed").d("reason", "paramsIsEmpty"));
 	} else {
-		AISDK_DEBUG5(LX("asrRefreshConfiguration")
-				.d("uid", uid)
-				.d("appid", appid)
-				.d("key", key)
-				.d("deviceId", deviceId));
+//		AISDK_DEBUG5(LX("asrRefreshConfiguration")
+//				.d("uid", uid)
+//				.d("appid", appid)
+//				.d("key", key)
+//				.d("deviceId", deviceId));
 		// TODO:
     	m_aiuiUid = uid;
         m_appId = appid;
@@ -1274,8 +1274,8 @@ void ResourcesPlayer::playKuGouResourceItemID(std::string ResourceItemID, std::s
     const char* itemId = ResourceItemID.c_str();
     const char* albumId = ResourceAlbumIdID.c_str();
 
-    AISDK_INFO(LX("playKuGouResourceItemID").d("aiuiUid", aiuiUid).d("appId", appId));
-    AISDK_INFO(LX("playKuGouResourceItemID").d("appKey", appKey).d("clientDeviceId", clientDeviceId));
+    //AISDK_INFO(LX("playKuGouResourceItemID").d("appKey", appKey).d("appId", appId));   //加密id
+    AISDK_INFO(LX("playKuGouResourceItemID").d("aiuiUid", aiuiUid).d("clientDeviceId", clientDeviceId));
     AISDK_INFO(LX("playKuGouResourceItemID").d("kugouUserId", kugouUserId).d("kugouUserToken", kugouUserToken));
 
     int val = getMusicUrl(aiuiUid, appId, appKey, kugouUserId, kugouUserToken, clientDeviceId, itemId, albumId, audioUrl);
