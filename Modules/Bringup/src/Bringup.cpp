@@ -158,8 +158,10 @@ void Bringup::onTrackChanged(utils::channel::FocusState newTrace) {
                 m_currentSourceId = m_bringupPlayer->setSource(std::move(reader), &format);
              }
              break;
-            default:
+            case utils::bringup::eventType::BRINGUP_DEFAULT:
                 inOpenFile("/cfg/sai_config/default/default_1.wav");
+            break;
+            default:                
             break; 
 
             //if(!in->is_open()) {
