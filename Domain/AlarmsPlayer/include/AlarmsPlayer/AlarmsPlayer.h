@@ -28,6 +28,7 @@
 #include <Utils/MediaPlayer/MediaPlayerObserverInterface.h>
 #include <Utils/SafeShutdown.h>
 #include <DMInterface/AlarmsPlayerObserverInterface.h>
+#include <DMInterface/AlarmAckObserverInterface.h>
 #include <NLP/DomainProxy.h>
 #include <ASR/GenericAutomaticSpeechRecognizer.h>
 #include <Utils/Attachment/AttachmentManagerInterface.h>
@@ -109,6 +110,17 @@ public:
 	/// Remove an observer from the ResourcesPlayer.
 	/// @param observer The ovserver to remove.
 	void removeObserver(std::shared_ptr<dmInterface::AlarmsPlayerObserverInterface> observer);
+
+	/*
+	 * Add an observer to ResourcesPlayer.
+	 * 
+	 * @param observer The observer to add.
+	 */
+	void addObserver(std::shared_ptr<dmInterface::AlarmAckObserverInterface> observer);
+
+	/// Remove an observer from the ResourcesPlayer.
+	/// @param observer The ovserver to remove.
+	void removeObserver(std::shared_ptr<dmInterface::AlarmAckObserverInterface> observer);
 
 	/// Get the name of the execution DomainHandler. 
 	std::unordered_set<std::string> getHandlerName() const override;
@@ -386,6 +398,9 @@ private:
 	
     /// The set of @c SpeechSynthesizerObserverInterface instances to notify of state changes.
     std::unordered_set<std::shared_ptr<dmInterface::AlarmsPlayerObserverInterface>> m_observers;
+
+    /// The set of @c SpeechSynthesizerObserverInterface instances to notify of state changes.
+    std::unordered_set<std::shared_ptr<dmInterface::AlarmAckObserverInterface>> m_ackObservers;
 
     /**
      * The current state of the @c AlarmsPlayer. @c m_mutex must be acquired before reading or writing the

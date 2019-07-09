@@ -139,6 +139,25 @@ void Bringup::onTrackChanged(utils::channel::FocusState newTrace) {
                 #endif  
              }
              break;
+            case utils::bringup::eventType::ALARM_ACK:
+             {
+                char contentId[37];
+                CreateRandomUuid(contentId);
+                auto writer = m_attachmentDocker->createWriter(contentId);
+                auto reader = m_attachmentDocker->createReader(contentId, utils::sharedbuffer::ReaderPolicy::BLOCKING);
+                m_asrEngine->acquireTextToSpeech(m_ttsTxt, std::move(writer));
+
+                utils::AudioFormat format {
+                    .encoding = aisdk::utils::AudioFormat::Encoding::LPCM,
+                    .endianness = aisdk::utils::AudioFormat::Endianness::LITTLE,
+                    .sampleRateHz = 16000,
+                    .sampleSizeInBits = 16,
+                    .numChannels = 1,
+                    .dataSigned = true };
+
+                m_currentSourceId = m_bringupPlayer->setSource(std::move(reader), &format);
+             }
+             break;
             default:
             break; 
 

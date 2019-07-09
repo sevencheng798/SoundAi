@@ -163,7 +163,7 @@ bool SampleApp::initialize() {
 	// Adding the UI manager to volume manager.
 	auto volumeManager = m_aiClient->getVolumeManager();
 	volumeManager->setObserver(userInterfaceManager);
-	
+    
 #if defined(KWD)
 	// Step1.
 	/*
@@ -212,6 +212,10 @@ bool SampleApp::initialize() {
 		return false;
 	}
 #endif
+
+    // Adding the alarmack observer to @c ControlActionManager.
+    auto alarmPlayer = m_aiClient->getAlarmPlayer();
+    alarmPlayer->addObserver(m_controlActionManager);
 
 	m_aiClient->connect();
 

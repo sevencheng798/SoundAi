@@ -151,7 +151,6 @@ void UIManager::asrRefreshConfiguration(
 		AISDK_ERROR(LX("asrRefreshConfigurationFailed").d("reason", "uidIsEmpty"));
 	}else{
 		//setprop((char *)"xf.aiui.uid", (char *)uid.c_str());
-		// TODO: IPC to notify gm_task
         memset(&m_mqSndInfo, 0x00, sizeof(m_mqSndInfo));   
         m_mqSndInfo.msg_info.sub_msg_info.sub_id = MQ_EVT_SET_PROP;
         memcpy(m_mqSndInfo.msg_info.sub_msg_info.content, uid.c_str(), uid.length());

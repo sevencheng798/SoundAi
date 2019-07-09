@@ -330,6 +330,11 @@ void AIClient::onNetworkStatusChanged(const Status newState) {
     }
 }
 
+std::shared_ptr<domain::alarmsPlayer::AlarmsPlayer>& AIClient::getAlarmPlayer() {
+     return m_alarmsPlayer;
+
+}
+
 AIClient::~AIClient() {
 	if(m_domainSequencer) {
 		AISDK_DEBUG5(LX("DomainSequencerShutdown"));

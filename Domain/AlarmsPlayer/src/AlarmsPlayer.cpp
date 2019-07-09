@@ -197,6 +197,18 @@ void AlarmsPlayer::removeObserver(std::shared_ptr<AlarmsPlayerObserverInterface>
     m_executor.submit([this, observer]() { m_observers.erase(observer); }).wait();
 }
 
+
+void AlarmsPlayer::addObserver(std::shared_ptr<AlarmAckObserverInterface> observer) {
+	std::cout << __func__ << ":addObserver:observer: " << observer.get() << std::endl;
+    m_executor.submit([this, observer]() { m_ackObservers.insert(observer); });
+}
+
+void AlarmsPlayer::removeObserver(std::shared_ptr<AlarmAckObserverInterface> observer) {
+	std::cout << __func__ << ":removeObserver:observer: " << observer.get() << std::endl;	
+    m_executor.submit([this, observer]() { m_ackObservers.erase(observer); }).wait();
+}
+
+
 std::unordered_set<std::string> AlarmsPlayer::getHandlerName() const {
 	return m_handlerName;
 }
@@ -354,10 +366,16 @@ void AlarmsPlayer::CheckAlarmList(sqlite3 *db)
             sqlite3_get_table( db , deleteAlarmContent , &azResultContent , &nrowContent , &ncolumnContent , &zErrMsgContent );
             AISDK_DEBUG(LX("deleteAlarmContent").d("select content from alarm where timestamp", azResultContent[nrowContent*ncolumnContent]));        
             std::string currentContent = azResultContent[nrowContent*ncolumnContent];
-
+            
             for(int i = 0; i < 1; i++) { //'i' use for set repeat times;
                 AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
+#if 1
+            for(auto observer:m_ackObservers){
+                observer->onAlarmAckStatusChanged(dmInterface::AlarmAckObserverInterface::Status::PLAYING, currentContent);
+            }
+               
 
+#else            
                 char contentId[37];
                 CreateRandomUuid(contentId);
                 auto writer = m_ttsDocker->createWriter(contentId);
@@ -375,6 +393,7 @@ void AlarmsPlayer::CheckAlarmList(sqlite3 *db)
 
                 auto sourceId = m_alarmPlayer->setSource(std::move(reader), &format);
                 m_alarmPlayer->play(sourceId);
+#endif                
             }
             sprintf(deleteAlarmTime, "delete from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
             sqlite3_exec( db , deleteAlarmTime , NULL , NULL , &zErrMsg );
@@ -439,7 +458,13 @@ void AlarmsPlayer::CheckRepeatAlarmList(sqlite3 *db)
                                                           .d(" currentWeekday", currentWeekday)); 
                      for(int i = 0; i < 1; i++) {
                           AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
-     
+#if 1
+            for(auto observer:m_ackObservers){
+                observer->onAlarmAckStatusChanged(dmInterface::AlarmAckObserverInterface::Status::PLAYING, currentContent);
+            }
+               
+
+#else         
                           char contentId[37];
                           CreateRandomUuid(contentId);
                           auto writer = m_ttsDocker->createWriter(contentId);
@@ -457,7 +482,7 @@ void AlarmsPlayer::CheckRepeatAlarmList(sqlite3 *db)
                           
                           auto sourceId = m_alarmPlayer->setSource(std::move(reader), &format);
                           m_alarmPlayer->play(sourceId);
-                          
+#endif                          
                      }
                  }
 

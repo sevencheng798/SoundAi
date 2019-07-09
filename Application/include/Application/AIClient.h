@@ -44,7 +44,7 @@ namespace application {
 /**
  * This class is used to instantiate each interactive component
  */
-class AIClient:public utils::NetworkStateObserverInterface{
+class AIClient:public utils::NetworkStateObserverInterface {
 public:
 	/**
 	 * Creates and initializes a default AI client. To connect the client to soundai server, users should make a call to
@@ -93,6 +93,8 @@ public:
 	/// @{
 	void onNetworkStatusChanged(const Status newState) override;
 	/// }
+
+    std::shared_ptr<domain::alarmsPlayer::AlarmsPlayer>& getAlarmPlayer();
     /**
      * Destructor.
      */

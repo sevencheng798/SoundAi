@@ -18,6 +18,7 @@
 #include <Utils/Microphone/MicrophoneInterface.h>
 #include <Utils/SafeShutdown.h>
 #include <Utils/BringUp/BringUpEventType.h>
+#include <DMInterface/AlarmAckObserverInterface.h>
 
 #include "Application/AIClient.h"
 #include "KeywordObserver.h"
@@ -31,7 +32,8 @@ namespace application {
  * userInterface (the view) accordingly.
  */
 class ControlActionManager
-        : public utils::SafeShutdown {
+        : public utils::SafeShutdown 
+        , public dmInterface::AlarmAckObserverInterface {
 public:
     /**
      * Constructor.
@@ -84,6 +86,9 @@ public:
      * Reset the device and remove any customer data.
      */
     void resetDevice();
+
+    // Query alarm clock response status.
+    void onAlarmAckStatusChanged(const Status newState, std::string ttsTxt) override;
 private:
     /// The default SDK client.
     std::shared_ptr<AIClient> m_client;

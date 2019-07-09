@@ -85,6 +85,15 @@ void ControlActionManager::errorValue() {
     m_executor.submit([this]() { m_userInterface->printErrorScreen(); });
 }
 
+void ControlActionManager::onAlarmAckStatusChanged(const Status newState, std::string ttsTxt) {
+   if(newState == dmInterface::AlarmAckObserverInterface::Status::PLAYING){
+        playBringupSound(utils::bringup::eventType::ALARM_ACK, ttsTxt);
+    }else if(newState == dmInterface::AlarmAckObserverInterface::Status::WAITING){
+
+    }
+    
+}
+
 void ControlActionManager::doShutdown() {
 	m_client.reset();
 }
