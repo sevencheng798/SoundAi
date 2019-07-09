@@ -76,6 +76,27 @@ void Bringup::inOpenFile(const char *filePath)
     }
 }
 
+void Bringup::playttsTxtItem(std::string ttsTxt) {
+    char contentId[37];
+    CreateRandomUuid(contentId);
+    AISDK_INFO(LX("playttsTxtItem").d("contentId", contentId).d("m_ttsTxt", m_ttsTxt));
+
+    auto writer = m_attachmentDocker->createWriter(contentId);
+    auto reader = m_attachmentDocker->createReader(contentId, utils::sharedbuffer::ReaderPolicy::BLOCKING);
+    m_asrEngine->acquireTextToSpeech(m_ttsTxt, std::move(writer));
+    
+    utils::AudioFormat format {
+        .encoding = aisdk::utils::AudioFormat::Encoding::LPCM,
+        .endianness = aisdk::utils::AudioFormat::Endianness::LITTLE,
+        .sampleRateHz = 16000,
+        .sampleSizeInBits = 16,
+        .numChannels = 1,
+        .dataSigned = true };
+    
+    m_currentSourceId = m_bringupPlayer->setSource(std::move(reader), &format);
+}
+
+
 void Bringup::onTrackChanged(utils::channel::FocusState newTrace) { 
     AISDK_INFO(LX("onTrackChanged").d("FocusState", newTrace));
     m_Tracep = newTrace;
@@ -117,7 +138,7 @@ void Bringup::onTrackChanged(utils::channel::FocusState newTrace) {
              break;
              case utils::bringup::eventType::BRINGUP_PULSE_SCORE:
              {
-                #if 1
+                #if 0
                 char contentId[37];
                 //char currentContent[1024] = "文本播放成功.";
                 CreateRandomUuid(contentId);
@@ -135,27 +156,14 @@ void Bringup::onTrackChanged(utils::channel::FocusState newTrace) {
                     .dataSigned = true };
 
                 m_currentSourceId = m_bringupPlayer->setSource(std::move(reader), &format);
-                
+                #else
+                    playttsTxtItem(m_ttsTxt);
                 #endif  
              }
              break;
             case utils::bringup::eventType::ALARM_ACK:
              {
-                char contentId[37];
-                CreateRandomUuid(contentId);
-                auto writer = m_attachmentDocker->createWriter(contentId);
-                auto reader = m_attachmentDocker->createReader(contentId, utils::sharedbuffer::ReaderPolicy::BLOCKING);
-                m_asrEngine->acquireTextToSpeech(m_ttsTxt, std::move(writer));
-
-                utils::AudioFormat format {
-                    .encoding = aisdk::utils::AudioFormat::Encoding::LPCM,
-                    .endianness = aisdk::utils::AudioFormat::Endianness::LITTLE,
-                    .sampleRateHz = 16000,
-                    .sampleSizeInBits = 16,
-                    .numChannels = 1,
-                    .dataSigned = true };
-
-                m_currentSourceId = m_bringupPlayer->setSource(std::move(reader), &format);
+                playttsTxtItem(m_ttsTxt);
              }
              break;
             case utils::bringup::eventType::BRINGUP_DEFAULT:

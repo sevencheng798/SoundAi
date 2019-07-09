@@ -98,7 +98,12 @@ private:
 
     ///
     const char* CreateRandomUuid(char *uuid);
+
+    ///
     void inOpenFile(const char *filePath);
+
+    ///add for play the ttstxt from alarmack and ipc;
+    void playttsTxtItem(std::string ttsTxt);
 
     utils::threading::Executor  m_executor;
 };
