@@ -27,7 +27,8 @@ enum class eventType{
     NET_DISCONNECTED,
     BRINGUP_UPGRADE_START,
     BRINGUP_PULSE_SCORE,
-    ALARM_ACK
+    ALARM_ACK,
+    BRINGUP_DEFAULT
 };
 
 
