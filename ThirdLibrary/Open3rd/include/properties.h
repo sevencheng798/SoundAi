@@ -46,6 +46,19 @@ inline void  setprop(char* key,char* val)
    system(str);
 }
 
+//Get the server address to determine XunFei server
+bool getServiceAdr(void); 
+inline bool getServiceAdr(void) 
+{
+	char domain_str[64] = {'\0'};
+	getprop("gm.domain.name", domain_str);
+
+	if (strstr(domain_str, "device.prod") != 0)
+		return 1;
+	else
+		return 0;
+}
+
 #ifdef __cplusplus  
 }
 #endif
