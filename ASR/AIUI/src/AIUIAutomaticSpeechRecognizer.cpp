@@ -462,11 +462,12 @@ bool AIUIAutomaticSpeechRecognizer::init() {
 	userParamsJson["deviceId"] = m_deviceInfo->getDeviceSerialNumber();
 	root["userparams"] = userParamsJson;
 
-	// Set interactive scene - main or main_box
+	// Set interactive scene - main or test
 	if(!m_deviceInfo->getDeviceScene()) {
 		Json::Value sceneJson;
-		sceneJson["scene"] = std::string("main_box");
+		sceneJson["scene"] = std::string("test");
 		root["global"] = sceneJson;
+		AISDK_DEBUG5(LX("init").d("scene", "test"));
 	}
 	
 	/**
