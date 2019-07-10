@@ -136,30 +136,23 @@ void Bringup::onTrackChanged(utils::channel::FocusState newTrace) {
                 inOpenFile("/cfg/sai_config/upgrade_start.mp3");
                 //in->open("/cfg/sai_config/upgrade_start.mp3", std::ifstream::in);
              break;
+             case utils::bringup::eventType::BRINGUP_PULSE_CONNECTED:
+                inOpenFile("/cfg/pulse/pulse_connected.mp3");
+             break;
+             case utils::bringup::eventType::BRINGUP_PULSE_SET_START:
+                inOpenFile("/cfg/pulse/press_set_start.mp3");
+             break;
+             case utils::bringup::eventType::BRINGUP_PULSE_PRESS:
+                inOpenFile("/cfg/pulse/pulse_press.mp3");
+             break;
+             case utils::bringup::eventType::BRINGUP_PULSE_STOP_PRESS20S:
+                inOpenFile("/cfg/pulse/pulse_stop_press20s.mp3");
+             break;
+             case utils::bringup::eventType::BRINGUP_PULSE_MUSIC:
+                inOpenFile("/cfg/pulse/pulse_music.mp3");
+             break;
              case utils::bringup::eventType::BRINGUP_PULSE_SCORE:
-             {
-                #if 0
-                char contentId[37];
-                //char currentContent[1024] = "文本播放成功.";
-                CreateRandomUuid(contentId);
-                auto writer = m_attachmentDocker->createWriter(contentId);
-                auto reader = m_attachmentDocker->createReader(contentId, utils::sharedbuffer::ReaderPolicy::BLOCKING);
-                AISDK_DEBUG(LX("start").d("PULSESCORE:", m_ttsTxt));
-                m_asrEngine->acquireTextToSpeech(m_ttsTxt, std::move(writer));
-
-                utils::AudioFormat format {
-                    .encoding = aisdk::utils::AudioFormat::Encoding::LPCM,
-                    .endianness = aisdk::utils::AudioFormat::Endianness::LITTLE,
-                    .sampleRateHz = 16000,
-                    .sampleSizeInBits = 16,
-                    .numChannels = 1,
-                    .dataSigned = true };
-
-                m_currentSourceId = m_bringupPlayer->setSource(std::move(reader), &format);
-                #else
-                    playttsTxtItem(m_ttsTxt);
-                #endif  
-             }
+                playttsTxtItem(m_ttsTxt);
              break;
             case utils::bringup::eventType::ALARM_ACK:
              {
