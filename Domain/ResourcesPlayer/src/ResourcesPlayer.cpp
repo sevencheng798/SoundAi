@@ -24,11 +24,6 @@ static const std::string TAG{"ResourcesPlayer"};
 
 #define LX(event) aisdk::utils::logging::LogEntry(TAG, event)
 
-//enable kugou api and get resources id;
-#if 0
-#define RESOURCES_FROM_KUGOU
-#endif
-
 //using namespace std;
 namespace aisdk {
 namespace domain {
@@ -40,9 +35,6 @@ using namespace dmInterface;
 
 /// The name of the @c AudioTrackManager channel used by the @c resourcesPlayer.
 static const std::string CHANNEL_NAME = AudioTrackManagerInterface::MEDIA_CHANNEL_NAME;
-
-/// The name of DomainProxy and SpeechChat handler interface
-//static const std::string SPEECHCHAT{"SpeechChat"};
 
 /// The name of the @c SafeShutdown
 static const std::string RESOURCESNAME{"ResourcesPlayer"};
@@ -66,11 +58,12 @@ int flag_playControl_pause = 0;
 
 ///add for use enable single loop;enable = 1;unable = 0;
 int enable_single_loop = 0;
+
 ///add for use enable LIST loop;enable = 1;unable = 0;
 int enable_list_loop = 0;
-
     
 bool m_isStopped = false;
+
 ///add for select resources num in audiolist;
 std::size_t currentItemNum = 0;
 
@@ -483,6 +476,7 @@ void ResourcesPlayer::AnalysisNlpDataForResourcesPlayer(cJSON          * datain 
         cJSON *js_list = cJSON_GetObjectItem(json_data, "audio_list");
          if(!js_list){
             AISDK_ERROR(LX("AnalysisNlpDataForResourcesPlayer").d("audio_list", "no audio_list!"));
+            return;
          }
          
          int array_size = cJSON_GetArraySize(js_list);
@@ -524,6 +518,11 @@ void ResourcesPlayer::AnalysisAudioIdForResourcesPlayer(std::shared_ptr<Directiv
     std::unique_ptr<Json::CharReader> const reader(readerBuilder.newCharReader());
     if (!reader->parse(data.c_str(), data.c_str()+data.length(), &root, &errs)) {
         AISDK_ERROR(LX("AnalysisAudioIdForResourcesPlayer").d("reason", "parseDataKeyError"));
+        return;
+    }
+
+    if(!root.isMember("audio_list")) {
+        AISDK_ERROR(LX("AnalysisAudioIdForResourcesPlayer").d("audio_list", "no audio_list!"));
         return;
     }
 
@@ -698,7 +697,7 @@ void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<DirectiveI
             AISDK_DEBUG(LX("AUDIO_ID_LIST").d("size",  AUDIO_ID_LIST.size()));
             
         }else{
-            //situo resources 
+            //stormorai resources 
             AISDK_INFO(LX("executePreHandleAfterValidation").d("RESOURCES_FROM", "SiTuo"));
             enable_kugou_resources = false;
             cJSON* json = NULL, *json_data = NULL;
@@ -938,14 +937,13 @@ void ResourcesPlayer::executeTrackChanged(FocusState newTrace){
                         }
                         playKuGouResourceItemID(AUDIO_ID_LIST.at(currentItemNum), AUDIO_ID_LIST.at(currentItemNum+1));  
 
-
                 }else{
                 
                         if(AUDIO_URL_LIST.empty()){
                            AISDK_ERROR(LX("executeTrackChanged").d("reason", "AUDIO_URL_LIST is null"));
                            return;
                         }
-                        AISDK_DEBUG5(LX("executeTrackChanged").d("playResourceItem", "play type-->-->[situo]-->-->【1】"));
+                        AISDK_DEBUG5(LX("executeTrackChanged").d("playResourceItem", "play type-->-->[stormorai or others]-->-->【1】"));
                         if(currentItemNum >= AUDIO_URL_LIST.size()){
                             if(enable_list_loop == 1){
                                 currentItemNum = 0;
@@ -958,8 +956,6 @@ void ResourcesPlayer::executeTrackChanged(FocusState newTrace){
 
                         }
                         playResourceItem(AUDIO_URL_LIST.at(currentItemNum));   
-                     
-                       // playKuGouResourceItemID(AUDIO_URL_LIST.at(currentItemNum));  
                 }
                 
 
@@ -1001,9 +997,6 @@ void ResourcesPlayer::executeTrackChanged(FocusState newTrace){
         
    break;
     case FocusState::NONE:
-       //      if( !m_resourcesPlayer->stop(m_mediaSourceId)){
-       //          AISDK_ERROR(LX("executeTrackChanged").d("stop","failed"));
-       //      }
    break;
 
    }
@@ -1141,7 +1134,7 @@ void ResourcesPlayer::executePlaybackFinished() {
          
               }else{
                   // playNextItem();
-                  AISDK_DEBUG5(LX("executePlaybackFinished").d("playResourceItem", "play type-->-->[situo]-->-->【3】"));
+                  AISDK_DEBUG5(LX("executePlaybackFinished").d("playResourceItem", "play type-->-->[stormorai or others]-->-->【3】"));
                   currentItemNum ++;
                   if(enable_single_loop == 1 ){
                       currentItemNum --;
@@ -1242,7 +1235,7 @@ void ResourcesPlayer::playNextItem() {
 }
 
 void ResourcesPlayer::playResourceItem(std::string ResourceItem ) {
-    //AISDK_INFO(LX("playResourceItem").d("ResourceItem", ResourceItem));
+    AISDK_INFO(LX("playResourceItem").d("ResourceItem", ResourceItem));
     m_mediaSourceId = m_resourcesPlayer->setSource(ResourceItem);
     
      if (MediaPlayerInterface::ERROR == m_mediaSourceId) {
@@ -1470,7 +1463,7 @@ void ResourcesPlayer::removeChatDirectiveInfo(const std::string& messageId) {
 
 
 
-}	// namespace speechSynthesizer
+}	// namespace ResourcesPlayer
 }	// namespace domain
 }	// namespace aisdk
 
