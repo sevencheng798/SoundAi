@@ -40,6 +40,7 @@ target_link_libraries(SampleApp
 		sqlite3
 		msgq
 		jsoncpp
+		zlog
 		z)
 		
 if(SOUNDAI_ASR)

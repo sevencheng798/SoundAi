@@ -27,6 +27,7 @@ target_link_libraries(AOWrapperTest
 		AudioMediaPlayer
 		ao
 		asound
+		zlog
 		z)
 
 if (GMOCK_ENABLE)
@@ -38,6 +39,7 @@ target_link_libraries(AOWrapperMockTest
 		gmock_main
 		gmock
 		gtest
+		zlog
 		pthread
 		z)
 endif()
