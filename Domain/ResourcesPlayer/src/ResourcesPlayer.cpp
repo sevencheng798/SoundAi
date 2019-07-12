@@ -698,7 +698,7 @@ void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<DirectiveI
             
         }else{
             //stormorai resources 
-            AISDK_INFO(LX("executePreHandleAfterValidation").d("RESOURCES_FROM", "SiTuo"));
+            AISDK_INFO(LX("executePreHandleAfterValidation").d("RESOURCES_FROM", "Stormorai or others"));
             enable_kugou_resources = false;
             cJSON* json = NULL, *json_data = NULL;
             (void )json;

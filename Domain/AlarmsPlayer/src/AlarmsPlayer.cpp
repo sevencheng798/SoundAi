@@ -197,17 +197,15 @@ void AlarmsPlayer::removeObserver(std::shared_ptr<AlarmsPlayerObserverInterface>
     m_executor.submit([this, observer]() { m_observers.erase(observer); }).wait();
 }
 
-
 void AlarmsPlayer::addObserver(std::shared_ptr<AlarmAckObserverInterface> observer) {
-	std::cout << __func__ << ":addObserver:observer: " << observer.get() << std::endl;
+	std::cout << __func__ << ":addObserver:ackObservers: " << observer.get() << std::endl;
     m_executor.submit([this, observer]() { m_ackObservers.insert(observer); });
 }
 
 void AlarmsPlayer::removeObserver(std::shared_ptr<AlarmAckObserverInterface> observer) {
-	std::cout << __func__ << ":removeObserver:observer: " << observer.get() << std::endl;	
+	std::cout << __func__ << ":removeObserver:ackObservers: " << observer.get() << std::endl;	
     m_executor.submit([this, observer]() { m_ackObservers.erase(observer); }).wait();
 }
-
 
 std::unordered_set<std::string> AlarmsPlayer::getHandlerName() const {
 	return m_handlerName;
@@ -373,8 +371,6 @@ void AlarmsPlayer::CheckAlarmList(sqlite3 *db)
             for(auto observer:m_ackObservers){
                 observer->onAlarmAckStatusChanged(dmInterface::AlarmAckObserverInterface::Status::PLAYING, currentContent);
             }
-               
-
 #else            
                 char contentId[37];
                 CreateRandomUuid(contentId);
@@ -459,11 +455,9 @@ void AlarmsPlayer::CheckRepeatAlarmList(sqlite3 *db)
                      for(int i = 0; i < 1; i++) {
                           AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
 #if 1
-            for(auto observer:m_ackObservers){
-                observer->onAlarmAckStatusChanged(dmInterface::AlarmAckObserverInterface::Status::PLAYING, currentContent);
-            }
-               
-
+                    for(auto observer:m_ackObservers){
+                        observer->onAlarmAckStatusChanged(dmInterface::AlarmAckObserverInterface::Status::PLAYING, currentContent);
+                    }
 #else         
                           char contentId[37];
                           CreateRandomUuid(contentId);
@@ -711,7 +705,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
                 p->tm_min);
           }
           
-          AISDK_INFO(LX("Set Alarm Time:").d("content:", content));
+          //AISDK_INFO(LX("Set Alarm Time:").d("content:", content));
           action_type = 1;
           loop_mask = 0;
           sprintf(alarmSql, "INSERT INTO 'alarm'VALUES(%lld, '%s', %d, %d, '%s');" ,timestamp ,evt_type ,action_type ,loop_mask ,content);
@@ -761,12 +755,12 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
              sqlite3_free(zErrMsg); 
           
              /* 创建表 */
-              char const *rebulidalarmList = " CREATE TABLE alarm(timestamp, evt_type, action_type, loop_mask, content ); " ;
-              sqlite3_exec(db,rebulidalarmList,NULL,NULL,&zErrMsg);
-              sqlite3_free(zErrMsg);      
-              char const *rebulidalarmList_repeat = " CREATE TABLE alarmList_repeat(timestamp_day, evt_type, weekday, loop_mask, content ); " ;
-              sqlite3_exec(db,rebulidalarmList_repeat,NULL,NULL,&zErrMsg);
-              sqlite3_free(zErrMsg);                 
+             char const *rebulidalarmList = " CREATE TABLE alarm(timestamp, evt_type, action_type, loop_mask, content ); " ;
+             sqlite3_exec(db,rebulidalarmList,NULL,NULL,&zErrMsg);
+             sqlite3_free(zErrMsg);      
+             char const *rebulidalarmList_repeat = " CREATE TABLE alarmList_repeat(timestamp_day, evt_type, weekday, loop_mask, content ); " ;
+             sqlite3_exec(db,rebulidalarmList_repeat,NULL,NULL,&zErrMsg);
+             sqlite3_free(zErrMsg);                 
            }
           
           //operation type:UPDATE 

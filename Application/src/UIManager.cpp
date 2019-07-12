@@ -90,7 +90,9 @@ int UIManager::creatMsg(MqSndInfo mqSndInfo){
         snd_info.msg_info.sub_msg_info.sub_id = mqSndInfo.msg_info.sub_msg_info.sub_id;
         snd_info.msg_info.sub_msg_info.status = mqSndInfo.msg_info.sub_msg_info.status;
         memcpy(snd_info.msg_info.sub_msg_info.content, tmp, sizeof(char)* 255);
-        memcpy(snd_info.msg_info.sub_msg_info.content, mqSndInfo.msg_info.sub_msg_info.content, sizeof(mqSndInfo.msg_info.sub_msg_info.content));
+        memcpy(snd_info.msg_info.sub_msg_info.content,
+               mqSndInfo.msg_info.sub_msg_info.content, 
+               sizeof(mqSndInfo.msg_info.sub_msg_info.content));
         snd_info.msg_info.sub_msg_info.content_len = sizeof(char) * 255;
         snd_info.msg_info.sub_msg_info.iparam = 0xffffffff;
         snd_info.mq_flag = IPC_NOWAIT;

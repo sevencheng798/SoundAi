@@ -396,10 +396,10 @@ private:
     /// Id to identify the specific source when making calls to MediaPlayerInterface.
     utils::mediaPlayer::MediaPlayerInterface::SourceId m_mediaSourceId;
 	
-    /// The set of @c SpeechSynthesizerObserverInterface instances to notify of state changes.
+    /// The set of @c AlarmsPlayerObserverInterface instances to notify of state changes.
     std::unordered_set<std::shared_ptr<dmInterface::AlarmsPlayerObserverInterface>> m_observers;
 
-    /// The set of @c SpeechSynthesizerObserverInterface instances to notify of state changes.
+    /// The set of @c AlarmAckObserverInterface instances to notify of state changes.
     std::unordered_set<std::shared_ptr<dmInterface::AlarmAckObserverInterface>> m_ackObservers;
 
     /**
