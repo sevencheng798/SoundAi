@@ -15,6 +15,7 @@
 
 #include "Utils/Logging/Logger.h"
 #include "Utils/Logging/LogStringFormatter.h"
+#include "Utils/Logging/ZlogManager.h"
 
 namespace aisdk {
 namespace utils {
@@ -50,6 +51,9 @@ private:
 
     /// Object to format log strings correctly.
     LogStringFormatter m_logFormatter;
+
+	/// Object to put log message to a save files.
+	ZlogManager m_zlogManager;
 };
 
 /**

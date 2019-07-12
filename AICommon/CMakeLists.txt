@@ -5,7 +5,7 @@ project(AICommon)
 
 add_subdirectory("Utils")
 
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/Utils/src/Logging  Logging_SOURCES)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/Utils/src/Logging Logging_SOURCES)
 
 add_library(AICommon SHARED 
 	Utils/src/DeviceInfo.cpp
