@@ -55,6 +55,12 @@ public:
 	 * @return @c true if success, otherwise return @c false.
 	 */
 	 bool getDeviceScene();
+
+	/**
+     * Gets current utterance save flags if should to save the usr speech.
+     */
+	bool getUtteranceSave();
+
 	/**
 	 * Check network state.
 	 *

@@ -335,6 +335,9 @@ private:
 	/// The instance of @c ASRGainTune.
 	std::shared_ptr<ASRGainTune> m_gainTune;
 
+	/// The flags if save user speech to files.
+	bool m_utteranceSave;
+
 	/// A timer to transition out of the LISTENING state when no audio can be found in the initial specified time.
 	ASRTimer m_timeoutForActivingAudioTimer;
 		

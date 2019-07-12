@@ -29,6 +29,8 @@ namespace utils {
 static const char *keyScene = "gm.domain.name";
 static const char *matchScene = "device.prod";
 
+static const char *keyUtterance = "gm.utterance.save";
+
 /// Wi-Fi state detect.
 static const char *keyWifi = "net.wifi.state";
 
@@ -72,6 +74,17 @@ bool DeviceInfo::getDeviceScene() {
 		return false;
 	else 
 		return true;
+}
+
+bool DeviceInfo::getUtteranceSave() {
+	char state[4] = {0};
+	getprop((char *)keyUtterance, (char *)&state);
+	AISDK_DEBUG5(LX("getUtteranceSave").d("State", state));
+	if(state[0] == '1') {
+		return true;
+	} else {
+		return false;
+	}
 }
 
 bool DeviceInfo::isConnected() {

@@ -403,7 +403,8 @@ AIUIAutomaticSpeechRecognizer::AIUIAutomaticSpeechRecognizer(
 	m_running{false},
 	m_bargeIn{false},
 	m_attachmentWriter{nullptr},
-	m_gainTune{nullptr} {
+	m_gainTune{nullptr},
+	m_utteranceSave{false} {
 
 }
 	
@@ -480,6 +481,9 @@ bool AIUIAutomaticSpeechRecognizer::init() {
 
 	//  注：该方法总是返回非空对象，非空并不代表创建过程中无错误发生。- from Iflytek aiui
 	m_aiuiAgent = aiui::IAIUIAgent::createAgent(os.str().c_str(), this);
+
+	// Check utterance save flags.
+	m_utteranceSave = m_deviceInfo->getUtteranceSave();
 
 	setObserver(shared_from_this());
 	m_running = true;
@@ -819,7 +823,11 @@ bool AIUIAutomaticSpeechRecognizer::executeTTSResult(const std::string info, con
 void AIUIAutomaticSpeechRecognizer::sendStreamProcessing() {
 	std::vector<int16_t> audioDataToPush(640); // 640*2 = 1280 = 80ms
 	ssize_t wordsRead;
+	std::fstream fs;
 
+	if(m_utteranceSave) {
+		fs.open("/tmp/utterance.pcm", std::fstream::out | std::fstream::app);
+	}
 	std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
 	// Seek keyword begin position.
@@ -854,7 +862,11 @@ void AIUIAutomaticSpeechRecognizer::sendStreamProcessing() {
 				m_gainTune->adjustGain(audioDataToPush.data(), length, 0.08);
 			
 			memcpy(buffer->data(), pbuf8, length);
-			
+		
+			if (m_utteranceSave && fs.good()) {
+				fs.write(static_cast<char *>(pbuf8), length);
+			}
+
 			// Start writing data to AIUI Cloud.
 			aiui::IAIUIMessage * writeMsg = 
 			aiui::IAIUIMessage::create(aiui::AIUIConstant::CMD_WRITE,
@@ -867,6 +879,9 @@ void AIUIAutomaticSpeechRecognizer::sendStreamProcessing() {
 			//usleep(10 * 1000);
 		}
 	} while(!isVaildVad());
+
+	//if(m_utteranceSave)
+		fs.close();
 
 	if(!m_bargeIn) {
 	// Notify AIUI Cloud to terminate data writing.
@@ -933,7 +948,7 @@ bool AIUIAutomaticSpeechRecognizer::executeTextToSpeech(
 	std::string paramStr = "vcn=x_chongchong";
 	paramStr += ",speed=50";
 	paramStr += ",pitch=50";
-	paramStr += ",volume=50";
+	paramStr += ",volume=100";
 	paramStr += ",ent=xtts";
 	
 	aiui::IAIUIMessage * ttsMsg = aiui::IAIUIMessage::create(aiui::AIUIConstant::CMD_TTS,
