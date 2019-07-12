@@ -63,7 +63,7 @@ const std::chrono::milliseconds TIMEOUT_FOR_READ_CALLS = std::chrono::millisecon
 const auto BARGEIN_TIMEOUT = std::chrono::milliseconds{500};
 
 /// Set Thinking to IDLE timeout time
-const auto THINKING_TIMEOUT = std::chrono::seconds{4};
+const auto THINKING_TIMEOUT = std::chrono::seconds{6};
 
 /**
  * Set Listening to IDLE timeout time.
@@ -258,11 +258,12 @@ void AIUIAutomaticSpeechRecognizer::handleEventConnectToSever(std::string uid) {
 void AIUIAutomaticSpeechRecognizer::handleEventVadBegin() {
 	// disable the timer.
 	// tryEntryListeningStateOnTimer();
+	m_timeoutForActivingAudioTimer.stop();
 }
 
 void AIUIAutomaticSpeechRecognizer::handleEventVadEnd() {
 	setVaildVad(true);
-	m_timeoutForActivingAudioTimer.stop();
+	//m_timeoutForActivingAudioTimer.stop();
 	if(!m_timeoutForThinkingTimer.isActive()) {
 		if(!m_timeoutForThinkingTimer.start(
 			THINKING_TIMEOUT,
@@ -413,12 +414,13 @@ void AIUIAutomaticSpeechRecognizer::closeActiveAttachmentWriter() {
 }
 
 bool AIUIAutomaticSpeechRecognizer::init() {
+#if 1
 	m_gainTune = std::make_shared<ASRGainTune>();
 	if(!m_gainTune) {
 		AISDK_ERROR(LX("initFailed").d("reason", "createdGainTuneFailed"));
 		return false;
 	}
-	
+#endif	
 	if(m_aiuiDir.empty()) {
 		AISDK_ERROR(LX("initFailed").d("reason", "aiuiDirIsEmpty"));
 		return false;
@@ -859,7 +861,7 @@ void AIUIAutomaticSpeechRecognizer::sendStreamProcessing() {
 			aiui::Buffer* buffer = aiui::Buffer::alloc(length);
 			void *pbuf8 = audioDataToPush.data();
 			if(m_gainTune)
-				m_gainTune->adjustGain(audioDataToPush.data(), length, 0.08);
+				m_gainTune->adjustGain(audioDataToPush.data(), length, 0.5);
 			
 			memcpy(buffer->data(), pbuf8, length);
 		
