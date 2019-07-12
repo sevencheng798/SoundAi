@@ -48,7 +48,7 @@ ConsoleLogger::ConsoleLogger() : Logger(Level::UNKNOWN) {
     setLevel(Level::INFO);
 #endif  // DEBUG
    // init(configuration::ConfigurationNode::getRoot()[CONFIG_KEY_DEFAULT_LOGGER]);
-    std::string ver{"v1.0.1"};
+    std::string ver{"v1.0.4"};
     std::string currentVersionLogEntry("sdkVersion: " + ver);  //Sven
     emit(
         aisdk::utils::logging::Level::INFO,
