@@ -71,6 +71,8 @@ private:
 	VolumeManager();
 
 	bool handleSpeakerSettingsValidation(std::string &data);
+
+    void executeVolumePreHandle(std::shared_ptr<DirectiveInfo> info);
 	
 	void executeVolumeHandle(std::shared_ptr<DirectiveInfo> info);
 	

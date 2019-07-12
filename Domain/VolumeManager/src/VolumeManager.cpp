@@ -57,7 +57,8 @@ void VolumeManager::onDeregistered() {
 }
 
 void VolumeManager::preHandleDirective(std::shared_ptr<DirectiveInfo> info) {
-	// default no-op.
+	AISDK_DEBUG5(LX("preHandleDirective").d("messageId", info->directive->getMessageId()));
+    m_executor.submit([this, info]() { executeVolumePreHandle(info); });
 }
 
 void VolumeManager::handleDirective(std::shared_ptr<DirectiveInfo> info) {
@@ -127,17 +128,21 @@ bool VolumeManager::handleSpeakerSettingsValidation(std::string &data) {
 	return true;
 }
 
-void VolumeManager::executeVolumeHandle(std::shared_ptr<DirectiveInfo> info) {
-	if(!info) {
-		AISDK_ERROR(LX("executeVolumeHandle").d("reason", "infoIsEmpty"));
-		return;
-	}
+void VolumeManager::executeVolumePreHandle(std::shared_ptr<DirectiveInfo> info) {
 	auto data = info->directive->getData();
 	if(handleSpeakerSettingsValidation(data)) {
 		// Notify volume change observer.
 		if(m_observers) {
 			m_observers->onVolumeChange(m_setting.volumeType, m_setting.volume);
 		}
+	}
+
+}
+
+void VolumeManager::executeVolumeHandle(std::shared_ptr<DirectiveInfo> info) {
+	if(!info) {
+		AISDK_ERROR(LX("executeVolumeHandle").d("reason", "infoIsEmpty"));
+		return;
 	}
 
 	setHandlingCompleted(info);
