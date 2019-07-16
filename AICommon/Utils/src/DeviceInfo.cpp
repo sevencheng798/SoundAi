@@ -87,12 +87,51 @@ bool DeviceInfo::getUtteranceSave() {
 	}
 }
 
+// wpa_state:
+// INACTIVE
+// COMPLETED
+// DISCONNECTED
+bool checkWireLessConnectState() {
+    FILE* fp; 
+    char match[] = "wpa_state=COMPLETED";
+	char format[] = "wpa_cli -i wlan0 status | grep -r \"%s\"";
+    char buf[32] = {0}; 
+	char *command = NULL;
+	int commandSize;
+    bool ret = false;
+	
+	commandSize = strlen(format) + strlen(match);
+	command = (char *)malloc(commandSize+1);
+	if(!command) {
+		AISDK_ERROR(LX("checkWireLessConnectStateFailed").d("reason", "askMemFailed"));
+		return false;
+	}
+	memset(command, 0, commandSize);
+    sprintf(command, format, match);
+
+	if((fp = popen(command, "r")) != NULL){
+		if((fgets(buf, 32, fp)) != NULL){
+			AISDK_DEBUG5(LX("checkWireLessConnectState").d("STATE", buf));
+		    if(0 == memcmp(buf, match, strlen(match))) {
+	            ret = true;
+	        } else {
+			    ret = false;
+	        }
+		}
+		pclose(fp);
+	}
+
+	free(command);
+	
+    return ret;
+}
+
 bool DeviceInfo::isConnected() {
 	char state[4]={0};
 	getprop((char *)keyWifi, (char *)&state);
 	AISDK_DEBUG5(LX("isConnected").d("networkState", state));
 	
-	if(state[0] == '1') {
+	if(state[0] == '1' && checkWireLessConnectState()) {
 		notifyStateChange(NetworkStateObserverInterface::Status::CONNECTED);
 		return true;
 	}
