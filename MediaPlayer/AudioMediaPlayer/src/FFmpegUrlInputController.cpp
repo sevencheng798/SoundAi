@@ -19,6 +19,7 @@ extern "C" {
 #include <Utils/Logging/Logger.h>
 #include "AudioMediaPlayer/FFmpegDeleter.h"
 #include "AudioMediaPlayer/FFmpegUrlInputController.h"
+#include "AudioMediaPlayer/UrlEncode.h"
 
 /// String to identify log entries originating from this file.
 static const std::string TAG("FFmpegUrlInputController");
@@ -42,8 +43,45 @@ std::unique_ptr<FFmpegUrlInputController> FFmpegUrlInputController::create(
     }
 
 	AISDK_DEBUG5(LX("created").d("url", url).d("offset(ms)", offset.count()));
-	
-    auto controller = std::unique_ptr<FFmpegUrlInputController>(new FFmpegUrlInputController(url, offset));
+	// Check urlencode for chinese char.
+	if(checkHasChinese(url.c_str())) {
+		auto pos = url.find("://");
+        if(pos == std::string::npos) {
+            AISDK_ERROR(LX("createFailed").d("reason", "notFoundRemoteProtocols"));
+            return nullptr;
+        }
+
+		std::string remain = url.substr(pos+3);
+		// Reservation protocols parts.
+		oss << url.substr(0, pos+3);
+		pos = remain.find('/');
+        if(pos == std::string::npos) {
+            AISDK_ERROR(LX("createFailed").d("reason", "notFoundHost"));
+            return nullptr;
+        }
+        std::string suburl = remain.substr(pos);
+		// Strcat host to url protocols.
+		remain.resize(pos);
+		oss << remain;
+
+		char *encode = new char[suburl.length()*2];
+		if(!encode) {
+			AISDK_ERROR(LX("createFailed").d("reason", "askEncodeMemoryFailed"));
+            return nullptr;
+		}
+		
+		URLEncode(suburl.substr(1).c_str(), (suburl.length()-1), encode+1, (suburl.length()*2));
+		encode[0] = '/';
+		oss << encode;
+
+		delete[] encode;	
+	} else {
+		// Copy origin url to ostring stream.
+		oss << url;
+	}
+
+	AISDK_DEBUG5(LX("created").d("newUrl", oss.str()).d("offset(ms)", offset.count()));
+    auto controller = std::unique_ptr<FFmpegUrlInputController>(new FFmpegUrlInputController(oss.str(), offset));
     if (!controller->findFirstEntry()) {
 		AISDK_ERROR(LX("createFailed").d("reason", "emptyPlayList"));
         return nullptr;

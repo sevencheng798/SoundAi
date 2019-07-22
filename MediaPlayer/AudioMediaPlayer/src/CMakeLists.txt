@@ -9,7 +9,8 @@ add_library(AudioMediaPlayer SHARED
 	FFmpegStreamInputController.cpp
 	FFmpegAttachmentInputController.cpp
 	PlaybackConfiguration.cpp
-	RetryTimer.cpp)
+	RetryTimer.cpp
+	UrlEncode.cpp)
 
 target_include_directories(AudioMediaPlayer PUBLIC
 	"${AudioMediaPlayer_SOURCE_DIR}/include"
