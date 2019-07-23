@@ -940,7 +940,7 @@ void ResourcesPlayer::executeTrackChanged(FocusState newTrace){
                                 break;
                             }
                         }
-                        loop:
+                        TryTheNextItem:
                         int val = playKuGouResourceItemID(AUDIO_ID_LIST.at(currentItemNum), AUDIO_ID_LIST.at(currentItemNum+1));  
                         if(val != 0){
                            AISDK_DEBUG5(LX("executeTrackChanged").d("playKuGouResourceItemID", "play type-->-->[kugou]-->-->【2】"));
@@ -955,7 +955,7 @@ void ResourcesPlayer::executeTrackChanged(FocusState newTrace){
                                     return;
                                 } 
                            }                           
-                           goto loop;
+                           goto TryTheNextItem;
                         }
 
                 }else{
@@ -1134,6 +1134,7 @@ void ResourcesPlayer::executePlaybackFinished() {
                
          }else{
               if(enable_kugou_resources == true) {
+                  TryAgain:
                   AISDK_DEBUG5(LX("executePlaybackFinished").d("playKuGouResourceItemID", "play type-->-->[kugou]-->-->【3】"));
                   currentItemNum = currentItemNum + 2;
                   if(enable_single_loop == 1 ){
@@ -1151,7 +1152,11 @@ void ResourcesPlayer::executePlaybackFinished() {
                            return;
                        } 
                   }
-                  playKuGouResourceItemID(AUDIO_ID_LIST.at(currentItemNum), AUDIO_ID_LIST.at(currentItemNum+1));  
+                  int val = playKuGouResourceItemID(AUDIO_ID_LIST.at(currentItemNum), AUDIO_ID_LIST.at(currentItemNum+1));
+                  if(val != 0){
+                     AISDK_DEBUG5(LX("executeTrackChanged").d("playKuGouResourceItemID", "play type-->-->[kugou]-->-->【4】"));                          
+                     goto TryAgain;
+                  }                  
          
               }else{
                   // playNextItem();
