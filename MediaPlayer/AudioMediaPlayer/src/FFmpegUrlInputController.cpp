@@ -157,6 +157,9 @@ FFmpegUrlInputController::getCurrentFormatContextOpen() {
 
     AVDictionary* options = nullptr;
     av_dict_set(&options, USER_AGENT_OPTION, "AiSdkv1.0.1", 0);
+    av_dict_set_int(&options, "reconnect", true, 0);
+    av_dict_set_int(&options, "reconnect_streamed", true, 0);
+    av_dict_set_int(&options, "timeout", 30000000, 0); // 30 seconds
     auto error = avformat_open_input(&avFormatContext, m_currentUrl.c_str(), nullptr, &options);
     auto optionsPtr = std::unique_ptr<AVDictionary, AVDictionaryDeleter>(options);
 
