@@ -282,7 +282,7 @@ private:
 
     void playResourceItem(std::string ResourceItem );
 
-    void playKuGouResourceItemID(std::string ResourceItemID, std::string ResourceAlbumIdID);
+    int playKuGouResourceItemID(std::string ResourceItemID, std::string ResourceAlbumIdID);
     
     void executePlaybackError(const utils::mediaPlayer::ErrorType& type, std::string error);
 

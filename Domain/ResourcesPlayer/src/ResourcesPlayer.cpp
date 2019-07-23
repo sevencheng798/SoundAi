@@ -163,7 +163,7 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
               AISDK_ERROR(LX("PLAYCONTROL-handleDirectiveTimeout"));
           }
       }
-
+        
       responsePlayControl(info, operation);
       
     }
@@ -584,17 +584,17 @@ void ResourcesPlayer::responsePlayControl(std::shared_ptr<DirectiveInfo> info, s
         if( m_operation == "PAUSE"){
               flag_playControl_pause = 1;
               if( !m_resourcesPlayer->pause(m_mediaSourceId)){
-                 AISDK_ERROR(LX("executeTrackChanged").d("pause","failed"));
+                 AISDK_ERROR(LX("responsePlayControl").d("pause","failed"));
               } 
         }else if(m_operation == "STOP" ){
               flag_playControl_pause = 1;
               if( !m_resourcesPlayer->pause(m_mediaSourceId)){
-                  AISDK_ERROR(LX("executeTrackChanged").d("pause","failed"));
+                  AISDK_ERROR(LX("responsePlayControl").d("pause","failed"));
               }  
         }else if(m_operation == "CONTINUE" ){
               flag_playControl_pause = 0;
               if( !m_resourcesPlayer->resume(m_mediaSourceId)){
-                  AISDK_ERROR(LX("executeTrackChanged").d("resume","failed"));
+                  AISDK_ERROR(LX("responsePlayControl").d("resume","failed"));
               }  
         }else if(m_operation == "NEXT" || m_operation == "SWITCH" || m_operation == "RANDOM_PLAY") {
               flag_playControl_pause = 0;
@@ -611,7 +611,7 @@ void ResourcesPlayer::responsePlayControl(std::shared_ptr<DirectiveInfo> info, s
                   }
               }
 
-              AISDK_ERROR(LX("executeTrackChanged").d("currentItemNum", currentItemNum));
+              AISDK_ERROR(LX("responsePlayControl").d("currentItemNum", currentItemNum));
               m_executor.submit([this, info]() { executeHandle(info); });
         }else if(m_operation == "PREVIOUS"){
               flag_playControl_pause = 0; 
@@ -632,27 +632,32 @@ void ResourcesPlayer::responsePlayControl(std::shared_ptr<DirectiveInfo> info, s
                   }
               }
 
-              AISDK_ERROR(LX("executeTrackChanged").d("currentItemNum", currentItemNum));
+              AISDK_ERROR(LX("responsePlayControl").d("currentItemNum", currentItemNum));
               m_executor.submit([this, info]() { executeHandle(info); });
         }else if(m_operation == "SINGLE_LOOP"){
               enable_single_loop = 1;
-              AISDK_INFO(LX("executeTrackChanged").d("SINGLE_LOOP","success"));
+              AISDK_INFO(LX("responsePlayControl").d("SINGLE_LOOP","success"));
         }else if(m_operation == "CLOSE_SINGLE_LOOP"){
               enable_single_loop = 0;  
-              AISDK_INFO(LX("executeTrackChanged").d("CLOSE_SINGLE_LOOP","success"));        
+              AISDK_INFO(LX("responsePlayControl").d("CLOSE_SINGLE_LOOP","success"));        
         }else if(m_operation == "LIST_LOOP"){
               enable_list_loop = 1;
-              AISDK_INFO(LX("executeTrackChanged").d("LIST_LOOP","success"));
+              AISDK_INFO(LX("responsePlayControl").d("LIST_LOOP","success"));
         }else if(m_operation == "LIST_ORDER"){
               enable_list_loop = 0;
               enable_single_loop = 0;
-              AISDK_INFO(LX("executeTrackChanged").d("LIST_ORDER","success"));
+              AISDK_INFO(LX("responsePlayControl").d("LIST_ORDER","success"));
         }else{
             
-              AISDK_ERROR(LX("executeTrackChanged").d("operation","null"));
+              AISDK_ERROR(LX("responsePlayControl").d("operation","null"));
         }
         
         info->result->setCompleted();  
+        AISDK_INFO(LX("responsePlayControl").d("m_operation",m_operation)
+                                            .d("flag_playControl_pause",flag_playControl_pause)
+                                            .d("enable_list_loop",enable_list_loop)
+                                            .d("enable_single_loop",enable_single_loop)
+                                            .d("currentItemNum",currentItemNum));
 
 }
 
@@ -935,7 +940,23 @@ void ResourcesPlayer::executeTrackChanged(FocusState newTrace){
                                 break;
                             }
                         }
-                        playKuGouResourceItemID(AUDIO_ID_LIST.at(currentItemNum), AUDIO_ID_LIST.at(currentItemNum+1));  
+                        loop:
+                        int val = playKuGouResourceItemID(AUDIO_ID_LIST.at(currentItemNum), AUDIO_ID_LIST.at(currentItemNum+1));  
+                        if(val != 0){
+                           AISDK_DEBUG5(LX("executeTrackChanged").d("playKuGouResourceItemID", "play type-->-->[kugou]-->-->【2】"));
+                           currentItemNum = currentItemNum + 2;
+                           if(currentItemNum >= AUDIO_ID_LIST.size()){
+                                if(enable_list_loop == 1){
+                                    currentItemNum = 0;
+                                }else{
+                                    if( !m_resourcesPlayer->stop(m_mediaSourceId)){
+                                    AISDK_ERROR(LX("executeTrackChanged").d("stop","failed"));
+                                    }
+                                    return;
+                                } 
+                           }                           
+                           goto loop;
+                        }
 
                 }else{
                 
@@ -968,13 +989,13 @@ void ResourcesPlayer::executeTrackChanged(FocusState newTrace){
         case  ResourcesPlayerObserverInterface::ResourcesPlayerState::PAUSED:
 
             if(flag_playControl_pause == 0 ){
-                AISDK_ERROR(LX("executeTrackChanged").d("flag_playControl_pause",flag_playControl_pause));
+                AISDK_INFO(LX("executeTrackChanged").d("flag_playControl_pause",flag_playControl_pause));
                 if( !m_resourcesPlayer->resume(m_mediaSourceId)){
                     AISDK_ERROR(LX("executeTrackChanged").d("resume","failed"));
                 }
 
             }else{        
-               AISDK_ERROR(LX("executeTrackChanged").d("flag_playControl_pause",flag_playControl_pause));
+               AISDK_INFO(LX("executeTrackChanged").d("flag_playControl_pause",flag_playControl_pause));
             }
 
             break;
@@ -1249,19 +1270,20 @@ void ResourcesPlayer::playResourceItem(std::string ResourceItem ) {
      }
 }
 
-void ResourcesPlayer::playKuGouResourceItemID(std::string ResourceItemID, std::string ResourceAlbumIdID){
+int ResourcesPlayer::playKuGouResourceItemID(std::string ResourceItemID, std::string ResourceAlbumIdID){
     AISDK_INFO(LX("playKuGouResourceItemID").d("ResourceItemID", ResourceItemID).d("ResourceAlbumIdID", ResourceAlbumIdID));
     //todo 
     //KUGOU API   
     char audioUrl[1024];
+    memset(audioUrl, 0x00, sizeof(audioUrl));
     const char* aiuiUid = m_aiuiUid.c_str();
     const char* appId = m_appId.c_str();
     const char* appKey = m_appKey.c_str();
     const char* clientDeviceId = m_clientDeviceId.c_str();
-//    const char* aiuiUid = "d13007561883";
-//    const char* appId = "5c3d4427";
-//    const char* appKey = "914a80c33bda12e993559f79ae898205";
-//    const char* clientDeviceId = "250b42006265f4bcbe0dc8d147aaa3aa";
+//        const char* aiuiUid = "d13007661883";
+//        const char* appId = "5c3d8827";
+//        const char* appKey = "914a80c3399a12e993559f79ae898205";
+//        const char* clientDeviceId = "250b4299265f4bcbe0dc8d147aaa3aa";
     const char* kugouUserId = m_kugouUserId.c_str();
     const char* kugouUserToken = m_kugouUserToken.c_str();
     const char* itemId = ResourceItemID.c_str();
@@ -1272,13 +1294,15 @@ void ResourcesPlayer::playKuGouResourceItemID(std::string ResourceItemID, std::s
     AISDK_INFO(LX("playKuGouResourceItemID").d("kugouUserId", kugouUserId).d("kugouUserToken", kugouUserToken));
 
     int val = getMusicUrl(aiuiUid, appId, appKey, kugouUserId, kugouUserToken, clientDeviceId, itemId, albumId, audioUrl);
-    if(val != 0){
+    if(val != 0 || strlen(audioUrl) == 0 ){
         AISDK_ERROR(LX("playKuGouResourceItemID").d("getMusicUrl", "NULL"));
-        return;
+        return -1;
     }else{
         AISDK_INFO(LX("playKuGouResourceItemID").d("getMusicUrl", audioUrl));
         playResourceItem(std::string (audioUrl));
     }
+
+    return 0;
 
 }
 
