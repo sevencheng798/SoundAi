@@ -21,7 +21,7 @@
 #include <DMInterface/AlarmAckObserverInterface.h>
 
 #include "Application/AIClient.h"
-#include "KeywordObserver.h"
+//#include "KeywordObserver.h"
 #include "UIManager.h"
 
 namespace aisdk {
@@ -42,7 +42,8 @@ public:
     ControlActionManager(
         std::shared_ptr<AIClient> client,
         std::shared_ptr<utils::microphone::MicrophoneInterface> micWrapper,
-        std::shared_ptr<UIManager> userInterface);
+        std::shared_ptr<UIManager> userInterface,
+        std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream);
 
     /**
      * Begins the interaction between the Sample App and the user. This should only be called at startup.
@@ -57,8 +58,8 @@ public:
     /**
      * Toggles the microphone state if the Sample App was built with wakeword. When the microphone is turned off, the
      * app enters a privacy mode in which it stops recording audio data from the microphone, thus disabling 'xiaokangxiaokang'
-     * waking up due to wake word. Note however that hold-to-talk and tap-to-talk modes will still work by recording
-     * microphone data temporarily until a user initiated interacion is complete. If this app was built without wakeword
+     * waking up due to wake word. Note however that tap-to-talk modes will still work by recording microphone data temporarily 
+     * until a user initiated interacion is complete. If this app was built without wakeword
      * then this will do nothing as the microphone is already off.
      */
     void microphoneToggle();
@@ -104,6 +105,9 @@ private:
 
     /// The user interface manager.
     std::shared_ptr<UIManager> m_userInterface;
+
+	/// The capture data buffer.
+	std::shared_ptr<utils::sharedbuffer::SharedBuffer> m_stream;
 	
     /// Whether the microphone is currently turned on.
     bool m_isMicOn;

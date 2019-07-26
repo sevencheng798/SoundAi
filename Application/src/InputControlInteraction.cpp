@@ -92,7 +92,11 @@ int InputControlInteraction::run() {
                     break;
                 case KEY_EVT_MUTE:
                     AISDK_INFO(LX("IPC::ReceiveMsg").d("ipcCmdMode","KEY_EVT_MUTE"));
+                    #ifdef PUSH_TAP
+                    m_controlActionManager->tap();
+                    #else
                     m_controlActionManager->microphoneToggle();
+                    #endif
                     break;
                 case KEY_EVT_PAUSE_AND_RESUME:
                     AISDK_INFO(LX("IPC::ReceiveMsg").d("ipcCmdMode","KEY_EVT_PAUSE_AND_RESUME"));

@@ -28,11 +28,13 @@ namespace application {
 ControlActionManager::ControlActionManager(
     std::shared_ptr<AIClient> client,
     std::shared_ptr<utils::microphone::MicrophoneInterface> micWrapper,
-    std::shared_ptr<UIManager> userInterface):
+    std::shared_ptr<UIManager> userInterface,
+    std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream):
     SafeShutdown{"ControlActionManager"},
     m_client{client},
     m_micWrapper{micWrapper},
     m_userInterface{userInterface},
+    m_stream{stream},
     m_isMicOn{true} {
 	m_micWrapper->startStreamingMicrophoneData();
 }
@@ -78,7 +80,9 @@ void ControlActionManager::playBringupSound(utils::bringup::eventType type, std:
 }
 
 void ControlActionManager::tap() {
-
+#ifdef PUSH_TAP
+	m_executor.submit([this]() { m_client->notifyOfWakeWord(m_stream, 0, 0); });
+#endif
 }
 
 void ControlActionManager::errorValue() {

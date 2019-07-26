@@ -163,8 +163,7 @@ bool SampleApp::initialize() {
 	// Adding the UI manager to volume manager.
 	auto volumeManager = m_aiClient->getVolumeManager();
 	volumeManager->setObserver(userInterfaceManager);
-    
-#if defined(KWD)
+
 	// Step1.
 	/*
      * Creating the buffer (Shared Buffer Stream) that will hold user audio data. This is the main input into the SDK.
@@ -189,6 +188,7 @@ bool SampleApp::initialize() {
 		return false;
 	}
 
+#if defined(KWD)
 	// Step3.
 	// Creating wake word audio provider, if a wake-up library already exists.
 	// Currently only support SoundAi and IflyTek msc awake engine.
@@ -201,10 +201,11 @@ bool SampleApp::initialize() {
 		AISDK_ERROR(LX("Failed to create keyword detector!"));
 		return false;
 	}
+#endif
 
 	// Step4.
 	// Creating the control action manager.
-	m_controlActionManager = std::make_shared<ControlActionManager>(m_aiClient, micWrapper, userInterfaceManager);
+	m_controlActionManager = std::make_shared<ControlActionManager>(m_aiClient, micWrapper, userInterfaceManager, sharedBufferStream);
 
 	m_userInputControler = InputControlInteraction::create(m_controlActionManager);
 	if(!m_userInputControler) {
@@ -214,7 +215,6 @@ bool SampleApp::initialize() {
 	
 	// Adding the DialogUX observer to @c ControlActionManager.
 	m_aiClient->addDialogStateObserver(m_controlActionManager);
-#endif
 
     // Adding the alarmack observer to @c ControlActionManager.
     auto alarmPlayer = m_aiClient->getAlarmPlayer();

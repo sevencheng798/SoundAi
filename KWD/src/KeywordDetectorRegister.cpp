@@ -49,6 +49,8 @@ std::unique_ptr<GenericKeywordDetector> KeywordDetectorRegister::create(
 #elif defined(KWD_IFLYTEK)
 
 	return IflyTekKeywordDetector::create(stream, keyWordObserver);
+#elif defined(PUSH_TAP)
+	return nullptr;
 #else
 	#error "No set any keyword detector."
 	return nullptr;

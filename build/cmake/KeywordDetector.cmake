@@ -17,6 +17,8 @@ option(SOUNDAI_KEY_WORD_DETECTOR "Enable SoundAi keyword detector." OFF)
 
 if(NOT IFLYTEK_KEY_WORD_DETECTOR AND NOT SOUNDAI_KEY_WORD_DETECTOR)
     message("No keyword detector type specified, skipping build of keyword detector.")
+    add_definitions(-DPUSH_TAP)
+    set(LIB_SHARED_BUFFER "${SOUNDAI_KEY_WORD_DETECTOR_LIB_PATH}/libsharedbuffer.a")
     return()
 endif()
 

@@ -18,21 +18,24 @@ static const std::string TAG{"PortAudioMicrophoneWrapper"};
 
 namespace aisdk {
 namespace application {
-#ifdef KWD_SOUNDAI
+#if (defined KWD_SOUNDAI) && (!defined PUSH_TAP)
 static const int NUM_INPUT_CHANNELS = 8;
 static const std::string DEFAULE_MICROPHONE{"microphone"};
 #else
 static const int NUM_INPUT_CHANNELS = 1;
+#ifdef PUSH_TAP
+/// for am113
+static const std::string DEFAULE_MICROPHONE{"microphone"};
+#else
 /// for rk3308
 static const std::string DEFAULE_MICROPHONE{"6mic_loopback"};
+#endif
 #endif
 
 static const int16_t SAMPLE_SILENCE = 0;
 static const int NUM_OUTPUT_CHANNELS = 0;
 static const double SAMPLE_RATE = 16000;
 static const unsigned long PREFERRED_SAMPLES_PER_CALLBACK = paFramesPerBufferUnspecified;
-//static const std::string DEFAULE_MICROPHONE{"microphone"};
-//static const std::string DEFAULE_MICROPHONE{"6mic_loopback"};
 
 std::unique_ptr<PortAudioMicrophoneWrapper> PortAudioMicrophoneWrapper::create(
 	std::shared_ptr<utils::sharedbuffer::SharedBuffer> stream) {
@@ -216,7 +219,7 @@ int PortAudioMicrophoneWrapper::PortAudioCallback(
     PortAudioMicrophoneWrapper* wrapper = static_cast<PortAudioMicrophoneWrapper*>(userData);
 	auto allFramesToCalc = numSamples*NUM_INPUT_CHANNELS;
 	
-#ifdef KWD_SOUNDAI
+#if (defined KWD_SOUNDAI) && (!defined PUSH_TAP)
 	std::vector<int16_t> pushToData(allFramesToCalc);
 	wrapper->portAudioStreamPreprocessing(pushToData.data(), inputBuffer, numSamples);
 	ssize_t returnCode = wrapper->m_writer->write(pushToData.data(), allFramesToCalc);
