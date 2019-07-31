@@ -28,6 +28,7 @@ static const std::string TAG{"AlarmsPlayer"};
 
 #define LX(event) aisdk::utils::logging::LogEntry(TAG, event)
 
+#define alarmDB "/data/alarm.db"
 //using namespace std;
 namespace aisdk {
 namespace domain {
@@ -183,27 +184,27 @@ void AlarmsPlayer::onPlaybackError(
 }
 
 void AlarmsPlayer::onPlaybackStopped(SourceId id) {
-	std::cout << "onPlaybackStopped:callbackSourceId: " << id << std::endl;
+    AISDK_INFO(LX("onPlaybackStopped").d("callbackSourceId", id));
     onPlaybackFinished(id);
 }
 
 void AlarmsPlayer::addObserver(std::shared_ptr<AlarmsPlayerObserverInterface> observer) {
-	std::cout << __func__ << ":addObserver:observer: " << observer.get() << std::endl;
+    AISDK_INFO(LX("addObserver").d("observer", observer.get()));
     m_executor.submit([this, observer]() { m_observers.insert(observer); });
 }
 
 void AlarmsPlayer::removeObserver(std::shared_ptr<AlarmsPlayerObserverInterface> observer) {
-	std::cout << __func__ << ":removeObserver:observer: " << observer.get() << std::endl;	
+    AISDK_INFO(LX("removeObserver").d("observer", observer.get()));
     m_executor.submit([this, observer]() { m_observers.erase(observer); }).wait();
 }
 
 void AlarmsPlayer::addObserver(std::shared_ptr<AlarmAckObserverInterface> observer) {
-	std::cout << __func__ << ":addObserver:ackObservers: " << observer.get() << std::endl;
+    AISDK_INFO(LX("addObserver").d("ackObservers", observer.get()));
     m_executor.submit([this, observer]() { m_ackObservers.insert(observer); });
 }
 
 void AlarmsPlayer::removeObserver(std::shared_ptr<AlarmAckObserverInterface> observer) {
-	std::cout << __func__ << ":removeObserver:ackObservers: " << observer.get() << std::endl;	
+    AISDK_INFO(LX("removeObserver").d("ackObservers", observer.get()));
     m_executor.submit([this, observer]() { m_ackObservers.erase(observer); }).wait();
 }
 
@@ -212,7 +213,7 @@ std::unordered_set<std::string> AlarmsPlayer::getHandlerName() const {
 }
 
 void AlarmsPlayer::doShutdown() {
-	std::cout << "doShutdown" << std::endl;
+	AISDK_INFO(LX("doShutdown"));
 	m_alarmPlayer->setObserver(nullptr);
 	{
         std::unique_lock<std::mutex> lock(m_mutex);
@@ -491,7 +492,7 @@ void AlarmsPlayer::sqliteThreadHander() {
     sqlite3 *db=NULL;
     int len;
     while(1){
-        len = sqlite3_open("/data/alarm.db",&db);
+        len = sqlite3_open(alarmDB, &db);
         if( len ) {
         fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
         sqlite3_close(db);
@@ -575,7 +576,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           //repeat alarm
           {
             int array_size = cJSON_GetArraySize(json_repeat);
-            std::cout << "repeat_alarm_list size : " <<array_size << std::endl;
+            AISDK_DEBUG(LX("AnalysisNlpDataForAlarmsPlayer").d("repeat_alarm_list_size", array_size));
             int i = 0;
             cJSON *item,*it;
             char *p  = NULL;
@@ -600,7 +601,6 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           else
           //one time alarm
           {
-          AISDK_DEBUG(LX("-------one time alarm--------------i'm here !!!!-----------------"));
           if(strcmp(json_operation->valuestring, ALARM_FLUSH_OPERATION) != 0)
             {
             json_timestamp = cJSON_GetObjectItem(json_parameters, "timestamp");
@@ -609,7 +609,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           }
 
            /* 打开数据库 */
-            len = sqlite3_open("/data/alarm.db",&db);
+            len = sqlite3_open(alarmDB, &db);
             if( len )
             {
                 fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
@@ -788,7 +788,7 @@ void AlarmsPlayer::executePreHandleAfterValidation(std::shared_ptr<AlarmDirectiv
 #ifdef ENABLE_SOUNDAI_ASR
      auto nlpDomain = info->directive;
      auto dateMessage = nlpDomain->getData();
-     std::cout << "dateMessage =  " << dateMessage.c_str() << std::endl;
+     AISDK_INFO(LX("executePreHandleAfterValidation").d("dateMessage", dateMessage.c_str()));
 
      cJSON* json = NULL, *json_data = NULL;
      (void )json;
@@ -908,10 +908,10 @@ void AlarmsPlayer::executeStateChange() {
 }
 
 void AlarmsPlayer::executePlaybackStarted() {
-	std::cout << "executePlaybackStarted." << std::endl;
+	AISDK_INFO(LX("executePlaybackStarted"));
 	
     if (!m_currentInfo) {
-		std::cout << "executePlaybackStartedIgnored:reason:nullptrDirectiveInfo" << std::endl;
+    	AISDK_INFO(LX("executePlaybackStartedIgnored").d("reason", "nullptrDirectiveInfo"));
         return;
     }
     {
@@ -925,7 +925,7 @@ void AlarmsPlayer::executePlaybackStarted() {
 }
 
 void AlarmsPlayer::executePlaybackFinished() {
-	std::cout << "executePlaybackFinished." << std::endl;
+	AISDK_INFO(LX("executePlaybackFinished"));
     std::shared_ptr<AlarmDirectiveInfo> infotest;
 
     if (!m_currentInfo) {
@@ -959,7 +959,7 @@ void AlarmsPlayer::executePlaybackFinished() {
 }
 
 void AlarmsPlayer::executePlaybackError(const utils::mediaPlayer::ErrorType& type, std::string error) {
-	std::cout << "executePlaybackError: type: " << type << " error: " << error << std::endl;
+    AISDK_INFO(LX("executePlaybackError").d("type", type).d("error", error));
     if (!m_currentInfo) {
         return;
     }
@@ -1063,7 +1063,7 @@ void AlarmsPlayer::resetCurrentInfo(std::shared_ptr<AlarmDirectiveInfo> chatInfo
 }
 
 void AlarmsPlayer::setHandlingCompleted() {
-	std::cout << "setHandlingCompleted" << std::endl;
+    AISDK_INFO(LX("setHandlingCompleted"));
     if (m_currentInfo && m_currentInfo->result) {
         m_currentInfo->result->setCompleted();
     }
@@ -1086,7 +1086,7 @@ void AlarmsPlayer::reportExceptionFailed(
 }
 
 void AlarmsPlayer::releaseForegroundTrace() {
-	std::cout << "releaseForegroundTrace" << std::endl;
+    AISDK_INFO(LX("releaseForegroundTrace"));
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_currentFocus = FocusState::NONE;
@@ -1103,15 +1103,15 @@ std::shared_ptr<AlarmsPlayer::AlarmDirectiveInfo> AlarmsPlayer::validateInfo(
 	std::shared_ptr<DirectiveInfo> info,
 	bool checkResult) {
     if (!info) {
-		std::cout << caller << "Failed:reason:nullptrInfo" <<std::endl;
+        AISDK_ERROR(LX("validateInfoFailed").d("reason","nullptrInfo"));
         return nullptr;
     }
     if (!info->directive) {
-		std::cout << caller << "Failed:reason:nullptrDirective" <<std::endl;
+        AISDK_ERROR(LX("validateInfoFailed").d("reason","nullptrDirective"));
         return nullptr;
     }
     if (checkResult && !info->result) {
-		std::cout << caller << "Failed:reason:nullptrResult" <<std::endl;
+        AISDK_ERROR(LX("validateInfoFailed").d("reason","nullptrResult"));
         return nullptr;
     }
 
@@ -1174,13 +1174,13 @@ void AlarmsPlayer::removeChatDirectiveInfo(const std::string& messageId) {
 
 void AlarmsPlayer::onDialogUXStateChanged(
 	utils::dialogRelay::DialogUXStateObserverInterface::DialogUXState newState) {
-	std::cout << "onDialogUXStateChanged" << std::endl;
+    AISDK_INFO(LX("onDialogUXStateChanged"));
 	m_executor.submit([this, newState]() { executeOnDialogUXStateChanged(newState); });
 }
 
 void AlarmsPlayer::executeOnDialogUXStateChanged(
     utils::dialogRelay::DialogUXStateObserverInterface::DialogUXState newState) {
-	std::cout << "executeOnDialogUXStateChanged" << std::endl;
+    AISDK_INFO(LX("executeOnDialogUXStateChanged"));
     if (newState != utils::dialogRelay::DialogUXStateObserverInterface::DialogUXState::IDLE) {
         return;
     }
