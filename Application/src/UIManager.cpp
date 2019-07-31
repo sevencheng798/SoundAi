@@ -98,7 +98,6 @@ int UIManager::creatMsg(MqSndInfo mqSndInfo){
         snd_info.mq_flag = IPC_NOWAIT;
 
         AISDK_INFO(LX("IPC::creatMsg")
-            .d("msg_type ", GM_MSG_SAMPLE)
             .d("mode ", mqSndInfo.msg_info.sub_msg_info.sub_id)
             .d("status ", mqSndInfo.msg_info.sub_msg_info.status)
             .d("content", snd_info.msg_info.sub_msg_info.content));
@@ -216,7 +215,7 @@ void UIManager::readWakeupAudioDir(char *path, std::deque<std::string> &wakeUpAu
     {
      if ((ent->d_reclen != 0 )&&(ent->d_type==8))
      {    
-         AISDK_INFO(LX("readWakeupAudioDir").d("WAKEUP_AUDIO_LIST ",ent->d_name));
+         AISDK_DEBUG(LX("readWakeupAudioDir").d("WAKEUP_AUDIO_LIST ",ent->d_name));
          wakeUpAudioList.push_back(ent->d_name);
      }
     }    
@@ -236,7 +235,7 @@ int UIManager::responseWakeUp(std::deque<std::string> wakeUpAudioList) {
        flag_Time_read_audioDir = 0;
     }
      sprintf(operationText, "aplay /cfg/sai_config/wakeup/%s ",  wakeUpAudioList.at(i).c_str() );    
-     AISDK_INFO(LX("responseWakeUp").d("current operation text", operationText ));    
+     AISDK_DEBUG(LX("responseWakeUp").d("current operation text", operationText ));    
      system(operationText);
      return 1;
 }   

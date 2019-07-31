@@ -120,7 +120,7 @@ void DialogUXStateRelay::onStateChanged(dmInterface::SpeechSynthesizerObserverIn
 //add test by wx @190402
 
 void DialogUXStateRelay::onStateChanged(dmInterface::ResourcesPlayerObserverInterface::ResourcesPlayerState state) {
-	std::cout << "ResourcesPlayer onStateChanged: " << state << std::endl;
+	//std::cout << "ResourcesPlayer onStateChanged: " << state << std::endl;
     m_resourcesPlayerState = state;
 #if 0
     m_executor.submit([this, state]() {
@@ -160,7 +160,7 @@ void DialogUXStateRelay::onStateChanged(dmInterface::ResourcesPlayerObserverInte
 //add test by wx @190412
 
 void DialogUXStateRelay::onStateChanged(dmInterface::AlarmsPlayerObserverInterface::AlarmsPlayerState state) {
-	std::cout << "AlarmsPlayer onStateChanged: " << state << std::endl;
+	//std::cout << "AlarmsPlayer onStateChanged: " << state << std::endl;
     m_alarmsPlayerState = state;
 
     m_executor.submit([this, state]() {
