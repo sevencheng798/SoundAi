@@ -302,7 +302,7 @@ int getMusicUrl(const char *aiuiUid,const char *appId, const char *appKey, const
 	p = httpPost(postSendBuf, "");
 	if(p != NULL)
 	{
-    	//AISDK_INFO(LX("getMusicUrl").d("p: ", p));
+    	//AISDK_INFO(LX("kugou_getMusicUrl").d("p: ", p));
 
 		cJSON *json = NULL, *json_msg = NULL, *json_result = NULL, *json_audiopath = NULL;
 		json = cJSON_Parse(p);
@@ -338,7 +338,12 @@ int getMusicUrl(const char *aiuiUid,const char *appId, const char *appKey, const
 						}
 					}
 				}
-			}
+			}else if(0 == strcmp(json_msg->valuestring, "200102")){
+                AISDK_ERROR(LX("getMusicUrl_failed").d("error_code", json_msg->valuestring)
+                                                    .d("reason", "Current music has no Copyright!"));
+            }else{
+                AISDK_ERROR(LX("getMusicUrl_failed").d("reason:error_code", json_msg->valuestring));
+            }
 			cJSON_Delete(json);  //释放内存
 		}
 	}
