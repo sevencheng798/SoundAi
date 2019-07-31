@@ -926,7 +926,7 @@ void ResourcesPlayer::executeTrackChanged(FocusState newTrace){
                            AISDK_ERROR(LX("executeTrackChanged").d("reason", "AUDIO_ID_LIST is null"));
                            return;
                         }
-                        AISDK_DEBUG5(LX("executeTrackChanged").d("playKuGouResourceItemID", "play type-->-->[kugou]-->-->【1】"));
+                        AISDK_INFO(LX("executeTrackChanged").d("playKuGouResourceItemID", "play type-->-->[kugou]-->-->【1】"));
                         if(currentItemNum >= AUDIO_ID_LIST.size()){
                             if(enable_list_loop == 1){
                                 currentItemNum = 0;
@@ -940,7 +940,7 @@ void ResourcesPlayer::executeTrackChanged(FocusState newTrace){
                         TryTheNextItem:
                         int val = playKuGouResourceItemID(AUDIO_ID_LIST.at(currentItemNum), AUDIO_ID_LIST.at(currentItemNum+1));  
                         if(val != 0){
-                           AISDK_DEBUG5(LX("executeTrackChanged").d("playKuGouResourceItemID", "play type-->-->[kugou]-->-->【2】"));
+                           AISDK_INFO(LX("executeTrackChanged").d("playKuGouResourceItemID", "play type-->-->[kugou]-->-->【2】"));
                            currentItemNum = currentItemNum + 2;
                            if(currentItemNum >= AUDIO_ID_LIST.size()){
                                 if(enable_list_loop == 1){
@@ -961,7 +961,7 @@ void ResourcesPlayer::executeTrackChanged(FocusState newTrace){
                            AISDK_ERROR(LX("executeTrackChanged").d("reason", "AUDIO_URL_LIST is null"));
                            return;
                         }
-                        AISDK_DEBUG5(LX("executeTrackChanged").d("playResourceItem", "play type-->-->[stormorai or others]-->-->【1】"));
+                        AISDK_INFO(LX("executeTrackChanged").d("playResourceItem", "play type-->-->[stormorai or others]-->-->【1】"));
                         if(currentItemNum >= AUDIO_URL_LIST.size()){
                             if(enable_list_loop == 1){
                                 currentItemNum = 0;
@@ -1131,13 +1131,13 @@ void ResourcesPlayer::executePlaybackFinished() {
                
          }else{
               if(enable_kugou_resources == true) {
-                  AISDK_DEBUG5(LX("executePlaybackFinished").d("playKuGouResourceItemID", "play type-->-->[kugou]-->-->【3】"));
+                  AISDK_INFO(LX("executePlaybackFinished").d("playKuGouResourceItemID", "play type-->-->[kugou]-->-->【3】"));
                   
                   TryAgain:
                   currentItemNum = currentItemNum + 2;
                   if(enable_single_loop == 1 ){
                       currentItemNum = currentItemNum - 2;
-                      AISDK_DEBUG5(LX("executePlaybackFinished").d(" playKuGouResourceItemID", "enter to single_loop")
+                      AISDK_INFO(LX("executePlaybackFinished").d(" playKuGouResourceItemID", "enter to single_loop")
                                                                 .d(" enable_single_loop", enable_single_loop));
                     }
                   if(currentItemNum >= AUDIO_ID_LIST.size()){
@@ -1147,23 +1147,23 @@ void ResourcesPlayer::executePlaybackFinished() {
                            if( !m_resourcesPlayer->stop(m_mediaSourceId)){
                            AISDK_ERROR(LX("executePlaybackFinished").d("stop","failed"));
                            }
-                           AISDK_INFO(LX("executePlaybackFinished").d("reason", "End of Plaging List!"));
+                           AISDK_INFO(LX("executePlaybackFinished").d("reason", "End of Playing List!"));
                            return;
                        } 
                   }
                   int val = playKuGouResourceItemID(AUDIO_ID_LIST.at(currentItemNum), AUDIO_ID_LIST.at(currentItemNum+1));
                   if(val != 0){
-                     AISDK_DEBUG5(LX("executePlaybackFinished").d("playKuGouResourceItemID", "play type-->-->[kugou]-->-->【4】"));                          
+                     AISDK_INFO(LX("executePlaybackFinished").d("playKuGouResourceItemID", "play type-->-->[kugou]-->-->【4】"));                          
                      goto TryAgain;
                   }                  
          
               }else{
                   // playNextItem();
-                  AISDK_DEBUG5(LX("executePlaybackFinished").d("playResourceItem", "play type-->-->[stormorai or others]-->-->【3】"));
+                  AISDK_INFO(LX("executePlaybackFinished").d("playResourceItem", "play type-->-->[stormorai or others]-->-->【3】"));
                   currentItemNum ++;
                   if(enable_single_loop == 1 ){
                       currentItemNum --;
-                      AISDK_DEBUG5(LX("executePlaybackFinished").d(" playResourceItem", "enter to single_loop")
+                      AISDK_INFO(LX("executePlaybackFinished").d(" playResourceItem", "enter to single_loop")
                                                                 .d(" enable_single_loop", enable_single_loop));
                     }
                   if(currentItemNum >= AUDIO_URL_LIST.size()){
@@ -1173,7 +1173,7 @@ void ResourcesPlayer::executePlaybackFinished() {
                             if( !m_resourcesPlayer->stop(m_mediaSourceId)){
                             AISDK_ERROR(LX("executePlaybackFinished").d("stop","failed"));
                             }
-                            AISDK_INFO(LX("executePlaybackFinished").d("reason", "End of Plaging List!"));
+                            AISDK_INFO(LX("executePlaybackFinished").d("reason", "End of Playing List!"));
                             return;
                         }                 
                   }
