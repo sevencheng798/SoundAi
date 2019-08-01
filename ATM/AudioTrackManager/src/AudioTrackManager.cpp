@@ -11,13 +11,12 @@
  * permissions and limitations under the License.
  */
  
-#include <iostream>
-#include "AudioTrackManager/AudioTrackManager.h"
 #include <Utils/Logging/Logger.h>
-
+#include "AudioTrackManager/AudioTrackManager.h"
 
 /// String to identify log entries originating from this file.
 static const std::string TAG("AudioTrackManager");
+
 /// Define output
 #define LX(event) aisdk::utils::logging::LogEntry(TAG, event)
 
@@ -29,11 +28,11 @@ using namespace utils::channel;
 AudioTrackManager::AudioTrackManager(const std::vector<ChannelConfiguration> channelConfigurations){
     for (auto config : channelConfigurations) {
         if (doesChannelNameExist(config.name)) {
-			std::cout << "createChannelFailed:reason:channel already exists: config: " << config.toString() << std::endl;
+			AISDK_ERROR(LX("createChannelFailed").d("reason", "channel already exists").d("config", config.toString()));
             continue;
         }
         if (doesChannelPriorityExist(config.priority)) {
-			std::cout << "createChannelFailed:reason:priority already exist: config: " << config.toString() << std::endl;
+			AISDK_ERROR(LX("createChannelFailed").d("reason", "priority already exists").d("config", config.toString()));
             continue;
         }
 
@@ -46,10 +45,10 @@ bool AudioTrackManager::acquireChannel(
     const std::string& channelName,
     std::shared_ptr<ChannelObserverInterface> channelObserver,
     const std::string &interface) {
-    AISDK_INFO(LX("acquireChannel").d("channel", channelName));
+    AISDK_DEBUG(LX("acquireChannel").d("channel", channelName));
     std::shared_ptr<Channel> channelToAcquire = getChannel(channelName);
     if (!channelToAcquire) {
-		std::cout << "acquireChannelFailed:reason:channelNotFound:channel: " << channelName << std::endl;
+		AISDK_ERROR(LX("acquireChannelFailed").d("reason", "channelNotFound").d("channel", channelName));
         return false;
     }
 
@@ -63,13 +62,13 @@ bool AudioTrackManager::acquireChannel(
 std::future<bool> AudioTrackManager::releaseChannel(
     const std::string& channelName,
     std::shared_ptr<ChannelObserverInterface> channelObserver) {
-    AISDK_INFO(LX("releaseChannel").d("channel", channelName));
+    AISDK_DEBUG(LX("releaseChannel").d("channel", channelName));
     // Using a shared_ptr here so that the promise stays in scope by the time the Executor picks up the task.
     auto releaseChannelSuccess = std::make_shared<std::promise<bool>>();
     std::future<bool> returnValue = releaseChannelSuccess->get_future();
     std::shared_ptr<Channel> channelToRelease = getChannel(channelName);
     if (!channelToRelease) {
-		std::cout << "releaseChannelFailed:reason:channelNotFound:channel: " << channelName << std::endl;	
+		AISDK_ERROR(LX("releaseChannelFailed").d("reason", "channelNotFound").d("channel", channelName));
         releaseChannelSuccess->set_value(false);
         return returnValue;
     }
@@ -86,7 +85,7 @@ void AudioTrackManager::stopForegroundActivity() {
     std::unique_lock<std::mutex> lock(m_mutex);
     std::shared_ptr<Channel> foregroundChannel = getHighestPriorityActiveChannelLocked();
     if (!foregroundChannel) {
-		std::cout << "stopForegroundActivityFailed:reason:noForegroundActivity" << std::endl;
+		AISDK_ERROR(LX("stopForegroundActivityFailed").d("reason", "noForegroundActivity"));
         return;
     }
 
@@ -155,7 +154,7 @@ void AudioTrackManager::releaseChannelHelper(
     std::shared_ptr<std::promise<bool>> releaseChannelSuccess,
     const std::string& name) {
     if (!channelToRelease->doesObserverOwnChannel(channelObserver)) {
-		std::cout << "releaseChannelHelperFailed:reason:observerDoNotOwnChannel:channel: " << name << std::endl;
+		AISDK_ERROR(LX("releaseChannelHelperFailed").d("reason", "observerDoNotOwnChannel").d("channel", name));
         releaseChannelSuccess->set_value(false);
         return;
     }

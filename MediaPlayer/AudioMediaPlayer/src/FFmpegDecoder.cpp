@@ -267,7 +267,7 @@ void FFmpegDecoder::initialize() {
         // Some codecs do not fill up this property, so use default layout.
         m_codecContext->channel_layout = av_get_default_channel_layout(m_codecContext->channels);
     }
-	AISDK_INFO(LX("initialized").d("reason", "codecContext")
+	AISDK_DEBUG1(LX("initialized").d("reason", "codecContext")
 				.d("channels", m_codecContext->channels)
 				.d("sample_rate", m_codecContext->sample_rate)
 				.d("out_sample_rate", m_outputRate)

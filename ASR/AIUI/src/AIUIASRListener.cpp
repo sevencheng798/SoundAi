@@ -157,7 +157,7 @@ void AIUIASRListener::onEvent(const aiui::IAIUIEvent& event) const {
 			if(m_listenerObserver)
 				m_listenerObserver->handleEventResultIAT(resultStr);
 		} else {
-			AISDK_DEBUG5(LX("EVENT_RESULT").d("getBinary", resultStr));
+			AISDK_DEBUG5(LX("EVENT_RESULT_NOT_CONSIDERED").d("getBinary", resultStr));
 		}
 	}
 	}

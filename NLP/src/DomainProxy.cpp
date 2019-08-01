@@ -10,9 +10,15 @@
  * permissions and limitations under the License.
  */
 
-#include <iostream>
+#include <Utils/Logging/Logger.h>
 
 #include "NLP/DomainProxy.h"
+
+/// String to identify log entries originating from this file.
+static const std::string TAG("DomainProxy");
+
+/// Define output
+#define LX(event) aisdk::utils::logging::LogEntry(TAG, event)
 
 namespace aisdk {
 namespace nlp {
@@ -43,12 +49,14 @@ void DomainProxy::preHandleDomain(
     auto info = getDirectiveInfo(messageId);
     if (info) {
         static const std::string error{"messageIdIsAlreadyInUse"};
-		std::cout << "preHandleDomainFailed:reason: " << error << " messageId: " << messageId << std::endl;
+		AISDK_ERROR(LX("preHandleDomainFailed")
+				.d("reason", error)
+				.d("messageId", messageId));
         result->setFailed(error);
         return;
     }
 
-	std::cout << "addingMessageIdToMap:messageId: " << messageId << std::endl;
+	AISDK_DEBUG2(LX("preHandleDomain").d("reason", "addingMessageIdToMap").d("messageId", messageId));
     info = createDirectiveInfo(domain, std::move(result));
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -61,7 +69,9 @@ void DomainProxy::preHandleDomain(
 bool DomainProxy::handleDomain(const std::string& messageId) {
     auto info = getDirectiveInfo(messageId);
     if (!info) {
-		std::cout << "handleDomainFailed:reason: messageIdNotFound: messageId:" << messageId << std::endl;
+		AISDK_ERROR(LX("handleDomainFailed")
+				.d("reason", "messageIdNotFound")
+				.d("messageId", messageId));		
         return false;
     }
     handleDirective(info);
@@ -71,7 +81,9 @@ bool DomainProxy::handleDomain(const std::string& messageId) {
 void DomainProxy::cancelDomain(const std::string& messageId) {
     auto info = getDirectiveInfo(messageId);
     if (!info) {
-		std::cout << "cancelDirectiveFailed:reason: messageIdNotFound: messageId:" << messageId << std::endl;
+		AISDK_ERROR(LX("cancelDomainFailed")
+				.d("reason", "messageIdNotFound")
+				.d("messageId", messageId));			
         return;
     }
     /*
@@ -93,7 +105,7 @@ void DomainProxy::onTrackChanged(utils::channel::FocusState) {
 
 void DomainProxy::removeDirective(const std::string& messageId) {
     std::lock_guard<std::mutex> lock(m_mutex);
-	std::cout << "removingMessageIdFromMap: messageId: " << messageId << std::endl;
+	AISDK_DEBUG2(LX("removeDirective").d("reason", "removingMessageIdFromMap").d("messageId", messageId));
     m_directiveInfoMap.erase(messageId);
 }
 

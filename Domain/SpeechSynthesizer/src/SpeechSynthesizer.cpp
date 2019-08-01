@@ -9,8 +9,6 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-
-#include <iostream>
 // jsoncpp ver-1.8.3
 #include <json/json.h>
 #include <Utils/Logging/Logger.h>
@@ -123,7 +121,7 @@ void SpeechSynthesizer::onTrackChanged(FocusState newTrace) {
 	// Block until we achieve the desired state.
     if (m_waitOnStateChange.wait_for(
             lock, STATE_CHANGE_TIMEOUT, [this]() { return m_currentState == m_desiredState; })) {
-		AISDK_INFO(LX("onTrackChangedSuccess"));
+		AISDK_DEBUG5(LX("onTrackChangedSuccess"));
     } else {
 		AISDK_ERROR(LX("onFocusChangeFailed").d("reason", "stateChangeTimeout").d("messageId", messageId));
         if (m_currentInfo) {
@@ -134,7 +132,7 @@ void SpeechSynthesizer::onTrackChanged(FocusState newTrace) {
 }
 
 void SpeechSynthesizer::onPlaybackStarted(SourceId id) {
-	AISDK_INFO(LX("onPlaybackStarted").d("callbackSourceId", id));
+	AISDK_DEBUG5(LX("onPlaybackStarted").d("callbackSourceId", id));
     if (id != m_mediaSourceId) {
 		AISDK_ERROR(LX("queueingExecutePlaybackStartedFailed")
 					.d("reason", "mismatchSourceId")
@@ -150,7 +148,7 @@ void SpeechSynthesizer::onPlaybackStarted(SourceId id) {
 }
 
 void SpeechSynthesizer::onPlaybackFinished(SourceId id) {
-	AISDK_INFO(LX("onPlaybackFinished").d("callbackSourceId", id));
+	AISDK_DEBUG5(LX("onPlaybackFinished").d("callbackSourceId", id));
 
     if (id != m_mediaSourceId) {
 		AISDK_ERROR(LX("queueingExecutePlaybackFinishedFailed")
@@ -174,7 +172,7 @@ void SpeechSynthesizer::onPlaybackError(
 }
 
 void SpeechSynthesizer::onPlaybackStopped(SourceId id) {
-	AISDK_INFO(LX("onPlaybackStopped").d("callbackSourceId", id));
+	AISDK_DEBUG5(LX("onPlaybackStopped").d("callbackSourceId", id));
     onPlaybackFinished(id);
 }
 
@@ -305,7 +303,7 @@ void SpeechSynthesizer::executeHandleAfterValidation(std::shared_ptr<ChatDirecti
     m_currentInfo = info;
     if (!m_trackManager->acquireChannel(CHANNEL_NAME, shared_from_this(), SPEECHNAME)) {
         static const std::string message = std::string("Could not acquire ") + CHANNEL_NAME + " for " + SPEECHNAME;
-		AISDK_INFO(LX("executeHandleFailed")
+		AISDK_ERROR(LX("executeHandleFailed")
 					.d("reason", "CouldNotAcquireChannel")
 					.d("messageId", m_currentInfo->directive->getMessageId()));
         reportExceptionFailed(info, message);
@@ -313,7 +311,7 @@ void SpeechSynthesizer::executeHandleAfterValidation(std::shared_ptr<ChatDirecti
 }
 
 void SpeechSynthesizer::executePreHandle(std::shared_ptr<DirectiveInfo> info) {
-	//AISDK_INFO(LX("executePreHandle").d("messageId", info->directive->getMessageId()));
+	AISDK_DEBUG1(LX("executePreHandle").d("messageId", info->directive->getMessageId()));
     auto chatInfo = validateInfo("executePreHandle", info);
     if (!chatInfo) {
 		AISDK_ERROR(LX("executePreHandleFailed").d("reason", "invalidDirectiveInfo"));
@@ -323,7 +321,7 @@ void SpeechSynthesizer::executePreHandle(std::shared_ptr<DirectiveInfo> info) {
 }
 
 void SpeechSynthesizer::executeHandle(std::shared_ptr<DirectiveInfo> info) {
-	//AISDK_INFO(LX("executeHandle").d("messageId", info->directive->getMessageId()));
+	AISDK_DEBUG1(LX("executeHandle").d("messageId", info->directive->getMessageId()));
     auto chatInfo = validateInfo("executeHandle", info);
     if (!chatInfo) {
 		AISDK_ERROR(LX("executeHandleFailed").d("reason", "invalidDirectiveInfo"));
@@ -333,7 +331,7 @@ void SpeechSynthesizer::executeHandle(std::shared_ptr<DirectiveInfo> info) {
 }
 
 void SpeechSynthesizer::executeCancel(std::shared_ptr<DirectiveInfo> info) {
-	//AISDK_INFO(LX("executeCancel").d("messageId", info->directive->getMessageId()));
+	AISDK_DEBUG1(LX("executeCancel").d("messageId", info->directive->getMessageId()));
     auto chatInfo = validateInfo("executeCancel", info);
     if (!chatInfo) {
 		AISDK_ERROR(LX("executeCancelFailed").d("reason", "invalidDirectiveInfo"));
@@ -377,7 +375,7 @@ void SpeechSynthesizer::executeStateChange() {
         newState = m_desiredState;
     }
 
-	AISDK_INFO(LX("executeStateChange").d("newState", newState));
+	AISDK_DEBUG2(LX("executeStateChange").d("newState", newState));
     switch (newState) {
         case SpeechSynthesizerObserverInterface::SpeechSynthesizerState::PLAYING:
             if (m_currentInfo) {
@@ -398,7 +396,7 @@ void SpeechSynthesizer::executeStateChange() {
 }
 
 void SpeechSynthesizer::executePlaybackStarted() {
-	AISDK_INFO(LX("executePlaybackStarted"));
+	AISDK_DEBUG1(LX("executePlaybackStarted"));
 	
     if (!m_currentInfo) {
 		AISDK_ERROR(LX("executePlaybackStartedIgnored").d("reason", "nullptrDirectiveInfo"));
@@ -415,7 +413,7 @@ void SpeechSynthesizer::executePlaybackStarted() {
 }
 
 void SpeechSynthesizer::executePlaybackFinished() {
-	AISDK_INFO(LX("executePlaybackFinished"));
+	AISDK_DEBUG1(LX("executePlaybackFinished"));
 
     if (!m_currentInfo) {
 		AISDK_ERROR(LX("executePlaybackFinishedIgnored").d("reason", "nullptrDirectiveInfo"));
@@ -549,7 +547,7 @@ void SpeechSynthesizer::resetCurrentInfo(std::shared_ptr<ChatDirectiveInfo> chat
 }
 
 void SpeechSynthesizer::setHandlingCompleted() {
-	AISDK_INFO(LX("setHandlingCompleted"));
+	AISDK_DEBUG2(LX("setHandlingCompleted"));
     if (m_currentInfo && m_currentInfo->result) {
         m_currentInfo->result->setCompleted();
     }
@@ -657,7 +655,7 @@ void SpeechSynthesizer::onDialogUXStateChanged(
 
 void SpeechSynthesizer::executeOnDialogUXStateChanged(
     utils::dialogRelay::DialogUXStateObserverInterface::DialogUXState newState) {
-	AISDK_INFO(LX("executeOnDialogUXStateChanged"));
+	AISDK_DEBUG2(LX("executeOnDialogUXStateChanged"));
     if (newState != utils::dialogRelay::DialogUXStateObserverInterface::DialogUXState::IDLE) {
         return;
     }

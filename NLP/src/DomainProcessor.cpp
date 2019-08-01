@@ -124,7 +124,7 @@ void DomainProcessor::DomainHandlerResult::setFailed(const std::string &describl
 
 void DomainProcessor::onHandlingCompleted(std::shared_ptr<NLPDomain> domain) {
 	std::lock_guard<std::mutex> lock(m_mutex);
-    AISDK_DEBUG(LX("onHandlingCompeted")
+    AISDK_INFO(LX("onHandlingCompeted")
                     .d("messageId", domain->getMessageId())
                     .d("domainBeingPreHandled",
                        m_directiveBeingPreHandled ? m_directiveBeingPreHandled->getMessageId() : "(nullptr)"));

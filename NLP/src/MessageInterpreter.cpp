@@ -35,9 +35,6 @@ void MessageInterpreter::receive(const std::string& contextId, const std::string
     if (!nlpDomain) {
 		std::string descriptMsg = nlpDomainParseStatusToString(createResult.second);		
 		AISDK_WARN(LX("receiveFailed").d("Unable to parse Directive - JSON error", descriptMsg));
-		//std::cout << "Unable to parse Directive - JSON error: " << std::endl;    
-		// we need to operator<<
-//		std::cout << "Unable to parse Directive - JSON error: " << createResult.second << std::endl;
         return;
     }
 

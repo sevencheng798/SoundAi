@@ -52,7 +52,7 @@ bool DomainRouter::addDomainHandler( std::shared_ptr<dmInterface::DomainHandlerI
 		}
 
 		m_configuration[name] = handler;
-		AISDK_DEBUG5(LX("addDomainHandler")
+		AISDK_DEBUG(LX("addDomainHandler")
 			.d("action", "added")
 			.d("domainName", name)
 			.d("handler", handler.get()));
@@ -78,7 +78,7 @@ bool DomainRouter::removeDomainHandlerLocked(std::shared_ptr<dmInterface::Domain
 
 		//
 		m_configuration.erase(name);
-		AISDK_DEBUG5(LX("removeDomainHandlerLocked")
+		AISDK_DEBUG(LX("removeDomainHandlerLocked")
 			.d("action", "removed")
 			.d("domainName", name)
 			.d("handler", handler.get()));

@@ -70,7 +70,7 @@ bool DomainSequencer::onDomain(std::shared_ptr<nlp::NLPDomain> domain) {
 }
 
 void DomainSequencer::doShutdown() {
-	AISDK_DEBUG0(LX("doShutdown"));
+	AISDK_DEBUG(LX("doShutdown"));
 	{
 		std::unique_lock<std::mutex> lock(m_mutex);
 		m_isShuttingDown = true;
