@@ -4,6 +4,7 @@
 # To set the build type, run the following command with a build type of DEBUG, RELEASE, or MINSIZEREL:
 #     cmake <path-to-source> -DCMAKE_BUILD_TYPE=<build-type>
 #
+option(AISDK_LOG_MODULE "Enable module log level set." OFF)
 
 # If no build type is specified by specifying it on the command line, default to debug.
 if(NOT CMAKE_BUILD_TYPE)
@@ -24,6 +25,11 @@ if (UNIX OR CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 # Debug build, default.
+if(AISDK_LOG_MODULE)
+	# Enable module log.
+	add_definitions(-DAISDK_LOG_MODULE)	
+endif()
+
 set(CMAKE_CXX_FLAGS_DEBUG "${CXX_PLATFORM_DEPENDENT_FLAGS_DEBUG} -DRAPIDJSON_HAS_STDSTRING" CACHE INTERNAL "Flags used for DEBUG builds" FORCE)
 set(CMAKE_C_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} CACHE INTERNAL "Flags used for DEBUG builds" FORCE)
 
