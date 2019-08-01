@@ -63,7 +63,7 @@ const std::chrono::milliseconds TIMEOUT_FOR_READ_CALLS = std::chrono::millisecon
 const auto BARGEIN_TIMEOUT = std::chrono::milliseconds{500};
 
 /// Set Thinking to IDLE timeout time
-const auto THINKING_TIMEOUT = std::chrono::seconds{6};
+const auto THINKING_TIMEOUT = std::chrono::seconds{10};
 
 /**
  * Set Listening to IDLE timeout time.
@@ -610,6 +610,7 @@ bool AIUIAutomaticSpeechRecognizer::executeNLPResult(const std::string unparsedI
 
 	m_sessionId = sid;
 
+	AISDK_INFO(LX("executeNLPResult").d("sid", sid));
 	setState(ObserverInterface::State::BUSY);
 
 	return true;
