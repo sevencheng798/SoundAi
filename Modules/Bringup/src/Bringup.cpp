@@ -79,7 +79,7 @@ void Bringup::inOpenFile(const char *filePath)
 void Bringup::playttsTxtItem(std::string ttsTxt) {
     char contentId[37];
     CreateRandomUuid(contentId);
-    AISDK_INFO(LX("playttsTxtItem").d("contentId", contentId).d("m_ttsTxt", m_ttsTxt));
+    AISDK_DEBUG5(LX("playttsTxtItem").d("contentId", contentId).d("m_ttsTxt", m_ttsTxt));
 
     auto writer = m_attachmentDocker->createWriter(contentId);
     auto reader = m_attachmentDocker->createReader(contentId, utils::sharedbuffer::ReaderPolicy::BLOCKING);
@@ -262,7 +262,7 @@ void Bringup::init() {
 bool Bringup::start(utils::bringup::eventType type, std::string ttsTxt) {
     m_status = type;
     m_ttsTxt = ttsTxt;
-    AISDK_INFO(LX("start").d("m_currentSourceId", m_currentSourceId)
+    AISDK_DEBUG5(LX("start").d("m_currentSourceId", m_currentSourceId)
                           .d("m_playFlag", m_playFlag)
                           .d("m_Tracep", m_Tracep)
                           .d("ttsTxt", ttsTxt)
