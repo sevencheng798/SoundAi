@@ -77,7 +77,7 @@ std::unique_ptr<FFmpegAttachmentInputController> FFmpegAttachmentInputController
             inputFormat =
                 std::shared_ptr<AVInputFormat>(av_find_input_format(inputName.c_str()), AVInputFormatDeleter());
 
-            AISDK_INFO(LX("create").d("name", inputName));
+            AISDK_DEBUG5(LX("create").d("name", inputName));
             if (!inputFormat) {
                 AISDK_ERROR(LX("createFailed")
                                 .d("reason", "formatNotSupported")
@@ -112,7 +112,13 @@ int FFmpegAttachmentInputController::read(uint8_t* buffer, int bufferSize) {
         case AttachmentReader::ReadStatus::OK_WOULDBLOCK:
         case AttachmentReader::ReadStatus::OK_TIMEDOUT:
             AISDK_DEBUG3(LX(__func__).d("status", readStatus).d("readSize", readSize));
-            return readSize ? readSize : AVERROR_EOF;
+			if(m_tryCount > 10) {
+				m_tryCount = 0;
+                return readSize ? readSize : AVERROR_EOF;
+			} else {
+				m_tryCount++;
+                return readSize ? readSize : AVERROR(EAGAIN);
+			}
         case AttachmentReader::ReadStatus::CLOSED:
             AISDK_DEBUG5(LX(__func__).m("Found EOF"));
             return AVERROR_EOF;
@@ -138,6 +144,7 @@ FFmpegAttachmentInputController::FFmpegAttachmentInputController(
     std::shared_ptr<AttachmentReader> reader,
     std::shared_ptr<AVInputFormat> inputFormat,
     std::shared_ptr<AVDictionary> inputOptions) :
+        m_tryCount{0},
         m_reader{reader},
         m_inputFormat{inputFormat},
         m_inputOptions{inputOptions} {

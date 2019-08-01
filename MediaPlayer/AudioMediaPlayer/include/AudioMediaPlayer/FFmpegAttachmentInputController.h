@@ -90,6 +90,10 @@ private:
      */
     static int feedBuffer(void* userData, uint8_t* buffer, int bufferSize);
 
+	/// Wait tryagain count.
+	/// pretry again duration is READ_TIMEOUT. so toal wait timeout is m_tryCount*tryagain.
+	int m_tryCount;
+	
     /// Pointer to the data input.
     std::shared_ptr<utils::attachment::AttachmentReader> m_reader;
 
