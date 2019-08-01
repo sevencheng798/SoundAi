@@ -363,11 +363,11 @@ void AlarmsPlayer::CheckAlarmList(sqlite3 *db)
         if((timesec/10) == (alarmtimesec/10)) {
             sprintf(deleteAlarmContent, "select content from alarm where timestamp = %s;" ,azResult[nrow*ncolumn]);
             sqlite3_get_table( db , deleteAlarmContent , &azResultContent , &nrowContent , &ncolumnContent , &zErrMsgContent );
-            AISDK_DEBUG(LX("deleteAlarmContent").d("select content from alarm where timestamp", azResultContent[nrowContent*ncolumnContent]));        
+            AISDK_DEBUG5(LX("deleteAlarmContent").d("select content from alarm where timestamp", azResultContent[nrowContent*ncolumnContent]));        
             std::string currentContent = azResultContent[nrowContent*ncolumnContent];
             
             for(int i = 0; i < 1; i++) { //'i' use for set repeat times;
-                AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
+                AISDK_DEBUG5(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
 #if 1
             for(auto observer:m_ackObservers){
                 observer->onAlarmAckStatusChanged(dmInterface::AlarmAckObserverInterface::Status::PLAYING, currentContent);
@@ -451,10 +451,10 @@ void AlarmsPlayer::CheckRepeatAlarmList(sqlite3 *db)
            if( atoi(currentWeekday.c_str()) == 0 || atoi(currentWeekday.c_str()) == m_weekday ){
                 //AISDK_DEBUG5(LX("deleteAlarmWeekday").d("currentWeekday", atoi(currentWeekday.c_str()) ) );        
                  if((timesec/5) == (alarmtimesec/5)) {    
-                     AISDK_INFO(LX("CheckRepeatAlarmList").d(" currentContent", currentContent)
+                     AISDK_DEBUG5(LX("CheckRepeatAlarmList").d(" currentContent", currentContent)
                                                           .d(" currentWeekday", currentWeekday)); 
                      for(int i = 0; i < 1; i++) {
-                          AISDK_INFO(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
+                          AISDK_DEBUG5(LX("AlarmsPlayer").d("sqliteThreadHander", "alarm time is coming!"));
 #if 1
                     for(auto observer:m_ackObservers){
                         observer->onAlarmAckStatusChanged(dmInterface::AlarmAckObserverInterface::Status::PLAYING, currentContent);
@@ -561,14 +561,14 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
       else
       {
          json_answer = cJSON_GetObjectItem(json_data, "answer");
-         AISDK_DEBUG(LX("json_data").d("json_answer", json_answer->valuestring));
+         AISDK_DEBUG5(LX("json_data").d("json_answer", json_answer->valuestring));
       
          //parameters  
          json_parameters = cJSON_GetObjectItem(json_data, "parameters"); 
          if(json_parameters != NULL) 
          { 
           json_operation = cJSON_GetObjectItem(json_parameters, "operation");
-          AISDK_DEBUG(LX("json_parameters").d("json_operation", json_operation->valuestring));
+          AISDK_DEBUG5(LX("json_parameters").d("json_operation", json_operation->valuestring));
 
 
           json_repeat = cJSON_GetObjectItem(json_parameters, "repeat");
@@ -576,7 +576,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           //repeat alarm
           {
             int array_size = cJSON_GetArraySize(json_repeat);
-            AISDK_DEBUG(LX("AnalysisNlpDataForAlarmsPlayer").d("repeat_alarm_list_size", array_size));
+            AISDK_DEBUG5(LX("AnalysisNlpDataForAlarmsPlayer").d("repeat_alarm_list_size", array_size));
             int i = 0;
             cJSON *item,*it;
             char *p  = NULL;
@@ -592,8 +592,8 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
             json_repeat_timestamp_day = cJSON_GetObjectItem(it, "timestamp_day");
             json_repeat_type = cJSON_GetObjectItem(it, "type");
             json_repeat_weekday = cJSON_GetObjectItem(it, "weekday");
-            AISDK_DEBUG(LX("json_parameters").d("No:", i).d("json_repeat_timestamp_day", json_repeat_timestamp_day->valuestring));
-            AISDK_DEBUG(LX("json_parameters").d("No:", i).d("json_repeat_type", json_repeat_type->valuestring));
+            AISDK_DEBUG5(LX("json_parameters").d("No:", i).d("json_repeat_timestamp_day", json_repeat_timestamp_day->valuestring));
+            AISDK_DEBUG5(LX("json_parameters").d("No:", i).d("json_repeat_type", json_repeat_type->valuestring));
             REPEAT_ALARM_LIST.push_back(json_repeat_timestamp_day->valuestring);
             }
 
@@ -604,7 +604,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           if(strcmp(json_operation->valuestring, ALARM_FLUSH_OPERATION) != 0)
             {
             json_timestamp = cJSON_GetObjectItem(json_parameters, "timestamp");
-            AISDK_DEBUG(LX("json_parameters").d("json_timestamp", json_timestamp->valuestring));
+            AISDK_DEBUG5(LX("json_parameters").d("json_timestamp", json_timestamp->valuestring));
             }  
           }
 
@@ -617,7 +617,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
                 exit(1);
             }
             else 
-                AISDK_DEBUG(LX("You have opened a sqlite3 database named alarm.db successfully created by WX!\n"));
+                AISDK_DEBUG(LX("You have opened a sqlite3 database named alarm.db successfully!"));
             
           /* 创建表 */
           char const *alarmList = " CREATE TABLE alarm(timestamp, evt_type, action_type, loop_mask, content); " ;
@@ -628,7 +628,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           sqlite3_free(zErrMsg);
 
                    
-          AISDK_DEBUG(LX("json_parameters").d("json_operation", json_operation->valuestring));
+          AISDK_DEBUG5(LX("json_parameters").d("json_operation", json_operation->valuestring));
         ////operation type:SET 
           if( strcmp(json_operation->valuestring, ALARM_SET_OPERATION) == 0)
           {
@@ -645,14 +645,15 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
            }
           
           json_event = cJSON_GetObjectItem(json_parameters, "event");  
-          AISDK_DEBUG(LX("json_parameters").d("json_event", json_event->valuestring));
+          AISDK_DEBUG5(LX("json_parameters").d("json_event", json_event->valuestring));
           sprintf(evt_type,"%s", json_event->valuestring);
           
           repeat_timestamp_day = atoll(json_repeat_timestamp_day->valuestring);      
-          AISDK_DEBUG(LX("repeat_timestamp_day").d("value:", repeat_timestamp_day));
+          AISDK_DEBUG5(LX("repeat_timestamp_day").d("value:", repeat_timestamp_day));
 
           long int timesec = (long int)((repeat_timestamp_day/1000) - 28800);
-          printf("%ld \n", timesec);
+          //printf("%ld \n", timesec);
+          AISDK_DEBUG5(LX("repeat_timestamp_day").d("timesec", timesec));
           struct tm *p;
           p = localtime(&timesec);
 
@@ -675,14 +676,15 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           //one time alarm
           {  
           json_event = cJSON_GetObjectItem(json_parameters, "event");  
-          AISDK_DEBUG(LX("json_parameters").d("json_event", json_event->valuestring));
+          AISDK_DEBUG5(LX("json_parameters").d("json_event", json_event->valuestring));
           sprintf(evt_type,"%s", json_event->valuestring);
           
           timestamp = atoll(json_timestamp->valuestring);    //把字符串转换成长长整型数（64位）long long atoll(const char *nptr);
-          AISDK_DEBUG(LX("timestamp").d("value:", timestamp));
+          AISDK_DEBUG5(LX("timestamp").d("value:", timestamp));
           
           long int timesec = (long int)(timestamp/1000);   //long long int --> long int;
-          printf("%ld \n", timesec);
+          //printf("%ld \n", timesec);
+          AISDK_DEBUG5(LX("repeat_timestamp_day").d("timesec", timesec));
           struct tm *p ;
           p = localtime(&timesec);
 
@@ -723,7 +725,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
             //repeat alarm
             {
             repeat_timestamp_day = atoll(json_repeat_timestamp_day->valuestring);      
-            AISDK_DEBUG(LX("repeat_timestamp_day").d("value:", repeat_timestamp_day));
+            AISDK_DEBUG5(LX("repeat_timestamp_day").d("value:", repeat_timestamp_day));
             sprintf(deleteSql, "delete from alarmList_repeat where timestamp_day = %lld;" ,repeat_timestamp_day);
             sqlite3_exec(db, deleteSql, NULL, NULL, &zErrMsg);
             sqlite3_free(zErrMsg); 
@@ -732,7 +734,7 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
             //one time alarm
             {
              timestamp = atoll(json_timestamp->valuestring);    //把字符串转换成长长整型数（64位）long long atoll(const char *nptr);
-             AISDK_DEBUG(LX("timestamp").d("value:", timestamp));   
+             AISDK_DEBUG5(LX("timestamp").d("value:", timestamp));   
              sprintf(deleteSql, "delete from alarm where timestamp = %lld;" ,timestamp);
              sqlite3_exec(db, deleteSql, NULL, NULL, &zErrMsg);
              printf("zErrMsg = %s \n", zErrMsg);
@@ -1152,7 +1154,7 @@ void AlarmsPlayer::addToDirectiveQueue(std::shared_ptr<AlarmDirectiveInfo> info)
     
     executeHandleAfterValidation(info);
     info->result->setCompleted();
-    AISDK_INFO(LX("addToDirectiveQueue").d("executeHandleAfterValidation"," info->result->setCompleted();"));
+    AISDK_DEBUG5(LX("addToDirectiveQueue").d("executeHandleAfterValidation"," info->result->setCompleted();"));
 
 #if 0
     if (m_chatInfoQueue.empty()) {
