@@ -10,6 +10,9 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
+# Enable module logger.
+add_definitions(-DAISDK_LOG_MODULE)
+
 include_directories(BEFORE SYSTEM
 	${CMAKE_SOURCE_DIR}/ThirdLibrary/Open3rd/include
 )
