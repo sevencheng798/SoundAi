@@ -62,6 +62,37 @@ void Logger::logAtExit(Level level, const LogEntry& entry) {
     }
 }
 
+void Logger::addLogLevelObserver(LogLevelObserverInterface* observer) {
+    {
+        std::lock_guard<std::mutex> lock(m_observersMutex);
+        m_observers.push_back(observer);
+    }
+
+    // notify this observer of current logLevel right away
+    observer->onLogLevelChanged(m_level);
+}
+
+void Logger::removeLogLevelObserver(LogLevelObserverInterface* observer) {
+    std::lock_guard<std::mutex> lock(m_observersMutex);
+
+    m_observers.erase(std::remove(m_observers.begin(), m_observers.end(), observer), m_observers.end());
+}
+
+void Logger::notifyObserversOnLogLevelChanged() {
+    std::vector<LogLevelObserverInterface*> observersCopy;
+
+    // copy the vector first with the lock
+    {
+        std::lock_guard<std::mutex> lock(m_observersMutex);
+        observersCopy = m_observers;
+    }
+
+    // call the callbacks
+    for (auto observer : observersCopy) {
+        observer->onLogLevelChanged(m_level);
+    }
+}
+
 }  // namespace logging
 }  // namespace utils
 }  // namespace aisdk

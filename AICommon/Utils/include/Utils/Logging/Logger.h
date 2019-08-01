@@ -21,6 +21,8 @@
 
 #include "Utils/Logging/Level.h"
 #include "Utils/Logging/LogEntry.h"
+#include "Utils/Logging/LogLevelObserverInterface.h"
+#include "Utils/Logging/SinkObserverInterface.h"
 
 /**
  * Inner part of ACSDK_STRINGIFY.  Turns an expression in to a string literal.
@@ -171,11 +173,38 @@ public:
         std::chrono::system_clock::time_point time,
         const char* threadMoniker,
         const char* text) = 0;
+	
+    /**
+     * Add an observer to this object.
+     *
+     * @param An observer to this class, which will be notified when
+     * the logLevel changes.
+     */
+    void addLogLevelObserver(LogLevelObserverInterface* observer);
+
+    /**
+     * Remove an observer to this object.
+     *
+     * @param An observer to this class that will be removed from the
+     * notificaiton of logLevel changes.
+     */
+    void removeLogLevelObserver(LogLevelObserverInterface* observer);
 
 protected:
 
     /// The lowest severity level of logs to be output by this Logger.
     std::atomic<Level> m_level;
+private:
+	/**
+     * Notify the observers of a logLevel change.
+     */
+    void notifyObserversOnLogLevelChanged();
+
+    /// Vector of observers that want to be notified of logLevel changes
+    std::vector<LogLevelObserverInterface*> m_observers;
+
+    /// This mutex guards access to m_observers
+    std::mutex m_observersMutex;
 };
 
 bool Logger::shouldLog(Level level) const {
@@ -208,9 +237,27 @@ std::shared_ptr<Logger> ACSDK_GET_SINK_LOGGER();
 }  // namespace utils
 }  // namespace aisdk
 
-#ifdef ACSDK_LOG_MODULE
+#ifdef AISDK_LOG_MODULE
 
-#else  // ACSDK_LOG_MODULE
+#include "Utils/Logging/ModuleLogger.h"
+
+namespace aisdk {
+namespace utils {
+namespace logging {
+
+/**
+ * Inline method to get the logger for the module specified by @c AISDK_LOG_MODULE.
+ */
+inline Logger& ACSDK_GET_LOGGER_FUNCTION() {
+    static ModuleLogger moduleLogger(ACSDK_STRINGIFY(AISDK_LOG_MODULE));
+    return moduleLogger;
+}
+
+}  // namespace logging
+}  // namespace utils
+}  // namespace aisdk
+
+#else  // AISDK_LOG_MODULE
 
 namespace aisdk {
 namespace utils {
@@ -218,7 +265,7 @@ namespace logging {
 
 /**
  * Inline method to get the function that ACSDK_<LEVEL> macros will send logs to.
- * In this case @c ACSDK_LOG_MODULE was not defined, so logs are sent to the @c Logger returned by
+ * In this case @c AISDK_LOG_MODULE was not defined, so logs are sent to the @c Logger returned by
  * @c get<ACSDK_LOG_SINK>Logger().
  */
 inline Logger& ACSDK_GET_LOGGER_FUNCTION() {
