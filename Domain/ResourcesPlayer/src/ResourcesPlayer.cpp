@@ -108,6 +108,7 @@ void ResourcesPlayer::onDeregistered() {
 void ResourcesPlayer::preHandleDirective(std::shared_ptr<DirectiveInfo> info) {
     AISDK_INFO(LX("preHandleDirective").d("messageId",  info->directive->getMessageId()));
     m_executor.submit([this, info]() { executePreHandle(info); });
+    AISDK_INFO(LX("Create").d("NlpData_dataMsg", info->directive->getData()));   
 }
 
 void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
@@ -163,7 +164,8 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
               AISDK_ERROR(LX("PLAYCONTROL-handleDirectiveTimeout"));
           }
       }
-        
+
+      std::this_thread::sleep_for( std::chrono::microseconds(200));
       responsePlayControl(info, operation);
       
     }
@@ -530,11 +532,11 @@ void ResourcesPlayer::AnalysisAudioIdForResourcesPlayer(std::shared_ptr<Directiv
     int audioListSize = audio_List.size();
     for (int i = 0; i < audioListSize; (i++)) {
         std::string audio_itemid = audio_List[i]["itemid"].asString();
-        AISDK_INFO(LX("AnalysisAudioIdForResourcesPlayer").d("audioIdList[i]", i+1 ).d("itemid", audio_itemid));
+        AISDK_DEBUG3(LX("AnalysisAudioIdForResourcesPlayer").d("audioIdList[i]", i+1 ).d("itemid", audio_itemid));
         audioidlist.push_back(audio_itemid);
         
         std::string audio_albumid = audio_List[i]["albumid"].asString();
-        AISDK_INFO(LX("AnalysisAudioIdForResourcesPlayer").d("audioIdList[i]", i+1 ).d("albumid", audio_albumid));
+        AISDK_DEBUG3(LX("AnalysisAudioIdForResourcesPlayer").d("audioIdList[i]", i+1 ).d("albumid", audio_albumid));
         audioidlist.push_back(audio_albumid);
     }
     
@@ -699,7 +701,7 @@ void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<DirectiveI
             AISDK_INFO(LX("handleDirective").d("m_kugouUserId", m_kugouUserId));
 
             AnalysisAudioIdForResourcesPlayer(info, AUDIO_ID_LIST);
-            AISDK_DEBUG(LX("AUDIO_ID_LIST").d("size",  AUDIO_ID_LIST.size()));
+            AISDK_DEBUG5(LX("AUDIO_ID_LIST").d("size",  AUDIO_ID_LIST.size()));
             
         }else{
             //stormorai resources 
@@ -712,7 +714,7 @@ void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<DirectiveI
             AnalysisNlpDataForResourcesPlayer(json_data, AUDIO_URL_LIST);
             AISDK_DEBUG(LX("AUDIO_URL_LIST").d("size:",  AUDIO_URL_LIST.size()));
             for(std::size_t i = 0; i< AUDIO_URL_LIST.size(); i++) {
-                AISDK_DEBUG(LX("executePreHandleAfterValidation")
+                AISDK_DEBUG3(LX("executePreHandleAfterValidation")
                     .d("AUDIO_URL_LIST[i]", i+1 )
                     .d("audio_url",  AUDIO_URL_LIST.at(i)));
             }
@@ -773,7 +775,7 @@ void ResourcesPlayer::executePreHandle(std::shared_ptr<DirectiveInfo> info) {
             AISDK_ERROR(LX("executePreHandle").d("stop","failed"));
         }
 
-        AISDK_INFO(LX("executePreHandle")
+        AISDK_DEBUG5(LX("executePreHandle")
             .d(" initialization parameters ", "AUDIO_URL_LIST cleared ")
             .d(" flag_playControl_pause ", flag_playControl_pause)
             .d(" currentItemNum ", currentItemNum)
@@ -938,6 +940,7 @@ void ResourcesPlayer::executeTrackChanged(FocusState newTrace){
                             }
                         }
                         TryTheNextItem:
+                        AISDK_INFO(LX("playKuGouResourceItemID").d("currentItemNum", (currentItemNum / 2)));
                         int val = playKuGouResourceItemID(AUDIO_ID_LIST.at(currentItemNum), AUDIO_ID_LIST.at(currentItemNum+1));  
                         if(val != 0){
                            AISDK_INFO(LX("executeTrackChanged").d("playKuGouResourceItemID", "play type-->-->[kugou]-->-->【2】"));
@@ -973,6 +976,7 @@ void ResourcesPlayer::executeTrackChanged(FocusState newTrace){
                             }
 
                         }
+                        AISDK_INFO(LX("playResourceItem").d("currentItemNum", currentItemNum));
                         playResourceItem(AUDIO_URL_LIST.at(currentItemNum));   
                 }
                 
@@ -1151,6 +1155,7 @@ void ResourcesPlayer::executePlaybackFinished() {
                            return;
                        } 
                   }
+                   AISDK_INFO(LX("playKuGouResourceItemID").d("currentItemNum", (currentItemNum / 2)));
                   int val = playKuGouResourceItemID(AUDIO_ID_LIST.at(currentItemNum), AUDIO_ID_LIST.at(currentItemNum+1));
                   if(val != 0){
                      AISDK_INFO(LX("executePlaybackFinished").d("playKuGouResourceItemID", "play type-->-->[kugou]-->-->【4】"));                          
@@ -1177,6 +1182,7 @@ void ResourcesPlayer::executePlaybackFinished() {
                             return;
                         }                 
                   }
+                 AISDK_INFO(LX("playResourceItem").d("currentItemNum", currentItemNum));
                  playResourceItem(AUDIO_URL_LIST.at(currentItemNum));
               }
          
@@ -1477,7 +1483,7 @@ void ResourcesPlayer::addToDirectiveQueue(std::shared_ptr<ResourcesDirectiveInfo
 
     executeHandleAfterValidation(info);
     info->result->setCompleted();
-	AISDK_INFO(LX("addToDirectiveQueue").d("executeHandleAfterValidation"," info->result->setCompleted();"));
+	AISDK_DEBUG5(LX("addToDirectiveQueue").d("executeHandleAfterValidation"," info->result->setCompleted();"));
 }
 
 void ResourcesPlayer::removeChatDirectiveInfo(const std::string& messageId) {
