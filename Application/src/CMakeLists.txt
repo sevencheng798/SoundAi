@@ -6,7 +6,8 @@ list(APPEND SampleApp_SOURCES
 	PortAudioMicrophoneWrapper.cpp
 	ControlActionManager.cpp
 	InputControlInteraction.cpp
-	KeywordObserver.cpp)
+	KeywordObserver.cpp
+	ConsoleZloger.cpp)
 
 # For AM113 to set the path.
 link_directories(${JSONCPP_LIB_PATH})

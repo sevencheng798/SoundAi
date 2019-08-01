@@ -11,11 +11,13 @@
  */
 
 #include <Utils/Logging/Logger.h>
+#include <Utils/Logging/LoggerSinkManager.h>
 #include <Utils/DeviceInfo.h>
 #include <KWD/KeywordDetectorRegister.h>
 
 #include "Application/KeywordObserver.h"
 #include "Application/PortAudioMicrophoneWrapper.h"
+#include "Application/ConsoleZloger.h"
 #include "Application/AIClient.h"  //tmp
 #include "Application/SampleApp.h"
 
@@ -44,9 +46,9 @@ static const std::chrono::seconds AMOUNT_OF_AUDIO_DATA_IN_BUFFER = std::chrono::
 /// The size of the ring buffer.
 static const size_t BUFFER_SIZE_IN_SAMPLES = (SAMPLE_RATE_HZ*NUM_CHANNELS)*AMOUNT_OF_AUDIO_DATA_IN_BUFFER.count();
 
-std::unique_ptr<SampleApp> SampleApp::createNew() {
+std::unique_ptr<SampleApp> SampleApp::createNew(const std::string& logLevel) {
 	std::unique_ptr<SampleApp> instance(new SampleApp());
-	if(!instance->initialize()){
+	if(!instance->initialize(logLevel)){
 		AISDK_ERROR(LX("createNewFailed").d("reason", "failed to initialize sampleApp"));
 		return nullptr;
 	}
@@ -84,8 +86,28 @@ SampleApp::~SampleApp() {
 	}
 }
 
-bool SampleApp::initialize() {
+bool SampleApp::initialize(const std::string& logLevel) {
+	/*
+     * Set up the SDK logging system to write to the SampleApp's ConsoleZloger.
+     * Also adjust the logging level if requested.
+     */
+    std::shared_ptr<utils::logging::Logger> consoleLoger =
+        std::make_shared<application::ConsoleZloger>();
 
+    utils::logging::Level logLevelValue = utils::logging::Level::UNKNOWN;
+	if (!logLevel.empty()) {
+		// Gets a log level consumable by the SDK based on the user input string for log level.
+		logLevelValue = utils::logging::convertNameToLevel(logLevel);
+        if (utils::logging::Level::UNKNOWN == logLevelValue) {
+			AISDK_ERROR(LX("Unknown log level input! or the string not upper format"));
+            return false;
+        }
+
+        consoleLoger->setLevel(logLevelValue);
+	}
+#ifdef AISDK_LOG_MODULE	
+	utils::logging::LoggerSinkManager::instance().initialize(consoleLoger);
+#endif
 	// Create a libao engine object.
 	auto m_aoEngine = mediaPlayer::ffmpeg::AOEngine::create();
 	if(!m_aoEngine) {

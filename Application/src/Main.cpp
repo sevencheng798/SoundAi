@@ -20,8 +20,14 @@
 //using namespace application;
 
 int main(int argc, char* argv[]) {
-#if 1
-	auto sampleApp = aisdk::application::SampleApp::createNew();
+	std::string logLevel;
+	if(argc == 2) {
+		logLevel = std::string(argv[1]);
+	} else {
+		logLevel = std::string("DEBUG0");
+	}
+	
+	auto sampleApp = aisdk::application::SampleApp::createNew(logLevel);
 	if(!sampleApp) {
 		std::cout << "Create FAILED!" << std::endl;
 		return -1;
@@ -30,9 +36,6 @@ int main(int argc, char* argv[]) {
 	sampleApp->run();
 
 	sampleApp.reset();
-#else
-	auto instance = aisdk::application::AIClient::createNew();
-#endif
 
 	return 0;
 }

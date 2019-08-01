@@ -17,6 +17,8 @@
 #include <string>
 
 #include <Utils/Logging/Logger.h>
+#include <Utils/Logging/LogStringFormatter.h>
+#include "Utils/Logging/ZlogManager.h"
 
 namespace aisdk {
 namespace application {
@@ -36,6 +38,15 @@ public:
         std::chrono::system_clock::time_point time,
         const char* threadMoniker,
         const char* text) override;
+private:
+	/// Used to serialize access to @c m_logFormatter.
+    std::mutex m_mutex;
+	
+	/// Object to format log strings correctly.
+    utils::logging::LogStringFormatter m_logFormatter;
+
+	/// Object to put log message to a save files.
+	utils::logging::ZlogManager m_zlogManager;
 };
 
 }  // namespace application
