@@ -964,7 +964,7 @@ void ResourcesPlayer::executeTrackChanged(FocusState newTrace){
                            AISDK_ERROR(LX("executeTrackChanged").d("reason", "AUDIO_URL_LIST is null"));
                            return;
                         }
-                        AISDK_INFO(LX("executeTrackChanged").d("playResourceItem", "play type-->-->[stormorai or others]-->-->【1】"));
+                        AISDK_INFO(LX("executeTrackChanged").d("playResourceItem", "play type-->-->[Not kugou resources]-->-->【1】"));
                         if(currentItemNum >= AUDIO_URL_LIST.size()){
                             if(enable_list_loop == 1){
                                 currentItemNum = 0;
@@ -1164,7 +1164,7 @@ void ResourcesPlayer::executePlaybackFinished() {
          
               }else{
                   // playNextItem();
-                  AISDK_INFO(LX("executePlaybackFinished").d("playResourceItem", "play type-->-->[stormorai or others]-->-->【3】"));
+                  AISDK_INFO(LX("executePlaybackFinished").d("playResourceItem", "play type-->-->[Not kugou resources]-->-->【3】"));
                   currentItemNum ++;
                   if(enable_single_loop == 1 ){
                       currentItemNum --;
