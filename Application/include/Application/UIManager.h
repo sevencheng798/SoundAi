@@ -40,11 +40,13 @@ public:
      * Constructor.
      */
 	UIManager();
-
     ///use for ipc communication(key, led, event and so on);
     int creatMsg(MqSndInfo mqSndInfo);
 
     int reveiceMsg(MqRecvInfo &mqRecvinfo);
+
+    void init();
+
 	/// @name DialogUXStateObserverInterface methods
 	/// @{
 	void onDialogUXStateChanged(DialogUXState newState) override;

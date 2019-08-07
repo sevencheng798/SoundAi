@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <string>
+#include <unistd.h>
 
 #include "Application/SampleApp.h"
 //#include "Application/AIClient.h"
@@ -21,13 +22,25 @@
 
 int main(int argc, char* argv[]) {
 	std::string logLevel;
-	if(argc == 2) {
-		logLevel = std::string(argv[1]);
-	} else {
-		logLevel = std::string("DEBUG0");
+    bool rebootFlag = false;
+	logLevel = std::string("DEBUG0");
+
+    int opt;
+	while((opt = getopt(argc, argv, "hrd:")) != -1) {
+	switch (opt) {
+		case 'd':
+			logLevel = optarg;
+			break;
+		case 'r':
+			rebootFlag = true;
+			break;
+		default:
+            break;
 	}
-	
-	auto sampleApp = aisdk::application::SampleApp::createNew(logLevel);
+	}
+
+    std::cout << "Create rebootFlag=%d" << rebootFlag << std::endl;
+	auto sampleApp = aisdk::application::SampleApp::createNew(logLevel, rebootFlag);
 	if(!sampleApp) {
 		std::cout << "Create FAILED!" << std::endl;
 		return -1;

@@ -112,6 +112,14 @@ int UIManager::creatMsg(MqSndInfo mqSndInfo){
 
 }
 
+void UIManager::init(){
+     AISDK_INFO(LX("reboot Init"));
+     memset(&m_mqSndInfo, 0x00, sizeof(m_mqSndInfo));
+     m_mqSndInfo.msg_info.sub_msg_info.sub_id = MQ_EVT_REBOOT_INIT;
+     m_mqSndInfo.msg_info.sub_msg_info.status = 0;
+     creatMsg(m_mqSndInfo);    
+}
+
 
 void UIManager::onDialogUXStateChanged(DialogUXStateObserverInterface::DialogUXState newState) {
 	m_executor.submit([this, newState]() {

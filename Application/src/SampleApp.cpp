@@ -46,9 +46,9 @@ static const std::chrono::seconds AMOUNT_OF_AUDIO_DATA_IN_BUFFER = std::chrono::
 /// The size of the ring buffer.
 static const size_t BUFFER_SIZE_IN_SAMPLES = (SAMPLE_RATE_HZ*NUM_CHANNELS)*AMOUNT_OF_AUDIO_DATA_IN_BUFFER.count();
 
-std::unique_ptr<SampleApp> SampleApp::createNew(const std::string& logLevel) {
+std::unique_ptr<SampleApp> SampleApp::createNew(const std::string& logLevel, bool rebootFlag) {
 	std::unique_ptr<SampleApp> instance(new SampleApp());
-	if(!instance->initialize(logLevel)){
+	if(!instance->initialize(logLevel, rebootFlag)){
 		AISDK_ERROR(LX("createNewFailed").d("reason", "failed to initialize sampleApp"));
 		return nullptr;
 	}
@@ -86,7 +86,7 @@ SampleApp::~SampleApp() {
 	}
 }
 
-bool SampleApp::initialize(const std::string& logLevel) {
+bool SampleApp::initialize(const std::string& logLevel, bool rebootFlag) {
 	/*
      * Set up the SDK logging system to write to the SampleApp's ConsoleZloger.
      * Also adjust the logging level if requested.
@@ -158,7 +158,10 @@ bool SampleApp::initialize(const std::string& logLevel) {
 
 	// Creating UI manager
 	auto userInterfaceManager = std::make_shared<UIManager>();
-
+    if(rebootFlag == true){
+        userInterfaceManager->init();
+    }
+ 
 	// Adding network observer to UX manager.
 	deviceInfo->addObserver(userInterfaceManager);
 

@@ -34,7 +34,7 @@ public:
      * Constructor.
      *
      */
-	static std::unique_ptr<SampleApp> createNew(const std::string& logLevels);
+	static std::unique_ptr<SampleApp> createNew(const std::string& logLevels, bool rebootFlag);
 
 	/// Runs the application, blocking until the user asked app quit. 
 	void run();
@@ -43,7 +43,7 @@ public:
 	~SampleApp();
 
 private:
-	bool initialize(const std::string& logLevel);
+	bool initialize(const std::string& logLevel, bool rebootFlag);
 
 	// The used to create libao objects.
 	std::shared_ptr<mediaPlayer::ffmpeg::AOEngine> m_aoEngine;
