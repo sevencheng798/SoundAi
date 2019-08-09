@@ -205,6 +205,15 @@ private:
 	 * @return true if success. otherwise @c false.
 	 */
 	bool executeNLPResult(const std::string unparsedIntent);
+
+	/**
+	 * The function that check nlp domain whether need repack message.
+	 * Because some domain classifications are confusing, we should reclassify them here.
+	 *
+	 * @params intent The unparsed intent from TPP type.
+	 */
+	bool intentRepacking(const std::string &intent);
+	
 	/**
 	 * The function that repacking nlp domain message and sent to consume modules.
 	 * Because some domain classifications are confusing, we should reclassify them here.
@@ -222,6 +231,14 @@ private:
 	bool executeTPPResult(
 		const std::string intent,
 		std::shared_ptr<utils::attachment::AttachmentWriter> writer = nullptr);
+
+	/**
+	 * utility function to create a new attachment writer to write data.
+	 * @params intent The unparsed intent from TPP type.
+	 *
+	 * @return true if success. otherwise @c false.
+	 */
+	bool createNewAttachmentWrite(const std::string &intent);
 	
     /**
      * Utility function to encapsulate the logic required to write data to an attachment.

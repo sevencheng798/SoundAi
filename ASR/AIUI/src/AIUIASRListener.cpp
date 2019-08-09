@@ -145,6 +145,25 @@ void AIUIASRListener::onEvent(const aiui::IAIUIEvent& event) const {
 			if(m_listenerObserver)
 				m_listenerObserver->handleEventResultTPP(resultStr);			
 		} else if (sub == "tts") {
+#if 1		
+		auto sid = event.getData()->getString("sid", "");
+		int dts = content["dts"].asInt();
+		std::string errorinfo = content["error"].asString();
+		if(dts == 2 && errorinfo == "AIUI DATA NULL") {
+			AISDK_WARN(LX("EVENT_RESULT").d("reason", errorinfo).d("ttsSid", sid));
+		} else if (3 == dts) {
+		    AISDK_WARN(LX("EVENT_RESULT").d("dts", dts).d("ttsSid", sid));
+		} else {
+			if(dts == 0) {
+				AISDK_WARN(LX("EVENT_RESULT").d("dts", dts).d("ttsSid", sid));
+			} else if(dts == 2) {
+				AISDK_WARN(LX("EVENT_RESULT").d("dts", dts).d("ttsSid", sid));
+			}
+		}
+		
+		//auto percent = event.getData()->getInt("percent");
+		//AISDK_INFO(LX("Listener").d("percent", percent));
+#endif		
 			if(m_listenerObserver)
 				m_listenerObserver->handleEventResultTTS(info, resultStr);
 

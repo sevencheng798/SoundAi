@@ -50,9 +50,13 @@ static const std::string DOMAIN_VOLUME{"volume"};
 // A name of expectSpeech be used to match directive handle.
 static const std::string EXPECT_SPEECH{"ExpectSpeech"};
 // Used within generate ExpectSpeech ID().
-static const std::string MESSAGE_ID_COMBINING_SUBSTRING = "expectspeech";
+static const std::string MESSAGE_ID_COMBINING_SUBSTRING = "expectspeech@";
 
+// Constructing 'expectSpeech' type response data.
 static const char *DOMAIN_EXPECT_SPEECH_FORMAT = "{\"code\":200, \"message\":\"OK\", \"query\":\"\", \"domain\":\"ExpectSpeech\"}";
+
+// Used within generate repack ID().
+static const std::string MESSAGE_ID_REPACK_COMBINING_SUBSTRING = "repack@";
 
 /// The name of channel handler interface
 static const std::string CHANNEL_INTERFACE_NAME{"AIUIAutomaticSpeechRecognizer"};
@@ -616,22 +620,22 @@ bool AIUIAutomaticSpeechRecognizer::executeNLPResult(const std::string unparsedI
 	return true;
 }
 
-void AIUIAutomaticSpeechRecognizer::intentRepackingConsumeMessage(const std::string &intent) {
+bool AIUIAutomaticSpeechRecognizer::intentRepacking(const std::string &intent) {
 	Json::CharReaderBuilder readerBuilder;
 	JSONCPP_STRING errs;
 	Json::Value root;
 	std::unique_ptr<Json::CharReader> const reader(readerBuilder.newCharReader());	
 	// Start parsing.
 	if (!reader->parse(intent.c_str(), intent.c_str()+intent.length(), &root, &errs)) {
-		AISDK_ERROR(LX("intentRepackingConsumeMessageFailed").d("reason", "parseIntentError").d("intent", intent));
-		return;
+		AISDK_ERROR(LX("intentRepacking").d("reason", "parseIntentError").d("intent", intent));
+		return false;
 	}
 
 	// Parsing domain node.
 	std::string domain = root["domain"].asString();
 	if(domain.empty()) {
-		AISDK_ERROR(LX("executeTPPResultFailed").d("reason", "notFoundDomainNode."));
-		 return;
+		AISDK_ERROR(LX("intentRepacking").d("reason", "notFoundDomainNode."));
+		 return false;
 	}
 
 	bool repacking = false;
@@ -647,17 +651,30 @@ void AIUIAutomaticSpeechRecognizer::intentRepackingConsumeMessage(const std::str
 		}
 	}
 
+	return repacking;
+}
+
+void AIUIAutomaticSpeechRecognizer::intentRepackingConsumeMessage(const std::string &intent) {
+	auto repacking = intentRepacking(intent);
 	// Should repacking to consume message.
 	if(repacking) {
+		Json::CharReaderBuilder readerBuilder;
+		JSONCPP_STRING errs;
+		Json::Value root;
+		std::unique_ptr<Json::CharReader> const reader(readerBuilder.newCharReader());	
+		// Start parsing.
+		if (!reader->parse(intent.c_str(), intent.c_str()+intent.length(), &root, &errs)) {
+			AISDK_ERROR(LX("intentRepackingConsumeMessageFailed").d("reason", "parseIntentError").d("intent", intent));
+			return;
+		}
 		Json::StreamWriterBuilder writerBuilder;
 		std::unique_ptr<Json::StreamWriter> writer(writerBuilder.newStreamWriter());
 		std::ostringstream os;
 		root["domain"] = "chat";
 		writer->write(root, &os);
 		// AISDK_DEBUG5(LX("intentRepackingConsumeMessage").d("newIntent", os.str()));
-		m_messageConsumer->consumeMessage(m_sessionId, os.str());
+		m_messageConsumer->consumeMessage(MESSAGE_ID_REPACK_COMBINING_SUBSTRING+m_sessionId, os.str());
 	}
-
 }
 
 bool AIUIAutomaticSpeechRecognizer::executeTPPResult(
@@ -691,25 +708,21 @@ bool AIUIAutomaticSpeechRecognizer::executeTPPResult(
 				.d("query", query)
 				.d("domain", domain)
 				.d("answer", answer.asString())
+				.d("answerSize", answer.asString().length())
 				.d("expectSpeech", expectSpeech?"true":"false")
 				.d("resource", resource?"true":"false")
 				.d("sid", m_sessionId));
+	if(answer.asString().empty()) {
+		AISDK_ERROR(LX("executeTPPResult").d("reason", "answerIsNull"));
+	}
 	
 	// The BUSY state will be allowed to continue working.
 	if(ObserverInterface::State::BUSY != getState())
 		return false;
 
-	// We should close the last writer before starting a new write.
-	closeActiveAttachmentWriter();
-	if(m_attachmentDocker && !m_attachmentWriter) {
-		// Default Policy is NONBLOCKING.
-		m_attachmentWriter = m_attachmentDocker->createWriter(m_sessionId);
-		if (!m_attachmentWriter) {
-            AISDK_ERROR(LX("executeTPPResultFailed")
-                            .d("reason", "createWriterFailed")
-                            .d("attachmentId", m_sessionId));
-        }
-	}
+	// Start creating new writer.
+	if(createNewAttachmentWrite(intent) == false)
+		return false;
 
 	m_timeoutForThinkingTimer.stop();
 	std::string text(answer.asString());
@@ -724,7 +737,33 @@ bool AIUIAutomaticSpeechRecognizer::executeTPPResult(
 		AISDK_DEBUG5(LX("executeTPPResult").d("ExpectSpeech", expectSpeech.str()));
 		m_messageConsumer->consumeMessage(MESSAGE_ID_COMBINING_SUBSTRING+m_sessionId, expectSpeech.str());
 	}
+
+	return true;
+}
+
+bool AIUIAutomaticSpeechRecognizer::createNewAttachmentWrite(const std::string &intent) {
+	std::string attachmentId;
+	if(intentRepacking(intent)) {
+		attachmentId = MESSAGE_ID_REPACK_COMBINING_SUBSTRING+m_sessionId;
+	} else {
+		attachmentId = m_sessionId;
+	}
 	
+	// Close activly tts.
+	//cancelTextToSpeech();
+	// We should close the last writer before starting a new write.
+	closeActiveAttachmentWriter();
+	if(m_attachmentDocker && !m_attachmentWriter) {
+		// Default Policy is NONBLOCKING.
+		m_attachmentWriter = m_attachmentDocker->createWriter(attachmentId);
+		if (!m_attachmentWriter) {
+            AISDK_ERROR(LX("executeTPPResultFailed")
+                            .d("reason", "createWriterFailed")
+                            .d("attachmentId", m_sessionId));
+			return false;
+        }
+	}
+
 	return true;
 }
 
