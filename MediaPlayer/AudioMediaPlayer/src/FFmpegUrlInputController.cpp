@@ -64,13 +64,13 @@ std::unique_ptr<FFmpegUrlInputController> FFmpegUrlInputController::create(
 		remain.resize(pos);
 		oss << remain;
 
-		char *encode = new char[suburl.length()*2];
+		char *encode = new char[suburl.length()*4];
 		if(!encode) {
 			AISDK_ERROR(LX("createFailed").d("reason", "askEncodeMemoryFailed"));
             return nullptr;
 		}
 		
-		URLEncode(suburl.substr(1).c_str(), (suburl.length()-1), encode+1, (suburl.length()*2));
+		URLEncode(suburl.substr(1).c_str(), (suburl.length()-1), encode+1, (suburl.length()*4));
 		encode[0] = '/';
 		oss << encode;
 
