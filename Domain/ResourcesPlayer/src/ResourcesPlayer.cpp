@@ -1480,10 +1480,12 @@ bool ResourcesPlayer::setResourcesDirectiveInfo(
 
 void ResourcesPlayer::addToDirectiveQueue(std::shared_ptr<ResourcesDirectiveInfo> info) {
     std::lock_guard<std::mutex> lock(m_chatInfoQueueMutex);
+    AISDK_DEBUG5(LX("addToDirectiveQueue").d("executeHandleAfterValidation"," info->result->setCompleted();"));
+    info->result->setCompleted();
 
     executeHandleAfterValidation(info);
-    info->result->setCompleted();
-	AISDK_DEBUG5(LX("addToDirectiveQueue").d("executeHandleAfterValidation"," info->result->setCompleted();"));
+    //info->result->setCompleted();
+	//AISDK_DEBUG5(LX("addToDirectiveQueue").d("executeHandleAfterValidation"," info->result->setCompleted();"));
 }
 
 void ResourcesPlayer::removeChatDirectiveInfo(const std::string& messageId) {
