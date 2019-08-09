@@ -191,8 +191,8 @@ void GetNLPData(const char * datain , struct NlpData *nlpdata)
        }
      #endif  
 
-       AISDK_INFO(LX("GetNLPData").d("domain", nlpdata->NlpData_domain));
-  // cJSON_Delete(json);  //释放内存
+       AISDK_DEBUG5(LX("GetNLPData").d("domain", nlpdata->NlpData_domain));
+   cJSON_Delete(json);  //释放内存
 }
 
 
