@@ -306,7 +306,7 @@ void AIUIAutomaticSpeechRecognizer::handleEventResultTPP(const std::string unpar
 }
 
 void AIUIAutomaticSpeechRecognizer::handleEventResultTTS(const std::string info, const std::string data) {
-	/// AISDK_DEBUG5(LX("handleEventResultTTS").d("reason", "entry"));
+	// AISDK_DEBUG5(LX("handleEventResultTTS").d("reason", "entry"));
 	m_executor.submit([this, info, data]() {
 		executeTTSResult(info, data);
 	});
@@ -322,7 +322,7 @@ void AIUIAutomaticSpeechRecognizer::handleEventResultIAT(const std::string unpar
 }
 
 void AIUIAutomaticSpeechRecognizer::onTrackChanged(utils::channel::FocusState newTrace) {
-	AISDK_DEBUG5(LX("onTrackChanged").d("newTrace", newTrace));
+	AISDK_DEBUG4(LX("onTrackChanged").d("newTrace", newTrace));
 	m_executor.submit([this, newTrace]() {
 		return executeOnTrackChanged(newTrace);
 	});
@@ -421,13 +421,12 @@ void AIUIAutomaticSpeechRecognizer::closeActiveAttachmentWriter() {
 }
 
 bool AIUIAutomaticSpeechRecognizer::init() {
-#if 1
 	m_gainTune = std::make_shared<ASRGainTune>();
 	if(!m_gainTune) {
 		AISDK_ERROR(LX("initFailed").d("reason", "createdGainTuneFailed"));
 		return false;
 	}
-#endif	
+	
 	if(m_aiuiDir.empty()) {
 		AISDK_ERROR(LX("initFailed").d("reason", "aiuiDirIsEmpty"));
 		return false;
