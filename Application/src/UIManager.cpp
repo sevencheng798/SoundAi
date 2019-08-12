@@ -181,7 +181,9 @@ void UIManager::microphoneOff() {
     m_mqSndInfo.msg_info.sub_msg_info.status = 1;
     creatMsg(m_mqSndInfo);
 
+    AISDK_DEBUG(LX("microphoneOff").d("reason", "systemBeCalledStart"));
     system("echo 0 > /sys/devices/platform/dummy/mute");
+    AISDK_DEBUG(LX("microphoneOff").d("reason", "systemBeCalledEnd"));
     m_executor.submit([]() { AISDK_INFO(LX("Microphone Off!")); });
 }
 
@@ -268,14 +270,18 @@ void UIManager::printState() {
              m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_WAKEUP;
              m_mqSndInfo.msg_info.sub_msg_info.status = 1;
              creatMsg(m_mqSndInfo);
+             AISDK_DEBUG(LX("printState").d("reason", "systemBeCalledStart"));
              responseWakeUp(WAKEUP_AUDIO_LIST);
+             AISDK_DEBUG(LX("printState").d("reason", "systemBeCalledEnd"));
              break;
      	case DialogUXStateObserverInterface::DialogUXState::LISTEN_EXPECTING:
              m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_WAKEUP;
              m_mqSndInfo.msg_info.sub_msg_info.status = 1;
              creatMsg(m_mqSndInfo);
              AISDK_INFO(LX(LISTEN_MESSAGE));
+             AISDK_DEBUG(LX("printStateExpect").d("reason", "systemBeCalledStart"));
              system("aplay /cfg/sai_config/ding.wav");
+             AISDK_DEBUG(LX("printState").d("reason", "systemBeCalledEnd"));
              break;	
      	case DialogUXStateObserverInterface::DialogUXState::THINKING:
              m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_WAKEUP;
