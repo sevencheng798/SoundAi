@@ -87,6 +87,14 @@ std::size_t MockAttachmentReader::read(
         return AVERROR(EAGAIN);
     }
 
+	if(m_iteration < 30) {
+	std::cout << "read before" << std::endl;
+	std::this_thread::sleep_for(std::chrono::seconds(1));
+	std::cout << "read after" << std::endl;
+	(*readStatus) = AttachmentReader::ReadStatus::OK_TIMEDOUT;
+	return 0;
+	}
+	
     m_stream->read(reinterpret_cast<char*>(buf), numBytes);
     auto bytesRead = m_stream->gcount();
     if (!bytesRead) {
@@ -142,6 +150,7 @@ private:
 class AOWrapperPlayerTest : public Test {
 protected:
 	void SetUp() override {
+		av_log_set_level(AV_LOG_TRACE);
 		/// Create object for the @c AOEngine.
 		m_aoEngine = AOEngine::create();
 		/// Create object for the @c AOWrapper.

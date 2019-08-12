@@ -250,7 +250,8 @@ int AOWrapper::configureNewRequest(
 		m_decoder->abort();
 #endif		
 	m_decoder.reset();
-	
+
+	AISDK_DEBUG0(LX("newRequest").d("reason", "decoderCreate"));
 	m_decoder = FFmpegDecoder::create(std::move(inputController), m_config);
 
 	m_playerThread = std::thread(&AOWrapper::doPlayAudioLoop, this);

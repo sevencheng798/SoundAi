@@ -108,11 +108,13 @@ int FFmpegAttachmentInputController::read(uint8_t* buffer, int bufferSize) {
     auto readSize = m_reader->read(buffer, bufferSize, &readStatus, READ_TIMEOUT);
     switch (readStatus) {
         case AttachmentReader::ReadStatus::OK:
+			if(!m_hasProbedVaildData)
+				m_hasProbedVaildData = true;
             return readSize;
         case AttachmentReader::ReadStatus::OK_WOULDBLOCK:
         case AttachmentReader::ReadStatus::OK_TIMEDOUT:
             AISDK_DEBUG3(LX(__func__).d("status", readStatus).d("readSize", readSize));
-			if(m_tryCount > 10) {
+			if(m_tryCount >= 2) {
 				m_tryCount = 0;
                 return readSize ? readSize : AVERROR_EOF;
 			} else {
@@ -145,6 +147,7 @@ FFmpegAttachmentInputController::FFmpegAttachmentInputController(
     std::shared_ptr<AVInputFormat> inputFormat,
     std::shared_ptr<AVDictionary> inputOptions) :
         m_tryCount{0},
+		m_hasProbedVaildData{false},
         m_reader{reader},
         m_inputFormat{inputFormat},
         m_inputOptions{inputOptions} {
@@ -156,7 +159,14 @@ int FFmpegAttachmentInputController::feedBuffer(void* userData, uint8_t* buffer,
         AISDK_ERROR(LX("feedAvioBufferFailed").d("reason", "nullInputController"));
         return AVERROR_EXTERNAL;
     }
-    return inputController->read(buffer, bufferSize);
+	int readStatus;
+	do {
+		
+		readStatus = inputController->read(buffer, bufferSize);
+		
+	}while(readStatus == AVERROR(EAGAIN));
+
+	return readStatus;
 }
 
 AVFormatContext* FFmpegAttachmentInputController::createNewFormatContext() {
@@ -215,6 +225,9 @@ FFmpegAttachmentInputController::getCurrentFormatContextOpen() {
 		}
 		// auto errorStr = av_err2str(error);
 		AISDK_ERROR(LX("getContextFailed").d("reason", "openInputFailed"));
+		return {Result::ERROR, nullptr, std::chrono::milliseconds::zero()};
+	} else if(!m_hasProbedVaildData) {
+		AISDK_ERROR(LX("getContextFailed").d("reason", "probeVaildDataTimedout"));
 		return {Result::ERROR, nullptr, std::chrono::milliseconds::zero()};
 	}
 
