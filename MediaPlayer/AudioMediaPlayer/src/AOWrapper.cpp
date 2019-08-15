@@ -360,10 +360,13 @@ void AOWrapper::doPlayAudioLocked(std::unique_lock<std::mutex> &lock) {
 	
 	lock.lock();
 	if(unexpected) {
-		m_state = AOWrapper::AOPlayerState::FINISHED;
-		if (m_observer) {
-            m_observer->onPlaybackFinished(m_sourceId);
-        }
+		// we should not call the @c onPlaybackFinished When stop a player.
+		if(m_state != AOWrapper::AOPlayerState::FINISHED) {
+			m_state = AOWrapper::AOPlayerState::FINISHED;
+			if (m_observer) {
+	            m_observer->onPlaybackFinished(m_sourceId);
+	        }
+		}
 	}
 	
 }

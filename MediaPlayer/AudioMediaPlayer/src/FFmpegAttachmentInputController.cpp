@@ -122,7 +122,7 @@ int FFmpegAttachmentInputController::read(uint8_t* buffer, int bufferSize) {
                 return readSize ? readSize : AVERROR(EAGAIN);
 			}
         case AttachmentReader::ReadStatus::CLOSED:
-            AISDK_DEBUG5(LX(__func__).m("Found EOF"));
+            AISDK_DEBUG3(LX(__func__).m("Found EOF"));
             return AVERROR_EOF;
         case AttachmentReader::ReadStatus::ERROR_BYTES_LESS_THAN_WORD_SIZE:
         case AttachmentReader::ReadStatus::ERROR_INTERNAL:
