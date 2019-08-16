@@ -211,6 +211,7 @@ std::future<bool> AIUIAutomaticSpeechRecognizer::recognize(
 			//return false;
 		case ObserverInterface::State::BUSY:
 			AISDK_ERROR(LX("executeRecognizeFailed").d("reason", "Barge-in is not permitted while busy"));
+            exit(0);
 			std::promise<bool> p;
 			std::future<bool> ret = p.get_future();
 			return ret;

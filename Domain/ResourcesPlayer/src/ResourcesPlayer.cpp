@@ -107,12 +107,16 @@ void ResourcesPlayer::onDeregistered() {
 
 void ResourcesPlayer::preHandleDirective(std::shared_ptr<DirectiveInfo> info) {
     AISDK_INFO(LX("preHandleDirective").d("messageId",  info->directive->getMessageId()));
-    m_executor.submit([this, info]() { executePreHandle(info); });
+    //m_executor.submit([this, info]() { executePreHandle(info); });
+    executePreHandle(info);
     AISDK_INFO(LX("Create").d("NlpData_dataMsg", info->directive->getData()));   
 }
 
 void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
     AISDK_INFO(LX("handleDirective").d("messageId",  info->directive->getMessageId()));
+    
+    info->result->setCompleted();
+    AISDK_DEBUG0(LX("handleDirective").d("handleDirective"," info->result->setCompleted();"));
     if(info->directive->getDomain() == RESOURCESNAME ){
         
         auto predicate = [this](){ 
@@ -128,12 +132,14 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
                return false; 
            }
         };
+
        // Block until we achieve the desired state.
         std::unique_lock<std::mutex> lock(m_mutex);
         if ( !m_waitOnStateChange.wait_for( lock, STATE_CHANGE_TIMEOUT, predicate) ){
             AISDK_ERROR(LX("RESOURCESNAME-handleDirectiveTimeout"));
         }
-        m_executor.submit([this, info]() { executeHandle(info); });
+        //m_executor.submit([this, info]() { executeHandle(info); });
+        executeHandle(info);
 
     }
     else if(info->directive->getDomain() == PLAYCONTROL ){
@@ -165,7 +171,7 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
           }
       }
 
-      std::this_thread::sleep_for( std::chrono::microseconds(200));
+      //std::this_thread::sleep_for( std::chrono::microseconds(200));
       responsePlayControl(info, operation);
       
     }
@@ -729,6 +735,7 @@ void ResourcesPlayer::executePreHandleAfterValidation(std::shared_ptr<DirectiveI
 void ResourcesPlayer::executeHandleAfterValidation(std::shared_ptr<ResourcesDirectiveInfo> info) {
     m_currentInfo = info;
     if(m_currentFocus == utils::channel::FocusState::NONE ){
+        AISDK_INFO(LX("executeHandleAfterValidation").d("acquireChannel", "MEDIA_CHANNEL_NAME" ));
         if (!m_trackManager->acquireChannel(CHANNEL_NAME, shared_from_this(), RESOURCESNAME)) {
             static const std::string message = std::string("Could not acquire ") + CHANNEL_NAME + " for " + RESOURCESNAME;
             AISDK_INFO(LX("executeHandleFailed")
@@ -1480,12 +1487,11 @@ bool ResourcesPlayer::setResourcesDirectiveInfo(
 
 void ResourcesPlayer::addToDirectiveQueue(std::shared_ptr<ResourcesDirectiveInfo> info) {
     std::lock_guard<std::mutex> lock(m_chatInfoQueueMutex);
-    AISDK_DEBUG5(LX("addToDirectiveQueue").d("executeHandleAfterValidation"," info->result->setCompleted();"));
-    info->result->setCompleted();
+    //info->result->setCompleted();
 
     executeHandleAfterValidation(info);
     //info->result->setCompleted();
-	//AISDK_DEBUG5(LX("addToDirectiveQueue").d("executeHandleAfterValidation"," info->result->setCompleted();"));
+	//AISDK_DEBUG0(LX("addToDirectiveQueue").d("executeHandleAfterValidation"," info->result->setCompleted();"));
 }
 
 void ResourcesPlayer::removeChatDirectiveInfo(const std::string& messageId) {
