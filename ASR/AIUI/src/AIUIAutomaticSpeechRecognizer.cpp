@@ -180,7 +180,7 @@ std::future<bool> AIUIAutomaticSpeechRecognizer::recognize(
                 m_reader.reset();
             }
 			#endif
-			AISDK_WARN(LX("executeRecognizeFailed").d("reason", "Barge-in is not permitted while recognizing"));
+			AISDK_WARN(LX("executeRecognizeFailed").d("reason", "Barge-in is permitted while recognizing"));
 			/**
 			 * For barge-in, we should close the previous reader before creating another one.
 			 * first to clear state to IDLE.
@@ -714,12 +714,20 @@ bool AIUIAutomaticSpeechRecognizer::executeTPPResult(
 				.d("sid", m_sessionId));
 	if(answer.asString().empty()) {
 		AISDK_ERROR(LX("executeTPPResult").d("reason", "answerIsNull"));
+		return false;
 	}
 	
 	// The BUSY state will be allowed to continue working.
-	if(ObserverInterface::State::BUSY != getState())
-		return false;
-
+	if(ObserverInterface::State::BUSY != getState()) {
+		if(m_sessionId.empty()) {
+			m_sessionId = std::string("doudi@cida1626aea@dx000a10ba9ba2010003");
+			AISDK_DEBUG2(LX("executeTPPResult").d("sid", m_sessionId));
+			setState(ObserverInterface::State::BUSY);
+		} else {
+			return false;
+		}
+	}
+	
 	// Start creating new writer.
 	if(createNewAttachmentWrite(intent) == false)
 		return false;
@@ -757,9 +765,9 @@ bool AIUIAutomaticSpeechRecognizer::createNewAttachmentWrite(const std::string &
 		// Default Policy is NONBLOCKING.
 		m_attachmentWriter = m_attachmentDocker->createWriter(attachmentId);
 		if (!m_attachmentWriter) {
-            AISDK_ERROR(LX("executeTPPResultFailed")
+            AISDK_ERROR(LX("createNewAttachmentWriteFailed")
                             .d("reason", "createWriterFailed")
-                            .d("attachmentId", m_sessionId));
+                            .d("attachmentId", attachmentId));
 			return false;
         }
 	}
