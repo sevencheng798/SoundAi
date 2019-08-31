@@ -17,6 +17,7 @@
 #include "string.h"
 #include<deque>  
 #include <Utils/Logging/Logger.h>
+#include <unistd.h>
 
 
 /// String to identify log entries originating from this file.
@@ -171,7 +172,9 @@ void ResourcesPlayer::handleDirective(std::shared_ptr<DirectiveInfo> info) {
           }
       }
 
-      //std::this_thread::sleep_for( std::chrono::microseconds(200));
+      //std::this_thread::sleep_for( std::chrono::microseconds(2000));
+     // usleep(200);
+      std::lock_guard<std::mutex> lock(m_responsePlayControl);  
       responsePlayControl(info, operation);
       
     }
@@ -995,15 +998,13 @@ void ResourcesPlayer::executeTrackChanged(FocusState newTrace){
    
             break;
         case  ResourcesPlayerObserverInterface::ResourcesPlayerState::PAUSED:
-
+            std::lock_guard<std::mutex> lock(m_responsePlayControl);  
+            AISDK_INFO(LX("executeTrackChanged").d("flag_playControl_pause",flag_playControl_pause));
             if(flag_playControl_pause == 0 ){
-                AISDK_INFO(LX("executeTrackChanged").d("flag_playControl_pause",flag_playControl_pause));
+               
                 if( !m_resourcesPlayer->resume(m_mediaSourceId)){
                     AISDK_ERROR(LX("executeTrackChanged").d("resume","failed"));
                 }
-
-            }else{        
-               AISDK_INFO(LX("executeTrackChanged").d("flag_playControl_pause",flag_playControl_pause));
             }
 
             break;

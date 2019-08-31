@@ -439,6 +439,8 @@ private:
 	std::mutex m_mutex;
 	std::mutex m_mutexStopRequest;
 
+    std::mutex m_responsePlayControl;
+
 	/// A flag to keep track of if @c ResourcesPlayer has called @c Stop() already or not.
 	bool m_isAlreadyStopping;
 
