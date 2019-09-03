@@ -31,7 +31,7 @@ public:
      * This is the default timeout value for attachments.  Any attachment which is inspected in the
      * @c removeExpiredAttachmentsLocked() call, and whose lifetime exceeds this value, will be released.
      */
-    static constexpr std::chrono::minutes ATTACHMENT_MANAGER_TIMOUT_MINUTES_DEFAULT = std::chrono::hours(12);
+    static constexpr std::chrono::minutes ATTACHMENT_MANAGER_TIMOUT_MINUTES_DEFAULT = std::chrono::hours(1);
 
     /**
      * Constructor.

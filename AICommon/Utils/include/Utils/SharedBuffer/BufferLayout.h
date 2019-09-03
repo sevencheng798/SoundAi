@@ -177,7 +177,7 @@ private:
      * @param align The alignment to round to.
      * @return @c size rounded up to a multiple of @c align.
      */
-    static size_t alignSizeTo(size_t size, size_t align);
+    static Index alignSizeTo(Index size, Index align);
 
     /**
      * This function calculates the offset (in bytes) from the start of a @c Buffer to the start of the @c Reader

@@ -184,7 +184,7 @@ bool SoundAiKeywordDetector::init() {
 	
 	errCode = sai_denoise_set_license_key(m_denoiseContext, license.c_str());
 	if(SAI_ASP_ERROR_SUCCESS != errCode) {
-	    AISDK_ERROR(LX("initFailed").d("reason", "sai_denoise_set_license_key"));
+	    AISDK_ERROR(LX("initFailed").d("reason", "sai_denoise_set_license_key").d("errCode", errCode));
 		return false;
 	}
 

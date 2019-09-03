@@ -34,7 +34,7 @@ public:
     using SDSBufferType = SDSType::Buffer;
 
     /// Default size of underlying SDS when created internally.
-    static const int SDS_BUFFER_DEFAULT_SIZE_IN_BYTES = 0x500000;
+    static const int SDS_BUFFER_DEFAULT_SIZE_IN_BYTES = 0x1000000; // -16M, 0x500000-5M;
 
     /**
      * Constructor.
