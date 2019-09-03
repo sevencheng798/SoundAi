@@ -279,8 +279,27 @@ bool AOWrapper::initialize(){
 	}
 
 	m_device = std::shared_ptr<ao_device>(device, AOOpenLiveDeleter());
-	
+
+	av_log_set_callback(log_callback_report);
+
 	return true;
+}
+
+void AOWrapper::log_callback_report(void *ptr, int level, const char *fmt, va_list vl) {
+	if(level > AV_LOG_WARNING)
+		return;
+	const char *format = "[%s @ %p] ";
+	char av_buf[1024] = {0};
+	int offset = 0;
+	AVClass* avc = ptr ? *(AVClass **) ptr : NULL;
+	if(avc) {
+		offset = sprintf(av_buf, format, avc->item_name(ptr), ptr);
+	}
+
+	vsprintf(av_buf+offset, fmt, vl);
+	
+	AISDK_DEBUG(LX(av_buf));
+	
 }
 
 void AOWrapper::doShutdown()
