@@ -52,7 +52,7 @@ void FFmpegDeleter<AVFormatContext>::operator()(AVFormatContext* context) {
 
 template <>
 void FFmpegDeleter<AVPacket>::operator()(AVPacket* packet) {
-    av_packet_unref(packet);
+    av_packet_free(&packet);
 }
 
 template <>

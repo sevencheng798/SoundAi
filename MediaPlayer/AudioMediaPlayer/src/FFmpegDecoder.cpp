@@ -350,6 +350,10 @@ void FFmpegDecoder::resample(std::shared_ptr<AVFrame> inputFrame) {
 void FFmpegDecoder::decode() {
     auto packet = std::shared_ptr<AVPacket>(av_packet_alloc(), AVPacketDeleter());
     auto status = av_read_frame(m_formatContext.get(), packet.get());
+	if(status != 0) {
+		AISDK_DEBUG(LX("decode").d("readDecodeFrame", av_err2str(status)));
+	}
+
     if (transitionStateUsingStatus(status, m_state, "decode::readFrame")) {
         if (AVERROR_EOF == status) {
             if (!m_inputController->hasNext()) {
@@ -444,7 +448,7 @@ bool FFmpegDecoder::transitionStateUsingStatus(
         }
 
         if (status != AVERROR_EOF) {
-            //AISDK_ERROR(LX(functionName + "Failed").d("error", av_err2str(status)));
+            AISDK_ERROR(LX(functionName + "Failed").d("error", av_err2str(status)));
 			AISDK_ERROR(LX(functionName + "Failed"));
             setState(DecodingState::INVALID);
             return false;

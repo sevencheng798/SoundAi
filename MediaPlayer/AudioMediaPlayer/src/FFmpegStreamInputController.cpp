@@ -143,10 +143,10 @@ FFmpegStreamInputController::getCurrentFormatContextOpen() {
 			AISDK_ERROR(LX("getContextFailed").d("reason", "Data unavailable. Try again."));
             return std::make_tuple(Result::TRY_AGAIN, nullptr, std::chrono::milliseconds::zero());
         }
-		#if 0 //add Sven @2018-12
+		#if 1 //add Sven @2018-12
         auto errorStr = av_err2str(error);
 		#endif
-		AISDK_ERROR(LX("getContextFailed").d("reason", "openInputFailed"));
+		AISDK_ERROR(LX("getContextFailed").d("reason", "openInputFailed").d("errCode", errorStr));
         return make_tuple(Result::ERROR, nullptr, std::chrono::milliseconds::zero());
     }
 

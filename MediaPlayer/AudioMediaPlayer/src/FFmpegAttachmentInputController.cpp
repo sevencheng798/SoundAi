@@ -223,8 +223,8 @@ FFmpegAttachmentInputController::getCurrentFormatContextOpen() {
 			AISDK_DEBUG(LX("getContextdFailed").d("reason", "Data unavailable. Try again."));
 			return {Result::TRY_AGAIN, nullptr, std::chrono::milliseconds::zero()};
 		}
-		// auto errorStr = av_err2str(error);
-		AISDK_ERROR(LX("getContextFailed").d("reason", "openInputFailed"));
+		auto errorStr = av_err2str(error);
+		AISDK_ERROR(LX("getContextFailed").d("reason", "openInputFailed").d("errCode", errorStr));
 		return {Result::ERROR, nullptr, std::chrono::milliseconds::zero()};
 	} else if(!m_hasProbedVaildData) {
 		AISDK_ERROR(LX("getContextFailed").d("reason", "probeVaildDataTimedout"));
