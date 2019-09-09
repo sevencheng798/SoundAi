@@ -98,7 +98,7 @@ private:
 	bool initialize();
 
 	static void log_callback_report(void *ptr, int level, const char *fmt, va_list vl);
-	
+
 	/**
      * Internal method used to create a new media queue and increment the request id.
      */

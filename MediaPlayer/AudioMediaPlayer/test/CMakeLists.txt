@@ -10,6 +10,8 @@ list(APPEND AOWrapperTest_SOURCES AOWrapperTest.cpp)
 #link_directories("/home/sven/work/3rd/_install/libbz2/lib")
 
 add_executable(AOWrapperTest ${AOWrapperTest_SOURCES})
+add_executable(AOWrapperTestLoop AOWrapperTestLoop.cpp)
+add_executable(AOWrapperAttachmentTest AOWrapperAttachmentTest.cpp)
 if (GTEST_ENABLE)
 add_executable(AOWrapperMockTest AOWrapperMockTest.cpp)
 endif()
@@ -17,6 +19,11 @@ endif()
 target_include_directories(AOWrapperTest PUBLIC
 		"${AOWrapperTest_SOURCES_DIR}/include")
 
+target_include_directories(AOWrapperTestLoop PUBLIC
+		"${AOWrapperTest_SOURCES_DIR}/include")
+
+target_include_directories(AOWrapperAttachmentTest PUBLIC
+		"${AOWrapperTest_SOURCES_DIR}/include")
 if (GTEST_ENABLE)
 target_include_directories(AOWrapperMockTest PUBLIC
 		"${AOWrapperTest_SOURCES_DIR}/include"
@@ -30,6 +37,20 @@ target_link_libraries(AOWrapperTest
 		zlog
 		z)
 
+target_link_libraries(AOWrapperTestLoop 
+		AICommon
+		AudioMediaPlayer
+		ao
+		asound
+		zlog
+		z)
+target_link_libraries(AOWrapperAttachmentTest 
+		AICommon
+		AudioMediaPlayer
+		ao
+		asound
+		zlog
+		z)
 if (GTEST_ENABLE)
 target_link_libraries(AOWrapperMockTest 
 		AICommon

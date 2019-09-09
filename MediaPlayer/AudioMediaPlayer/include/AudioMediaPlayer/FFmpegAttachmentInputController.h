@@ -95,12 +95,12 @@ private:
 	int m_tryCount;
 
 	/**
-	 * This flag indicates that at least one frame of vaild data has been detected. 
-	 * It will allow the task following the @c'avformat_open_input'function to 
+	 * This flag indicates that at least one frame of vaild data has been detected.
+	 * It will allow the task following the @c'avformat_open_input'function to
 	 * continue executing, otherwise it will end the following task.
 	 */
 	bool m_hasProbedVaildData;
-	
+
     /// Pointer to the data input.
     std::shared_ptr<utils::attachment::AttachmentReader> m_reader;
 

@@ -108,19 +108,19 @@ int FFmpegAttachmentInputController::read(uint8_t* buffer, int bufferSize) {
     auto readSize = m_reader->read(buffer, bufferSize, &readStatus, READ_TIMEOUT);
     switch (readStatus) {
         case AttachmentReader::ReadStatus::OK:
-			if(!m_hasProbedVaildData)
-				m_hasProbedVaildData = true;
+            if(!m_hasProbedVaildData)
+                m_hasProbedVaildData = true;
             return readSize;
         case AttachmentReader::ReadStatus::OK_WOULDBLOCK:
         case AttachmentReader::ReadStatus::OK_TIMEDOUT:
             AISDK_DEBUG3(LX(__func__).d("status", readStatus).d("readSize", readSize));
-			if(m_tryCount >= 2) {
-				m_tryCount = 0;
+            if(m_tryCount >= 2) {
+                m_tryCount = 0;
                 return readSize ? readSize : AVERROR_EOF;
-			} else {
-				m_tryCount++;
+            } else {
+                m_tryCount++;
                 return readSize ? readSize : AVERROR(EAGAIN);
-			}
+            }
         case AttachmentReader::ReadStatus::CLOSED:
             AISDK_DEBUG3(LX(__func__).m("Found EOF"));
             return AVERROR_EOF;
@@ -147,7 +147,7 @@ FFmpegAttachmentInputController::FFmpegAttachmentInputController(
     std::shared_ptr<AVInputFormat> inputFormat,
     std::shared_ptr<AVDictionary> inputOptions) :
         m_tryCount{0},
-		m_hasProbedVaildData{false},
+        m_hasProbedVaildData{false},
         m_reader{reader},
         m_inputFormat{inputFormat},
         m_inputOptions{inputOptions} {
@@ -159,14 +159,14 @@ int FFmpegAttachmentInputController::feedBuffer(void* userData, uint8_t* buffer,
         AISDK_ERROR(LX("feedAvioBufferFailed").d("reason", "nullInputController"));
         return AVERROR_EXTERNAL;
     }
-	int readStatus;
-	do {
-		
-		readStatus = inputController->read(buffer, bufferSize);
-		
-	}while(readStatus == AVERROR(EAGAIN));
+    int readStatus;
+    do {
 
-	return readStatus;
+        readStatus = inputController->read(buffer, bufferSize);
+
+    }while(readStatus == AVERROR(EAGAIN));
+    AISDK_INFO(LX("feedAvioBuffer").d("reason", "test").d("readStatus", readStatus));
+    return readStatus;
 }
 
 AVFormatContext* FFmpegAttachmentInputController::createNewFormatContext() {

@@ -80,7 +80,7 @@ std::unique_ptr<FFmpegUrlInputController> FFmpegUrlInputController::create(
 		oss << url;
 	}
 
-	AISDK_DEBUG5(LX("created").d("newUrl", oss.str()).d("offset(ms)", offset.count()));
+    AISDK_DEBUG5(LX("created").d("newUrl", oss.str()).d("offset(ms)", offset.count()));
     auto controller = std::unique_ptr<FFmpegUrlInputController>(new FFmpegUrlInputController(oss.str(), offset));
     if (!controller->findFirstEntry()) {
 		AISDK_ERROR(LX("createFailed").d("reason", "emptyPlayList"));

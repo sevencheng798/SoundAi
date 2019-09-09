@@ -20,11 +20,22 @@
 #include <unistd.h>
 #include <cstdio>
 
+#include "Utils/Threading/Executor.h"
 #include "Utils/Attachment/AttachmentReader.h"
 #include "Utils/MediaPlayer/MediaPlayerObserverInterface.h"
 #include "AudioMediaPlayer/AOWrapper.h"
 
 using namespace aisdk::mediaPlayer::ffmpeg;
+
+static const char *urlTank[] = {
+	"http://fs.dg360.kugou.com/201909040951/01d6eebf555231b68634d4b6e2c87e36/G014/M07/1B/13/roYBAFUJsYOAXv4zAE1QgBqXVy4671.mp3",
+	"http://fs.dg360.kugou.com/201909040952/8178a59324577cf3a85036c491d2f255/G117/M07/11/07/tQ0DAFot-mqAYrykADwdPNgvKjM064.mp3",
+	"http://fs.dg360.kugou.com/201909040953/0a632eb9ec7c4ec6dde5d3f8ce0bd318/G085/M07/0B/10/lQ0DAFujV42AK4xpACkHR2d9qTo587.mp3",
+	"http://yp.stormorai.cn/music/mp3/3337.mp3",
+	"http://fs.dg360.kugou.com/201909040956/ede3abaf40fcaafc295cfe0c41cb252b/G013/M07/02/03/TQ0DAFUObtOAB-59ADSkhorPd8U162.mp3",
+	"http://fs.dg360.kugou.com/201909040958/4f469f7d0a0aad3a4445c725ecaf0cfb/G001/M01/1F/15/QQ0DAFS4AdiAV0OoAEJUI7rcygo322.mp3",
+	NULL
+};
 
 int flags = 0;
 	
@@ -139,17 +150,20 @@ public:
 	void onPlaybackResumed(SourceId id) override;
 
 	///@}
+
+	void executePlaybackFinished();
 	
 private:
 	std::shared_ptr<AOWrapper> m_playWrapper;
 
-	std::shared_ptr<AOWrapper> m_playStreamWrapper;
-
 	AOWrapper::SourceId m_sourceID;
 
-	AOWrapper::SourceId m_sourceStreamID;
-
 	std::shared_ptr<std::istream> m_stream;
+
+	int m_index;
+
+	/// An internal thread pool which queues up operations from asynchronous API calls
+	aisdk::utils::threading::Executor m_executor;
 };
 
 std::shared_ptr<AudioPlayerTest> AudioPlayerTest::createNew() {
@@ -177,17 +191,11 @@ bool AudioPlayerTest::init(){
 		std::cout << "CreateFailed:reason=createWrapperFailed" << std::endl;
 		return false;
 	}
-
-	if(flags) {
-		m_playStreamWrapper = AOWrapper::create(engine);
-		if(!m_playStreamWrapper){
-			std::cout << "CreateFailed:reason=createWrapperFailed" << std::endl;
-			return false;
-		}
-		m_playStreamWrapper->setObserver(shared_from_this());
-	}
 	
 	m_playWrapper->setObserver(shared_from_this());
+
+	// Url tank index.
+	m_index = 0;
 	
 	return true;
 }
@@ -197,9 +205,9 @@ bool AudioPlayerTest::run(std::shared_ptr<aisdk::utils::attachment::AttachmentRe
 #if 1
 	aisdk::utils::AudioFormat format{.encoding = aisdk::utils::AudioFormat::Encoding::LPCM,
                        .endianness = aisdk::utils::AudioFormat::Endianness::LITTLE,
-                       .sampleRateHz = 48000,
+                       .sampleRateHz = 16000,
                        .sampleSizeInBits = 16,
-                       .numChannels = 2,
+                       .numChannels = 1,
                        .dataSigned = true};
 	#endif
 	//aisdk::utils::AudioFormat format;
@@ -239,17 +247,6 @@ bool AudioPlayerTest::run(std::string &url, std::chrono::milliseconds &offset){
 		return false;
 	}
 	std::cout << "newSourceId= " << m_sourceID << std::endl;
-	if(flags) {
-	//libai
-	std::string url_test("http://yp.stormorai.cn/music/mp3/200556649.mp3");
-	m_sourceStreamID = m_playStreamWrapper->setSource(url_test, offset);
-	if(aisdk::utils::mediaPlayer::MediaPlayerInterface::ERROR == m_sourceID){
-		std::cout << "run:reason=setSourceUrlFailed" << std::endl;
-		return false;
-	}
-	
-	std::cout << "newSourceId= " << m_sourceStreamID << std::endl;
-	}
 	
 	this->play();
 	
@@ -282,9 +279,6 @@ bool AudioPlayerTest::play(){
 			case 'p':
 			case 'P':
 					m_playWrapper->play(m_sourceID);
-				if(flags) {
-					m_playStreamWrapper->play(m_sourceStreamID);
-				}
 					break;
 			case 'r':
 			case 'R':
@@ -293,9 +287,6 @@ bool AudioPlayerTest::play(){
 			case 's':
 			case 'S':
 					m_playWrapper->stop(m_sourceID);
-				if(flags) {
-					m_playStreamWrapper->stop(m_sourceStreamID);
-				}
 					break;
 			case 'z':
 			case 'Z':
@@ -308,9 +299,7 @@ bool AudioPlayerTest::play(){
 	}
 	
 	m_playWrapper->shutdown();
-	if(flags) {
-		m_playStreamWrapper->shutdown();
-	}
+
 	if(!m_playWrapper){
 		std::cout << "aoWrapperIsDestory" << std::endl;
 	}
@@ -320,51 +309,74 @@ bool AudioPlayerTest::play(){
 
 void AudioPlayerTest::onPlaybackStarted(SourceId id){
 	if(id == m_sourceID){
-		std::cout << " Start..." << std::endl;
+		std::cout << " PlaybackStarted:SourceId: " << m_sourceID << std::endl;
 	}else
-		std::cout << " source isnot match currentID: " << m_sourceID << "newId: " << id << std::endl;
+		std::cout << " PlaybackFinished:SourceIsNotMatch:CurrentID:  " << m_sourceID << " newId: " << id << std::endl;
 }
 
 void AudioPlayerTest::onPlaybackFinished(SourceId id){
 	if(id == m_sourceID){
-		std::cout << " Finished ..." << std::endl;
+		std::cout << " PlaybackFinished:SourceId: " << m_sourceID << std::endl;
+		m_executor.submit([this]() {executePlaybackFinished();});
 	}else
-		std::cout << " source isnot match currentID: " << m_sourceID << "newId: " << id << std::endl;
+		std::cout << " PlaybackFinished:SourceIsNotMatch:CurrentID: " << m_sourceID << " newId: " << id << std::endl;
 
 }	
 
 void AudioPlayerTest::onPlaybackError(SourceId id, const aisdk::utils::mediaPlayer::ErrorType& type, std::string error){
 	if(id == m_sourceID){
-		std::cout << " Error ..." << std::endl;
+		std::cout << " PlaybackError:SourceId: " << m_sourceID << std::endl;
 		auto errStr = aisdk::utils::mediaPlayer::errorTypeToString(type);
 		std::cout << errStr << std::endl;
 	}else
-		std::cout << " source isnot match currentID: " << m_sourceID << "newId: " << id << std::endl;
+		std::cout << " onPlaybackError:SourceIsNotMatch:CurrentID: " << m_sourceID << " newId: " << id << std::endl;
 
 }
 
 void AudioPlayerTest::onPlaybackStopped(SourceId id){
 	if(id == m_sourceID){
-		std::cout << " stopped ..." << std::endl;
+		std::cout << " PlaybackStopped:SourceId: " << m_sourceID << std::endl;
 	}else
-		std::cout << " source isnot match currentID: " << m_sourceID << "newId: " << id << std::endl;
+		std::cout << " PlaybackStopped:SourceIsNotMatch:CurrentID: " << m_sourceID << " newId: " << id << std::endl;
 
 }
 
 void AudioPlayerTest::onPlaybackPaused(SourceId id){
 	if(id == m_sourceID){
-		std::cout << " paused ..." << std::endl;
+		std::cout << " PlaybackPaused:SourceId: " << m_sourceID << std::endl;
 	}else
-		std::cout << " source isnot match currentID: " << m_sourceID << "newId: " << id << std::endl;
+		std::cout << " PlaybackPaused:SourceIsNotMatch:CurrentID: " << m_sourceID << " newId: " << id << std::endl;
 
 }
 
 void AudioPlayerTest::onPlaybackResumed(SourceId id){
 	if(id == m_sourceID){
-		std::cout << " resumed ..." << std::endl;
+		std::cout << " PlaybackResumed:SourceId: " << m_sourceID << std::endl;
 	}else
-		std::cout << " source isnot match currentID: " << m_sourceID << "newId: " << id << std::endl;
+		std::cout << " PlaybackResumed:SourceIsNotMatch:CurrentID: " << m_sourceID << " newId: " << id << std::endl;
 
+}
+
+void AudioPlayerTest::executePlaybackFinished() {
+	std::chrono::milliseconds offset = std::chrono::milliseconds::zero();
+	std::string url;
+	if(urlTank[m_index] != NULL) {
+		url = std::string(urlTank[m_index]);
+	} else {
+		m_index = 0;
+		url = std::string(urlTank[m_index]);
+	}
+	m_index++;
+	std::cout << "nextItem: " << m_index-1 << " ";
+	m_sourceID = m_playWrapper->setSource(url, offset);
+	if(aisdk::utils::mediaPlayer::MediaPlayerInterface::ERROR == m_sourceID){
+		std::cout << "run:reason=setSourceUrlFailed" << std::endl;
+		return;
+	}
+	std::cout << "newSourceId= " << m_sourceID << std::endl;
+	if(!m_playWrapper->play(m_sourceID)) {
+		std::cout << "playFailed." << std::endl;
+	}
 }
 
 void PaHelp(){
@@ -402,7 +414,7 @@ int work(std::string &url, std::string &filename, std::string &attachment, std::
 		audioPlayer->run(attachmentReader);
 	} else{
 		audioPlayer.reset();
-	}	
+	}
 	
 	std::cout << "audioPlayer shared_ptr:user_count= " << audioPlayer.use_count() << std::endl;
 	audioPlayer.reset();
@@ -420,6 +432,10 @@ int main(int argc, char *argv[]){
 	std::chrono::milliseconds offset = std::chrono::milliseconds::zero();
 		
 	int opt;
+	int i=0;
+	for(i=0; urlTank[i] != NULL; i++) {
+		printf("index: %d, url: %s\n", i , urlTank[i]);
+	}
 	
 	while((opt = getopt(argc, argv, "yhu:r:p:f:")) != -1) {
 	switch (opt) {

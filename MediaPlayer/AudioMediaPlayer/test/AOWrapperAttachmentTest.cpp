@@ -20,13 +20,12 @@
 #include <unistd.h>
 #include <cstdio>
 
+#include "Utils/Threading/Executor.h"
 #include "Utils/Attachment/AttachmentReader.h"
 #include "Utils/MediaPlayer/MediaPlayerObserverInterface.h"
 #include "AudioMediaPlayer/AOWrapper.h"
 
 using namespace aisdk::mediaPlayer::ffmpeg;
-
-int flags = 0;
 	
 namespace util {
 int kbhit();
@@ -60,10 +59,19 @@ public:
         std::size_t numBytes,
         ReadStatus* readStatus,
         std::chrono::milliseconds timeoutMs = std::chrono::milliseconds(0)) override;
-	bool seek(uint64_t offset) override { return true; };
+	bool seek(uint64_t offset) override { return fileSeek(); };
 	uint64_t getNumUnreadBytes() override { return 0; };
 	void close(ClosePoint closePoint = ClosePoint::AFTER_DRAINING_CURRENT_BUFFER) override;
 	/// @}
+
+	bool fileSeek() {
+		std::cout << "==>file position: " << m_stream->tellg() << std::endl;
+		m_stream->clear();
+		m_stream->seekg(0, m_stream->beg);
+		std::cout << "-->file position: " << m_stream->tellg() << std::endl;
+		return true;
+	};
+	
 	~MockAttachmentReader() {
 		std::cout << "~MockAttachmentReader destory" << std::endl;
 		close();
@@ -94,7 +102,7 @@ std::size_t MockAttachmentReader::read(
 }
 
 void MockAttachmentReader::close(ClosePoint closePoint) {
-	m_stream.reset();
+	m_stream->close();
 }
 
 
@@ -117,10 +125,6 @@ public:
 
 	bool run(std::shared_ptr<aisdk::utils::attachment::AttachmentReader> attachmentReader);
 
-	bool run(std::shared_ptr<std::istream> stream);
-
-	bool run(std::string &url, std::chrono::milliseconds &offset);
-
 	/// Master process tasks
 	bool play();
 	
@@ -139,17 +143,25 @@ public:
 	void onPlaybackResumed(SourceId id) override;
 
 	///@}
-	
+
+	void executePlaybackFinished();
+
+	void setAttachmentReader(std::shared_ptr<aisdk::utils::attachment::AttachmentReader> reader);
+
+	std::shared_ptr<aisdk::utils::attachment::AttachmentReader> getAttachmentReader();
 private:
 	std::shared_ptr<AOWrapper> m_playWrapper;
 
-	std::shared_ptr<AOWrapper> m_playStreamWrapper;
-
 	AOWrapper::SourceId m_sourceID;
 
-	AOWrapper::SourceId m_sourceStreamID;
-
 	std::shared_ptr<std::istream> m_stream;
+
+	int m_index;
+
+	std::shared_ptr<aisdk::utils::attachment::AttachmentReader> m_attachmentReader;
+
+	/// An internal thread pool which queues up operations from asynchronous API calls
+	aisdk::utils::threading::Executor m_executor;
 };
 
 std::shared_ptr<AudioPlayerTest> AudioPlayerTest::createNew() {
@@ -177,17 +189,11 @@ bool AudioPlayerTest::init(){
 		std::cout << "CreateFailed:reason=createWrapperFailed" << std::endl;
 		return false;
 	}
-
-	if(flags) {
-		m_playStreamWrapper = AOWrapper::create(engine);
-		if(!m_playStreamWrapper){
-			std::cout << "CreateFailed:reason=createWrapperFailed" << std::endl;
-			return false;
-		}
-		m_playStreamWrapper->setObserver(shared_from_this());
-	}
 	
 	m_playWrapper->setObserver(shared_from_this());
+
+	// Url tank index.
+	m_index = 0;
 	
 	return true;
 }
@@ -202,8 +208,9 @@ bool AudioPlayerTest::run(std::shared_ptr<aisdk::utils::attachment::AttachmentRe
                        .numChannels = 2,
                        .dataSigned = true};
 	#endif
+	setAttachmentReader(attachmentReader);
 	//aisdk::utils::AudioFormat format;
-	m_sourceID = m_playWrapper->setSource(attachmentReader, &format);
+	m_sourceID = m_playWrapper->setSource(getAttachmentReader(), &format);
 	if(aisdk::utils::mediaPlayer::MediaPlayerInterface::ERROR == m_sourceID){
 		std::cout << "run:reason=setSourceStreamFailed" << std::endl;
 		return false;
@@ -215,45 +222,6 @@ bool AudioPlayerTest::run(std::shared_ptr<aisdk::utils::attachment::AttachmentRe
 
 	return true;
 
-}
-
-bool AudioPlayerTest::run(std::shared_ptr<std::istream> stream){
-	
-	m_sourceID = m_playWrapper->setSource(stream, true);
-	if(aisdk::utils::mediaPlayer::MediaPlayerInterface::ERROR == m_sourceID){
-		std::cout << "run:reason=setSourceStreamFailed" << std::endl;
-		return false;
-	}
-	
-	std::cout << "newSourceId= " << m_sourceID << std::endl;
-
-	this->play();
-
-	return true;
-}
-
-bool AudioPlayerTest::run(std::string &url, std::chrono::milliseconds &offset){
-	m_sourceID = m_playWrapper->setSource(url, offset);
-	if(aisdk::utils::mediaPlayer::MediaPlayerInterface::ERROR == m_sourceID){
-		std::cout << "run:reason=setSourceUrlFailed" << std::endl;
-		return false;
-	}
-	std::cout << "newSourceId= " << m_sourceID << std::endl;
-	if(flags) {
-	//libai
-	std::string url_test("http://yp.stormorai.cn/music/mp3/200556649.mp3");
-	m_sourceStreamID = m_playStreamWrapper->setSource(url_test, offset);
-	if(aisdk::utils::mediaPlayer::MediaPlayerInterface::ERROR == m_sourceID){
-		std::cout << "run:reason=setSourceUrlFailed" << std::endl;
-		return false;
-	}
-	
-	std::cout << "newSourceId= " << m_sourceStreamID << std::endl;
-	}
-	
-	this->play();
-	
-	return true;
 }
 
 bool AudioPlayerTest::play(){
@@ -282,9 +250,6 @@ bool AudioPlayerTest::play(){
 			case 'p':
 			case 'P':
 					m_playWrapper->play(m_sourceID);
-				if(flags) {
-					m_playStreamWrapper->play(m_sourceStreamID);
-				}
 					break;
 			case 'r':
 			case 'R':
@@ -293,9 +258,6 @@ bool AudioPlayerTest::play(){
 			case 's':
 			case 'S':
 					m_playWrapper->stop(m_sourceID);
-				if(flags) {
-					m_playStreamWrapper->stop(m_sourceStreamID);
-				}
 					break;
 			case 'z':
 			case 'Z':
@@ -308,9 +270,7 @@ bool AudioPlayerTest::play(){
 	}
 	
 	m_playWrapper->shutdown();
-	if(flags) {
-		m_playStreamWrapper->shutdown();
-	}
+
 	if(!m_playWrapper){
 		std::cout << "aoWrapperIsDestory" << std::endl;
 	}
@@ -320,51 +280,84 @@ bool AudioPlayerTest::play(){
 
 void AudioPlayerTest::onPlaybackStarted(SourceId id){
 	if(id == m_sourceID){
-		std::cout << " Start..." << std::endl;
+		std::cout << " PlaybackStarted:SourceId: " << m_sourceID << std::endl;
 	}else
-		std::cout << " source isnot match currentID: " << m_sourceID << "newId: " << id << std::endl;
+		std::cout << " PlaybackFinished:SourceIsNotMatch:CurrentID:  " << m_sourceID << " newId: " << id << std::endl;
 }
 
 void AudioPlayerTest::onPlaybackFinished(SourceId id){
 	if(id == m_sourceID){
-		std::cout << " Finished ..." << std::endl;
+		std::cout << " PlaybackFinished:SourceId: " << m_sourceID << std::endl;
+		m_executor.submit([this]() {executePlaybackFinished();});
 	}else
-		std::cout << " source isnot match currentID: " << m_sourceID << "newId: " << id << std::endl;
+		std::cout << " PlaybackFinished:SourceIsNotMatch:CurrentID: " << m_sourceID << " newId: " << id << std::endl;
 
 }	
 
 void AudioPlayerTest::onPlaybackError(SourceId id, const aisdk::utils::mediaPlayer::ErrorType& type, std::string error){
 	if(id == m_sourceID){
-		std::cout << " Error ..." << std::endl;
+		std::cout << " PlaybackError:SourceId: " << m_sourceID << std::endl;
 		auto errStr = aisdk::utils::mediaPlayer::errorTypeToString(type);
 		std::cout << errStr << std::endl;
 	}else
-		std::cout << " source isnot match currentID: " << m_sourceID << "newId: " << id << std::endl;
+		std::cout << " onPlaybackError:SourceIsNotMatch:CurrentID: " << m_sourceID << " newId: " << id << std::endl;
 
 }
 
 void AudioPlayerTest::onPlaybackStopped(SourceId id){
 	if(id == m_sourceID){
-		std::cout << " stopped ..." << std::endl;
+		std::cout << " PlaybackStopped:SourceId: " << m_sourceID << std::endl;
 	}else
-		std::cout << " source isnot match currentID: " << m_sourceID << "newId: " << id << std::endl;
+		std::cout << " PlaybackStopped:SourceIsNotMatch:CurrentID: " << m_sourceID << " newId: " << id << std::endl;
 
 }
 
 void AudioPlayerTest::onPlaybackPaused(SourceId id){
 	if(id == m_sourceID){
-		std::cout << " paused ..." << std::endl;
+		std::cout << " PlaybackPaused:SourceId: " << m_sourceID << std::endl;
 	}else
-		std::cout << " source isnot match currentID: " << m_sourceID << "newId: " << id << std::endl;
+		std::cout << " PlaybackPaused:SourceIsNotMatch:CurrentID: " << m_sourceID << " newId: " << id << std::endl;
 
 }
 
 void AudioPlayerTest::onPlaybackResumed(SourceId id){
 	if(id == m_sourceID){
-		std::cout << " resumed ..." << std::endl;
+		std::cout << " PlaybackResumed:SourceId: " << m_sourceID << std::endl;
 	}else
-		std::cout << " source isnot match currentID: " << m_sourceID << "newId: " << id << std::endl;
+		std::cout << " PlaybackResumed:SourceIsNotMatch:CurrentID: " << m_sourceID << " newId: " << id << std::endl;
 
+}
+
+void AudioPlayerTest::executePlaybackFinished() {
+	aisdk::utils::AudioFormat format{.encoding = aisdk::utils::AudioFormat::Encoding::LPCM,
+                       .endianness = aisdk::utils::AudioFormat::Endianness::LITTLE,
+                       .sampleRateHz = 48000,
+                       .sampleSizeInBits = 16,
+                       .numChannels = 2,
+                       .dataSigned = true};
+
+	std::cout << "nextItem: " << m_index++ << " ";
+	auto attachmentReader = getAttachmentReader();
+	attachmentReader->seek(0);
+	m_sourceID = m_playWrapper->setSource(attachmentReader, &format);
+	if(aisdk::utils::mediaPlayer::MediaPlayerInterface::ERROR == m_sourceID){
+		std::cout << "run:reason=setSourceUrlFailed" << std::endl;
+		return;
+	}
+	std::cout << "newSourceId= " << m_sourceID << std::endl;
+	if(!m_playWrapper->play(m_sourceID)) {
+		std::cout << "playFailed." << std::endl;
+	}
+}
+
+
+void AudioPlayerTest::setAttachmentReader(
+	std::shared_ptr<aisdk::utils::attachment::AttachmentReader> reader) {
+	m_attachmentReader = reader;
+}
+
+std::shared_ptr<aisdk::utils::attachment::AttachmentReader> AudioPlayerTest::getAttachmentReader() {
+	return m_attachmentReader;
 }
 
 void PaHelp(){
@@ -376,24 +369,13 @@ void PaHelp(){
 		"\t\t the resource format must be: s16_le,16000,mono\n");
 }
 
-int work(std::string &url, std::string &filename, std::string &attachment, std::chrono::milliseconds offset){
+int work(std::string &filename){
 	auto audioPlayer = AudioPlayerTest::createNew();
 	std::cout << "audioPlayer shared_ptr:user_count= " << audioPlayer.use_count() << std::endl;
 
-	if(!url.empty()){
-		std::cout << "offset: " << offset.count() << std::endl;
-		audioPlayer->run(url, offset);
-	}else if(!filename.empty()){
+	if (!filename.empty()) {
 		std::shared_ptr<std::ifstream> input = std::make_shared<std::ifstream>();
 		input->open(filename, std::ifstream::in);
-		if(!input->is_open()){
-			std::cout << "Open the file is failed\n" << std::endl;
-			return -1;
-		}
-		audioPlayer->run(input);
-	}else if (!attachment.empty()) {
-		std::shared_ptr<std::ifstream> input = std::make_shared<std::ifstream>();
-		input->open(attachment, std::ifstream::in);
 		if(!input->is_open()){
 			std::cout << "Open the file is failed\n" << std::endl;
 			return -1;
@@ -402,7 +384,7 @@ int work(std::string &url, std::string &filename, std::string &attachment, std::
 		audioPlayer->run(attachmentReader);
 	} else{
 		audioPlayer.reset();
-	}	
+	}
 	
 	std::cout << "audioPlayer shared_ptr:user_count= " << audioPlayer.use_count() << std::endl;
 	audioPlayer.reset();
@@ -420,27 +402,17 @@ int main(int argc, char *argv[]){
 	std::chrono::milliseconds offset = std::chrono::milliseconds::zero();
 		
 	int opt;
-	
-	while((opt = getopt(argc, argv, "yhu:r:p:f:")) != -1) {
+	while((opt = getopt(argc, argv, "hf:")) != -1) {
 	switch (opt) {
 		case 'u':
 			url = optarg;
 			break;
-		case 'p':
-			offset = std::chrono::milliseconds(atoi(optarg)*1000);
-			break;
 		case 'f':
-			filename = optarg;
-			break;
-		case 'r':
 			attachmentName = optarg;
-			break;			
+			break;		
 		case 'h':
 			PaHelp();
 			exit(EXIT_FAILURE);
-		case 'y':
-			flags = 1;
-			break;
 		default:
 			printf("optopt = %c\n", (char)optopt);
 			printf("opterr = %d\n", opterr);
@@ -450,7 +422,7 @@ int main(int argc, char *argv[]){
 	}
 	}
 
-	work(url, filename, attachmentName, offset);
+	work(attachmentName);
 
 	getchar();
 	std::cout << "play finished exit==========" << std::endl;

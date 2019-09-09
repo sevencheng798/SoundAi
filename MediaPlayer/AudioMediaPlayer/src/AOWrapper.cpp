@@ -297,9 +297,9 @@ void AOWrapper::log_callback_report(void *ptr, int level, const char *fmt, va_li
 	}
 
 	vsprintf(av_buf+offset, fmt, vl);
-	
+
 	AISDK_DEBUG(LX(av_buf));
-	
+
 }
 
 void AOWrapper::doShutdown()
