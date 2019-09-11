@@ -165,7 +165,7 @@ int FFmpegAttachmentInputController::feedBuffer(void* userData, uint8_t* buffer,
         readStatus = inputController->read(buffer, bufferSize);
 
     }while(readStatus == AVERROR(EAGAIN));
-    AISDK_INFO(LX("feedAvioBuffer").d("reason", "test").d("readStatus", readStatus));
+
     return readStatus;
 }
 
