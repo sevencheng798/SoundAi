@@ -104,13 +104,6 @@ void AIUIASRListener::onEvent(const aiui::IAIUIEvent& event) const {
 		}
 	}
 	break;
-	case aiui::AIUIConstant::EVENT_ERROR:
-	{
-		AISDK_INFO(LX("EVENT_ERROR")
-				.d("code", event.getArg1())
-				.d("info", event.getInfo()));
-	} 
-	break;
 	//最重要的结果事件回调
 	case aiui::AIUIConstant::EVENT_RESULT:
 	{
@@ -186,7 +179,6 @@ void AIUIASRListener::onEvent(const aiui::IAIUIEvent& event) const {
 			AISDK_DEBUG5(LX("EVENT_RESULT_NOT_CONSIDERED").d("getBinary", resultStr));
 		}
 	}
-	break;
 	}
 }
 

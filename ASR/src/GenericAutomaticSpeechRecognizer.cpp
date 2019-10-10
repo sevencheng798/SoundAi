@@ -65,7 +65,7 @@ ssize_t GenericAutomaticSpeechRecognizer::readFromStream(
     ssize_t wordsRead = reader->read(buf, nWords, timeout);
     // Stream has been closed
     if (wordsRead == 0) {
-        AISDK_DEBUG1(LX("readFromStream").d("event", "streamClosed"));
+        AISDK_DEBUG(LX("readFromStream").d("event", "streamClosed"));
         if (errorOccurred) {
             *errorOccurred = true;
         }

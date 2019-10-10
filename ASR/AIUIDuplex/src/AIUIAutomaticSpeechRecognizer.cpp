@@ -1,4 +1,4 @@
-ï»¿/*
+/*
  * Copyright 2019 its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
@@ -164,7 +164,6 @@ std::future<bool> AIUIAutomaticSpeechRecognizer::recognize(
 			std::unique_lock<std::mutex> lock(m_bargeMutex);
 			// Release channel.
 			releaseForegroundTrace();
-			setVaildVad(true); // Duplex
 			m_conditionBarge.wait_for(
 					lock, BARGEIN_TIMEOUT, [this]{ 
 					return m_trackState == utils::channel::FocusState::NONE;
@@ -212,21 +211,11 @@ std::future<bool> AIUIAutomaticSpeechRecognizer::recognize(
 			//return false;
 		case ObserverInterface::State::BUSY:
 			AISDK_ERROR(LX("executeRecognizeFailed").d("reason", "Barge-in is not permitted while busy"));
-			// Duplex
-			m_bargeIn = true;
-			setVaildVad(true);
-			#if 0
             exit(0);
 			std::promise<bool> p;
 			std::future<bool> ret = p.get_future();
 			return ret;
-			#endif
 	}
-	
-	// Formally, Start sending wakeup event to AIUI engine.
-	aiui::IAIUIMessage * wakeupMsg = aiui::IAIUIMessage::create(aiui::AIUIConstant::CMD_RESET_WAKEUP);
-	m_aiuiAgent->sendMessage(wakeupMsg);
-	wakeupMsg->destroy();
 	
     return m_executor.submit([this, stream, begin, keywordEnd]() {
         return executeRecognize(stream, begin, keywordEnd);
@@ -253,7 +242,6 @@ bool AIUIAutomaticSpeechRecognizer::cancelTextToSpeech() {
 void AIUIAutomaticSpeechRecognizer::handleEventStateReady() {
 	// default no-op
 	//executeResetState(); //mark
-	setVaildVad(true);
 }
 
 void AIUIAutomaticSpeechRecognizer::handleEventStateWorking() {
@@ -278,8 +266,8 @@ void AIUIAutomaticSpeechRecognizer::handleEventVadBegin() {
 }
 
 void AIUIAutomaticSpeechRecognizer::handleEventVadEnd() {
-	// For full-duplex.
-	// setVaildVad(true);
+	setVaildVad(true);
+	//m_timeoutForActivingAudioTimer.stop();
 	if(!m_timeoutForThinkingTimer.isActive()) {
 		if(!m_timeoutForThinkingTimer.start(
 			THINKING_TIMEOUT,
@@ -292,12 +280,11 @@ void AIUIAutomaticSpeechRecognizer::handleEventVadEnd() {
 
 void AIUIAutomaticSpeechRecognizer::handleEventResultNLP(const std::string unparsedIntent) {
 	AISDK_DEBUG5(LX("handleEventResultNLP").d("reason", "entry").d("unparsedIntent", unparsedIntent));
-#if 0  // For duplex
 	// The state should is RECOGNIZING or EXPECT SPEECH.
 	if(ObserverInterface::State::RECOGNIZING != getState() && \
 	 ObserverInterface::State::EXPECTING_SPEECH != getState())
 		return;
-#endif	
+	
 	m_executor.submit([this, unparsedIntent]() {
 		return executeNLPResult(unparsedIntent);
 	});
@@ -507,7 +494,7 @@ bool AIUIAutomaticSpeechRecognizer::init() {
 	std::ostringstream os;
 	writer->write(root, &os);
 
-	//  æ³¨ï¼šè¯¥æ–¹æ³•æ€»æ˜¯è¿”å›žéžç©ºå¯¹è±¡ï¼Œéžç©ºå¹¶ä¸ä»£è¡¨åˆ›å»ºè¿‡ç¨‹ä¸­æ— é”™è¯¯å‘ç”Ÿã€‚- from Iflytek aiui
+	//  ×¢£º¸Ã·½·¨×ÜÊÇ·µ»Ø·Ç¿Õ¶ÔÏó£¬·Ç¿Õ²¢²»´ú±í´´½¨¹ý³ÌÖÐÎÞ´íÎó·¢Éú¡£- from Iflytek aiui
 	m_aiuiAgent = aiui::IAIUIAgent::createAgent(os.str().c_str(), this);
 
 	// Check utterance save flags.
@@ -621,7 +608,6 @@ bool AIUIAutomaticSpeechRecognizer::executeNLPResult(const std::string unparsedI
 	Json::Value intent = root["intent"];
 	std::string  sid = intent["sid"].asString();
 	if(sid.empty()) {
-		// m_sessionId.clear(); // duplex
 		AISDK_ERROR(LX("executeNLPResultFailed").d("reason", "notFoundSID."));
 		return false;
 	}
@@ -730,27 +716,7 @@ bool AIUIAutomaticSpeechRecognizer::executeTPPResult(
 		AISDK_ERROR(LX("executeTPPResult").d("reason", "answerIsNull"));
 		return false;
 	}
-
-#if 1  // duplex
-	//if(m_sessionId.empty()) {
-	//	m_timeoutForThinkingTimer.stop();
-	//	return false;
-	//} 
-
-	if(query == "æ— ") {
-		AISDK_ERROR(LX("executeTPPResultFailed").d("reason", "queryIsNLPAnswer").d("query", query));
-		m_timeoutForThinkingTimer.stop();
-		return false;
-	}
-
-	// Acquire channel prority.
-	if (!m_trackManager->acquireChannel(CHANNEL_NAME, shared_from_this(), CHANNEL_INTERFACE_NAME)) {
-		AISDK_ERROR(LX("executeTPPResultFailed").d("reason", "Unable to acquire channel"));
-		executeResetState();
-		return false;
-    }
 	
-#else  // 
 	// The BUSY state will be allowed to continue working.
 	if(ObserverInterface::State::BUSY != getState()) {
 		if(m_sessionId.empty()) {
@@ -761,7 +727,7 @@ bool AIUIAutomaticSpeechRecognizer::executeTPPResult(
 			return false;
 		}
 	}
-#endif	
+	
 	// Start creating new writer.
 	if(createNewAttachmentWrite(intent) == false)
 		return false;
@@ -944,7 +910,7 @@ void AIUIAutomaticSpeechRecognizer::sendStreamProcessing() {
 			break;
 		} else if(wordsRead > 0) {
 			/**
-			 * ç”³è¯·çš„å†…å­˜ä¼šåœ¨sdkå†…éƒ¨é‡Šæ”¾
+			 * ÉêÇëµÄÄÚ´æ»áÔÚsdkÄÚ²¿ÊÍ·Å
 			 */
 			// Calculate the actual length(in bytes).
 			auto length = wordsRead*sizeof(*audioDataToPush.data());
@@ -1019,23 +985,23 @@ bool AIUIAutomaticSpeechRecognizer::executeTextToSpeech(
 	text.copy((char*) textData->data(), text.length());
 
 	/*
-	 arg1å–å€¼è¯´æ˜Žï¼š
-		START	å¼€å§‹åˆæˆ	åˆæˆå‘éŸ³äººï¼Œè¯­é€Ÿè¯­è°ƒç­‰æš‚æ— 
-		CANCEL	å–æ¶ˆåˆæˆ	æ— 
-		PAUSE	æš‚åœæ’­æ”¾	æ— 
-		RESUME	æ¢å¤æ’­æ”¾	æ— 
+	 arg1È¡ÖµËµÃ÷£º
+		START	¿ªÊ¼ºÏ³É	ºÏ³É·¢ÒôÈË£¬ÓïËÙÓïµ÷µÈ
+		CANCEL	È¡ÏûºÏ³É	ÎÞ
+		PAUSE	ÔÝÍ£²¥·Å	ÎÞ
+		RESUME	»Ö¸´²¥·Å	ÎÞ
 	*/
 
 	/*
-	åˆæˆå‚æ•°ç¤ºä¾‹ï¼š
+	ºÏ³É²ÎÊýÊ¾Àý£º
 	String params = "vcn=xiaoyan,speed=50,pitch=50,volume=50"
 
-	å‚æ•°å­—æ®µè¯´æ˜Žï¼š
-		vcn	å‘éŸ³äººï¼Œå¦‚xiaoyan
-		speed	é€Ÿåº¦ï¼Œ0-100
-		pitch	è¯­è°ƒï¼Œ0-100
-		volume	éŸ³é‡ï¼Œ0-100
-		ent	å¼•æ“Žï¼Œé»˜è®¤aisoundï¼Œå¦‚æžœéœ€è¦è¾ƒå¥½çš„æ•ˆæžœï¼Œå¯è®¾ç½®æˆxtts
+	²ÎÊý×Ö¶ÎËµÃ÷£º
+		vcn	·¢ÒôÈË£¬Èçxiaoyan
+		speed	ËÙ¶È£¬0-100
+		pitch	Óïµ÷£¬0-100
+		volume	ÒôÁ¿£¬0-100
+		ent	ÒýÇæ£¬Ä¬ÈÏaisound£¬Èç¹ûÐèÒª½ÏºÃµÄÐ§¹û£¬¿ÉÉèÖÃ³Éxtts
 	*/
 	std::string paramStr = "vcn=x_chongchong";
 	paramStr += ",speed=50";
@@ -1085,10 +1051,9 @@ void AIUIAutomaticSpeechRecognizer::releaseForegroundTrace() {
 }
 
 void AIUIAutomaticSpeechRecognizer::executeResetState() {
-#if 0 // duplex
 	if(m_reader)
 		m_reader->close();
-#endif
+
 	if(m_trackState != utils::channel::FocusState::NONE) {
 		AISDK_DEBUG5(LX("executeResetState").d("reason", "releaseChannel"));
 		m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this());

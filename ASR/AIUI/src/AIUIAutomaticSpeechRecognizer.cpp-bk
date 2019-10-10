@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright 2019 its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
@@ -507,7 +507,7 @@ bool AIUIAutomaticSpeechRecognizer::init() {
 	std::ostringstream os;
 	writer->write(root, &os);
 
-	//  注：该方法总是返回非空对象，非空并不代表创建过程中无错误发生。- from Iflytek aiui
+	//  ע���÷������Ƿ��طǿն��󣬷ǿղ������������������޴�������- from Iflytek aiui
 	m_aiuiAgent = aiui::IAIUIAgent::createAgent(os.str().c_str(), this);
 
 	// Check utterance save flags.
@@ -732,12 +732,10 @@ bool AIUIAutomaticSpeechRecognizer::executeTPPResult(
 	}
 
 #if 1  // duplex
-	//if(m_sessionId.empty()) {
-	//	m_timeoutForThinkingTimer.stop();
-	//	return false;
-	//} 
-
-	if(query == "无") {
+	if(m_sessionId.empty()) {
+		m_timeoutForThinkingTimer.stop();
+		return false;
+	} else if(query == "����") {
 		AISDK_ERROR(LX("executeTPPResultFailed").d("reason", "queryIsNLPAnswer").d("query", query));
 		m_timeoutForThinkingTimer.stop();
 		return false;
@@ -944,7 +942,7 @@ void AIUIAutomaticSpeechRecognizer::sendStreamProcessing() {
 			break;
 		} else if(wordsRead > 0) {
 			/**
-			 * 申请的内存会在sdk内部释放
+			 * ������ڴ����sdk�ڲ��ͷ�
 			 */
 			// Calculate the actual length(in bytes).
 			auto length = wordsRead*sizeof(*audioDataToPush.data());
@@ -1019,23 +1017,23 @@ bool AIUIAutomaticSpeechRecognizer::executeTextToSpeech(
 	text.copy((char*) textData->data(), text.length());
 
 	/*
-	 arg1取值说明：
-		START	开始合成	合成发音人，语速语调等暂无
-		CANCEL	取消合成	无
-		PAUSE	暂停播放	无
-		RESUME	恢复播放	无
+	 arg1ȡֵ˵����
+		START	��ʼ�ϳ�	�ϳɷ����ˣ��������������
+		CANCEL	ȡ���ϳ�	��
+		PAUSE	��ͣ����	��
+		RESUME	�ָ�����	��
 	*/
 
 	/*
-	合成参数示例：
+	�ϳɲ���ʾ����
 	String params = "vcn=xiaoyan,speed=50,pitch=50,volume=50"
 
-	参数字段说明：
-		vcn	发音人，如xiaoyan
-		speed	速度，0-100
-		pitch	语调，0-100
-		volume	音量，0-100
-		ent	引擎，默认aisound，如果需要较好的效果，可设置成xtts
+	�����ֶ�˵����
+		vcn	�����ˣ���xiaoyan
+		speed	�ٶȣ�0-100
+		pitch	�����0-100
+		volume	������0-100
+		ent	���棬Ĭ��aisound�������Ҫ�Ϻõ�Ч���������ó�xtts
 	*/
 	std::string paramStr = "vcn=x_chongchong";
 	paramStr += ",speed=50";
