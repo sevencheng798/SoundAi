@@ -791,8 +791,12 @@ bool AIUIAutomaticSpeechRecognizer::createNewAttachmentWrite(const std::string &
 		attachmentId = m_sessionId;
 	}
 	
+#if 1 // For duplex.
 	// Close activly tts.
-	//cancelTextToSpeech();
+	// cancelTextToSpeech();
+	executeCancelTextToSpeech();
+
+#endif
 	// We should close the last writer before starting a new write.
 	closeActiveAttachmentWriter();
 	if(m_attachmentDocker && !m_attachmentWriter) {
