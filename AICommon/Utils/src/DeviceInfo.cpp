@@ -111,7 +111,7 @@ bool checkWireLessConnectState() {
 
 	if((fp = popen(command, "r")) != NULL){
 		if((fgets(buf, 32, fp)) != NULL){
-			AISDK_DEBUG5(LX("checkWireLessConnectState").d("STATE", buf));
+			AISDK_DEBUG0(LX("checkWireLessConnectState").d("STATE", buf));
 			if(0 == memcmp(buf, match, strlen(match))) {
 				ret = true;
 			} else {
@@ -129,9 +129,10 @@ bool checkWireLessConnectState() {
 bool DeviceInfo::isConnected() {
 	char state[4]={0};
 	getprop((char *)keyWifi, (char *)&state);
-	AISDK_DEBUG5(LX("isConnected").d("networkState", state));
+	AISDK_DEBUG0(LX("isConnected").d("networkState", state));
 	
-	if(state[0] == '1' && checkWireLessConnectState()) {
+	if(state[0] == '1' ) {
+    //if(state[0] == '1' || checkWireLessConnectState()) {
 		notifyStateChange(NetworkStateObserverInterface::Status::CONNECTED);
 		return true;
 	}
