@@ -287,7 +287,22 @@ void SpeechSynthesizer::executePreHandleAfterValidation(std::shared_ptr<ChatDire
 	std::string url = root["tts_url"].asString();
 	AISDK_INFO(LX("executePreHandleAfterValidation").d("url", url));
 	info->url = url;
-#else	
+#else
+	/**
+	 * We should to parse the key of the 'session' to decide
+	 * whether we should release the Channel at the end.
+	 */
+	auto data = info->directive->getData();
+	Json::CharReaderBuilder readerBuilder;
+	JSONCPP_STRING errs;
+	Json::Value root;
+	std::unique_ptr<Json::CharReader> const reader(readerBuilder.newCharReader());
+	if (!reader->parse(data.c_str(), data.c_str()+data.length(), &root, &errs)) {
+		AISDK_ERROR(LX("executePreHandleAfterValidation").d("reason", "parseDataKeyError"));
+		return;
+	}
+	m_expectSpeech = root["session"].asBool();
+	
 	info->attachmentReader = info->directive->getAttachmentReader(
 		info->directive->getMessageId(), utils::sharedbuffer::ReaderPolicy::BLOCKING);
 #endif	
@@ -661,7 +676,9 @@ void SpeechSynthesizer::executeOnDialogUXStateChanged(
     }
     if (m_currentFocus != FocusState::NONE &&
         m_currentState != SpeechSynthesizerObserverInterface::SpeechSynthesizerState::GAINING_FOCUS) {
-        m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this());
+        // There's not request expect speech, we will release Channel immediately.
+        if(!m_expectSpeech)
+            m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this());
         m_currentFocus = FocusState::NONE;
     }
 }

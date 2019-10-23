@@ -385,6 +385,12 @@ private:
 	/// @c ChatDirectiveInfo instance for the @c NLPDomain currently being handled.
 	std::shared_ptr<ChatDirectiveInfo> m_currentInfo;
 
+	/**
+	 * A flag waiting for data to be requested again. if there's music standing in the background When TTS is played
+	 * completely and the flag is @c true, we will not have to release Channel.
+	 */
+	bool m_expectSpeech;
+
 	/// Mutex to serialize access to m_currentState, m_desiredState, and m_waitOnStateChange.
 	std::mutex m_mutex;
 
