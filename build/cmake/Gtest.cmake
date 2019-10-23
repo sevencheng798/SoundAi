@@ -21,5 +21,6 @@ if(GTEST_ENABLE)
 	endif()
 
 	link_directories(${GTEST_LIB_DIR})
+	set(GMOCK_ENABLE ON)
 endif()
 
