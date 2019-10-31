@@ -685,6 +685,9 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
           long int timesec = (long int)(timestamp/1000);   //long long int --> long int;
           //printf("%ld \n", timesec);
           AISDK_DEBUG5(LX("repeat_timestamp_day").d("timesec", timesec));
+         
+
+#if 1
           struct tm *p ;
           p = localtime(&timesec);
 
@@ -706,7 +709,16 @@ void AnalysisNlpDataForAlarmsPlayer(cJSON          * datain , std::deque<std::st
                 p->tm_hour, 
                 p->tm_min);
           }
-          
+#else
+            if(json_event != NULL){
+                sprintf(content, "小康提醒您，您有一个提醒%s时间到了",evt_type);
+            }
+            else{
+                sprintf(content, "小康提醒您，您有一个提醒时间到了");
+            }
+
+
+#endif          
           //AISDK_INFO(LX("Set Alarm Time:").d("content:", content));
           action_type = 1;
           loop_mask = 0;

@@ -14,7 +14,6 @@
 #include <Utils/Logging/Logger.h>
 #include "string.h"
 
-
 // String to identify log entries originating from this file.
 static const std::string TAG("ControlActionManager");
 /// Define output

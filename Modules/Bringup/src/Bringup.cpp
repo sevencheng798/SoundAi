@@ -14,6 +14,8 @@
 #include <Utils/BringUp/BringUpEventType.h>
 #include "string.h"
 #include "Bringup.h"
+#include "unistd.h"
+
 
 /// String to identify log entries originating from this file.
 static const std::string TAG("Bringup");
@@ -30,6 +32,10 @@ static const std::string CHANNEL_NAME = utils::channel::AudioTrackManagerInterfa
 
 /// The name of the @c SafeShutdown
 static const std::string BRINGUP_NAME{"Bringup"};
+
+#define ALARM_REPEAT_TIME_MAX 21
+int alarm_flag = 0;
+int alarmack_repeat_time = 0;
 
 std::shared_ptr<Bringup> Bringup::create(
    std::shared_ptr<utils::attachment::AttachmentManagerInterface> attachmentDocker,
@@ -157,6 +163,8 @@ void Bringup::onTrackChanged(utils::channel::FocusState newTrace) {
             case utils::bringup::eventType::ALARM_ACK:
              {
                 playttsTxtItem(m_ttsTxt);
+                alarm_flag = 1;
+                alarmack_repeat_time = 0;
              }
              break;
             case utils::bringup::eventType::BRINGUP_DEFAULT:
@@ -183,6 +191,7 @@ void Bringup::onTrackChanged(utils::channel::FocusState newTrace) {
         case utils::channel::FocusState::NONE:
         AISDK_INFO(LX("onTrackChangedNone").d("m_currentSourceId", m_currentSourceId));
                 m_bringupPlayer->stop(m_currentSourceId);
+                alarm_flag = 0;
 
         break;
    }
@@ -195,6 +204,7 @@ void Bringup::onPlaybackStarted(SourceId id) {
 
 }
 
+#if 0
 void Bringup::onPlaybackFinished(SourceId id) {
     // no-op
     AISDK_INFO(LX("onPlaybackFinished").d("GM SourceId", id));
@@ -202,6 +212,38 @@ void Bringup::onPlaybackFinished(SourceId id) {
     in->close();
     m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this());
 }
+
+#else
+void Bringup::onPlaybackFinished(SourceId id) {
+    // no-op
+    AISDK_INFO(LX("onPlaybackFinished").d("GM SourceId", id));
+    m_playFlag = PLAY_FINISHED_FLAG;
+    AISDK_INFO(LX("onPlaybackFinished").d("alarm_flag", alarm_flag));
+    if(alarm_flag == 1){
+        m_executor.submit([this]() { executePlaybackFinished(); });
+        alarmack_repeat_time ++;
+        in->close();
+        if(alarmack_repeat_time == ALARM_REPEAT_TIME_MAX){
+            alarm_flag = 0;
+        }
+    }else{
+        alarmack_repeat_time = 0;
+        in->close();
+        m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this());
+    }
+}
+#endif 
+
+void Bringup::executePlaybackFinished() {
+    AISDK_INFO(LX("executePlaybackFinished").d("alarmack_repeat_time", alarmack_repeat_time)); 
+    if(alarmack_repeat_time % 2 == 1 ){
+        inOpenFile("/cfg/sai_config/alarmmusic.mp3");
+    }else{
+        playttsTxtItem(m_ttsTxt);
+    }
+    m_bringupPlayer->play(m_currentSourceId);
+}
+
 
 void Bringup::onPlaybackError(SourceId id, const utils::mediaPlayer::ErrorType& type, std::string error) {
     // no-op

@@ -56,7 +56,9 @@ public:
     void onPlaybackStarted(SourceId id) override;
     
     void onPlaybackFinished(SourceId id) override;
-    
+
+    void executePlaybackFinished() ;    
+
     void onPlaybackError(SourceId id, const utils::mediaPlayer::ErrorType& type, std::string error) override;
     
     void onPlaybackStopped(SourceId id) override;
