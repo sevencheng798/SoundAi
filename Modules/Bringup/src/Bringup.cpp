@@ -36,6 +36,7 @@ static const std::string BRINGUP_NAME{"Bringup"};
 #define ALARM_REPEAT_TIME_MAX 21
 int alarm_flag = 0;
 int alarmack_repeat_time = 0;
+bool mute_need_trigger = false;
 
 std::shared_ptr<Bringup> Bringup::create(
    std::shared_ptr<utils::attachment::AttachmentManagerInterface> attachmentDocker,
@@ -120,6 +121,7 @@ void Bringup::onTrackChanged(utils::channel::FocusState newTrace) {
             break;
             case utils::bringup::eventType::BRINGUP_BIND_COMPLETE:
                 inOpenFile("/cfg/sai_config/bind_ok.mp3");
+				mute_need_trigger = true;
                 //in->open("/cfg/sai_config/bind_ok.mp3", std::ifstream::in);
             break;
             case utils::bringup::eventType::BRINGUP_GMJK_START:
@@ -201,7 +203,11 @@ void Bringup::onPlaybackStarted(SourceId id) {
     // no-op
     m_playFlag = PLAY_START_FLAG;
     AISDK_INFO(LX("|||| onPlaybackStarted").d("m_playFlag", m_playFlag));
-
+    if(mute_need_trigger) {
+	    AISDK_DEBUG(LX(__func__).d("reason", "systemBeCalledStartToMuted"));
+        system("echo 1 > /sys/devices/platform/dummy/mute");
+	    AISDK_DEBUG(LX(__func__).d("reason", "systemBeCalledEnd"));
+    }
 }
 
 #if 0
@@ -229,6 +235,12 @@ void Bringup::onPlaybackFinished(SourceId id) {
     }else{
         alarmack_repeat_time = 0;
         in->close();
+        if(mute_need_trigger) {
+	        AISDK_DEBUG(LX(__func__).d("reason", "systemBeCalledStartToUnmuted"));
+    	    system("echo 0 > /sys/devices/platform/dummy/mute");
+	        AISDK_DEBUG(LX(__func__).d("reason", "systemBeCalledEnd"));
+            mute_need_trigger = false;
+        }
         m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this());
     }
 }
@@ -258,6 +270,12 @@ void Bringup::onPlaybackStopped(SourceId id) {
     AISDK_INFO(LX("onPlaybackStopped").d("GM SourceId", id));
     in->close();
     m_playFlag = PLAY_STOP_FLAG; 
+    if(mute_need_trigger) {
+        AISDK_DEBUG(LX(__func__).d("reason", "systemBeCalledStartToUnmuted"));
+        system("echo 0 > /sys/devices/platform/dummy/mute");
+	    AISDK_DEBUG(LX(__func__).d("reason", "systemBeCalledEnd"));
+        mute_need_trigger = false;
+    }
 
 }
 
