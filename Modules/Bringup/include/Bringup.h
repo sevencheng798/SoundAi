@@ -21,7 +21,7 @@
 #include <Utils/Threading/Executor.h>
 #include <ASR/GenericAutomaticSpeechRecognizer.h>
 #include <Utils/BringUp/BringUpEventType.h>
-
+#include <DMInterface/BringUpObserverInterface.h>
 
 namespace aisdk {
 namespace modules {
@@ -67,7 +67,18 @@ public:
      void init();
 
     bool start(utils::bringup::eventType type,  std::string ttsTxt);
-     
+	
+	/*
+	 * Add an observer to BringupPlayer.
+	 * 
+	 * @param observer The observer to add.
+	 */
+	void addObserver(std::shared_ptr<dmInterface::BringUpObserverInterface> observer);
+
+	/// Remove an observer from the BringupPlayer.
+	/// @param observer The ovserver to remove.
+	void removeObserver(std::shared_ptr<dmInterface::BringUpObserverInterface> observer);
+
      ~Bringup();
 
 private:
@@ -107,6 +118,11 @@ private:
     ///add for play the ttstxt from alarmack and ipc;
     void playttsTxtItem(std::string ttsTxt);
 
+	/// Mutex to serialize access to @c m_observers.
+	std::mutex m_mutex;
+
+	std::unordered_set<std::shared_ptr<dmInterface::BringUpObserverInterface>> m_observers;
+	
     utils::threading::Executor  m_executor;
 };
 

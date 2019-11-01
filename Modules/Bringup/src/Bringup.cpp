@@ -204,9 +204,11 @@ void Bringup::onPlaybackStarted(SourceId id) {
     m_playFlag = PLAY_START_FLAG;
     AISDK_INFO(LX("|||| onPlaybackStarted").d("m_playFlag", m_playFlag));
     if(mute_need_trigger) {
-	    AISDK_DEBUG(LX(__func__).d("reason", "systemBeCalledStartToMuted"));
-        system("echo 1 > /sys/devices/platform/dummy/mute");
-	    AISDK_DEBUG(LX(__func__).d("reason", "systemBeCalledEnd"));
+		for(auto observer : m_observers) {
+			if(observer)
+				observer->onStateChanged(m_status, dmInterface::BringUpObserverInterface::BringUpPlayerState::PLAYING);
+    	}
+
     }
 }
 
@@ -236,9 +238,10 @@ void Bringup::onPlaybackFinished(SourceId id) {
         alarmack_repeat_time = 0;
         in->close();
         if(mute_need_trigger) {
-	        AISDK_DEBUG(LX(__func__).d("reason", "systemBeCalledStartToUnmuted"));
-    	    system("echo 0 > /sys/devices/platform/dummy/mute");
-	        AISDK_DEBUG(LX(__func__).d("reason", "systemBeCalledEnd"));
+		for(auto observer : m_observers) {
+			if(observer)
+				observer->onStateChanged(m_status, dmInterface::BringUpObserverInterface::BringUpPlayerState::FINISHED);
+    	}
             mute_need_trigger = false;
         }
         m_trackManager->releaseChannel(CHANNEL_NAME, shared_from_this());
@@ -271,9 +274,11 @@ void Bringup::onPlaybackStopped(SourceId id) {
     in->close();
     m_playFlag = PLAY_STOP_FLAG; 
     if(mute_need_trigger) {
-        AISDK_DEBUG(LX(__func__).d("reason", "systemBeCalledStartToUnmuted"));
-        system("echo 0 > /sys/devices/platform/dummy/mute");
-	    AISDK_DEBUG(LX(__func__).d("reason", "systemBeCalledEnd"));
+		for(auto observer : m_observers) {
+			if(observer)
+				observer->onStateChanged(m_status, dmInterface::BringUpObserverInterface::BringUpPlayerState::FINISHED);
+    	}
+
         mute_need_trigger = false;
     }
 
@@ -337,6 +342,16 @@ bool Bringup::start(utils::bringup::eventType type, std::string ttsTxt) {
     }
 
     return true;
+}
+
+void Bringup::addObserver(std::shared_ptr<dmInterface::BringUpObserverInterface> observer) {
+	std::lock_guard<std::mutex> lock{m_mutex};
+	m_observers.insert(observer);
+}
+
+void Bringup::removeObserver(std::shared_ptr<dmInterface::BringUpObserverInterface> observer) {
+	std::lock_guard<std::mutex> lock{m_mutex};
+	m_observers.erase(observer);
 }
 
 }
