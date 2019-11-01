@@ -102,6 +102,17 @@ void ControlActionManager::onAlarmAckStatusChanged(const Status newState, std::s
     
 }
 
+void ControlActionManager::onStateChanged(
+	utils::bringup::eventType event, 
+	dmInterface::BringUpObserverInterface::BringUpPlayerState state) {
+	if(state == dmInterface::BringUpObserverInterface::BringUpPlayerState::PLAYING) {
+		m_micWrapper->stopStreamingMicrophoneData();
+		m_userInterface->microphoneOffWithoutLed();
+	} else if(state == dmInterface::BringUpObserverInterface::BringUpPlayerState::FINISHED) {
+		m_micWrapper->startStreamingMicrophoneData();
+	}
+}
+
 void ControlActionManager::doShutdown() {
 	m_client.reset();
 }

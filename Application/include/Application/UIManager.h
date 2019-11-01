@@ -76,7 +76,10 @@ public:
 
 	/// Prints the help option.
 	void printHelpScreen();
-    
+
+	/// For am113 device to turn on mute when stop capture.
+	void microphoneOffWithoutLed();
+	
 	/// Prints the mic off info.
 	void microphoneOff();
 

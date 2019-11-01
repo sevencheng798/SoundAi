@@ -175,6 +175,12 @@ void UIManager::printHelpScreen() {
     m_executor.submit([]() { AISDK_INFO(LX(HELP_MESSAGE)); });
 }
 
+void UIManager::microphoneOffWithoutLed() {
+    AISDK_DEBUG(LX("microphoneOffWithoutLed").d("reason", "systemBeCalledStart"));
+    system("echo 0 > /sys/devices/platform/dummy/mute");
+    AISDK_DEBUG(LX("microphoneOffWithoutLed").d("reason", "systemBeCalledEnd"));
+}
+
 void UIManager::microphoneOff() {
     memset(&m_mqSndInfo, 0x00, sizeof(m_mqSndInfo));   
     m_mqSndInfo.msg_info.sub_msg_info.sub_id = LED_MODE_MUTE;

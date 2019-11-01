@@ -342,8 +342,12 @@ void AIClient::onNetworkStatusChanged(const Status newState) {
 
 std::shared_ptr<domain::alarmsPlayer::AlarmsPlayer>& AIClient::getAlarmPlayer() {
      return m_alarmsPlayer;
-
 }
+
+std::shared_ptr<modules::bringup::Bringup>& AIClient::getBringUpPlayer() {
+	return m_bringupPlayer;
+}
+
 
 AIClient::~AIClient() {
 	if(m_domainSequencer) {

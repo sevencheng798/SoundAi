@@ -19,6 +19,7 @@
 #include <Utils/SafeShutdown.h>
 #include <Utils/BringUp/BringUpEventType.h>
 #include <DMInterface/AlarmAckObserverInterface.h>
+#include <DMInterface/BringUpObserverInterface.h>
 
 #include "Application/AIClient.h"
 //#include "KeywordObserver.h"
@@ -34,7 +35,8 @@ namespace application {
 class ControlActionManager
         : public utils::SafeShutdown
 		, public utils::dialogRelay::DialogUXStateObserverInterface
-        , public dmInterface::AlarmAckObserverInterface {
+        , public dmInterface::AlarmAckObserverInterface
+        , public dmInterface::BringUpObserverInterface {
 public:
     /**
      * Constructor.
@@ -89,13 +91,21 @@ public:
      */
     void resetDevice();
 
-	/// @name DialogUXStateObserverInterface methods
+	/// @name DialogUXStateObserverInterface methods.
 	/// @{
 	void onDialogUXStateChanged(DialogUXState newState) override;
 	/// @}
 	
     // Query alarm clock response status.
     void onAlarmAckStatusChanged(const Status newState, std::string ttsTxt) override;
+
+	/// @name BringUpObserverInterface methods.
+	/// @{
+	void onStateChanged(
+		utils::bringup::eventType event, 
+		dmInterface::BringUpObserverInterface::BringUpPlayerState state) override;
+	/// @}
+	
 private:
     /// The default SDK client.
     std::shared_ptr<AIClient> m_client;

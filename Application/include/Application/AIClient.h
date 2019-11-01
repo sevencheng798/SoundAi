@@ -110,6 +110,10 @@ public:
 	/// }
 
     std::shared_ptr<domain::alarmsPlayer::AlarmsPlayer>& getAlarmPlayer();
+
+	/// Get bringup instance.
+	std::shared_ptr<modules::bringup::Bringup>& getBringUpPlayer();
+	
     /**
      * Destructor.
      */

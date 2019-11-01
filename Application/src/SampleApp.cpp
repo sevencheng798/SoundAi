@@ -244,7 +244,10 @@ bool SampleApp::initialize(const std::string& logLevel, bool rebootFlag) {
     // Adding the alarmack observer to @c ControlActionManager.
     auto alarmPlayer = m_aiClient->getAlarmPlayer();
     alarmPlayer->addObserver(m_controlActionManager);
-
+	// Adding the bringup observer.
+	auto bringupPlayer = m_aiClient->getBringUpPlayer();
+	bringupPlayer->addObserver(m_controlActionManager);
+	
 	m_aiClient->connect();
 
 	return true;
