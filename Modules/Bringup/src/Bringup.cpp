@@ -126,6 +126,7 @@ void Bringup::onTrackChanged(utils::channel::FocusState newTrace) {
             break;
             case utils::bringup::eventType::BRINGUP_GMJK_START:
                 inOpenFile("/cfg/sai_config/gmjkstart.mp3");
+				mute_need_trigger = true;
                 //in->open("/cfg/sai_config/gmjkstart.mp3", std::ifstream::in);
             break;
             case utils::bringup::eventType::MICROPHONE_OFF:
