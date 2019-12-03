@@ -435,12 +435,13 @@ void AIUIAutomaticSpeechRecognizer::closeActiveAttachmentWriter() {
 }
 
 bool AIUIAutomaticSpeechRecognizer::init() {
+#if 0
 	m_gainTune = std::make_shared<ASRGainTune>();
 	if(!m_gainTune) {
 		AISDK_ERROR(LX("initFailed").d("reason", "createdGainTuneFailed"));
 		return false;
 	}
-	
+#endif	
 	if(m_aiuiDir.empty()) {
 		AISDK_ERROR(LX("initFailed").d("reason", "aiuiDirIsEmpty"));
 		return false;
@@ -955,7 +956,7 @@ void AIUIAutomaticSpeechRecognizer::sendStreamProcessing() {
 			aiui::Buffer* buffer = aiui::Buffer::alloc(length);
 			void *pbuf8 = audioDataToPush.data();
 			if(m_gainTune)
-				m_gainTune->adjustGain(audioDataToPush.data(), length, 0.5);
+			m_gainTune->adjustGain(audioDataToPush.data(), length, 0.06);
 			
 			memcpy(buffer->data(), pbuf8, length);
 		
@@ -972,7 +973,8 @@ void AIUIAutomaticSpeechRecognizer::sendStreamProcessing() {
 								buffer);
 			m_aiuiAgent->sendMessage(writeMsg);
 			writeMsg->destroy();
-			//usleep(10 * 1000);
+			// Should to control feed rate.
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));;
 		}
 	} while(!isVaildVad());
 
