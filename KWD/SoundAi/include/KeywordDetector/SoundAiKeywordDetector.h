@@ -26,6 +26,7 @@
 #include <Utils/DeviceInfo.h>
 #include "DMInterface/KeyWordObserverInterface.h"
 #include "KWD/GenericKeywordDetector.h"
+#include "KeywordDetector/EchoCancellationImplementation.h"
 
 namespace aisdk {
 namespace kwd {
@@ -33,7 +34,9 @@ namespace kwd {
 /**
 *  An KeywordDetector class
 */
-class SoundAiKeywordDetector : public GenericKeywordDetector {
+class SoundAiKeywordDetector : public GenericKeywordDetector,
+	public EchoCancellationObserverInterface,
+	public std::enable_shared_from_this<SoundAiKeywordDetector> {
 public:
 	
 	/**
@@ -134,9 +137,15 @@ private:
 		const char* data,
 		size_t size,
 		void* userData);
-	
+
+	static void handleAecStreamCallback(
+		const int16_t* frame,
+		size_t size,
+		void* userData);
 	/// The main function that reads data and feeds it into the engine.
 	void detectionLoop();
+
+	void onEchoCancellationFrame(void *frame, size_t size) override;
 
 	/// Device info 
 	std::shared_ptr<utils::DeviceInfo> m_deviceInfo;
@@ -173,6 +182,8 @@ private:
 
 	/// Internal thread that reads audio from the buffer and feeds it to the Sensory engine.
 	std::thread m_detectionThread;
+
+	std::unique_ptr<EchoCancellationImplemention> m_echoCanceller;
 };
 
 }	// namespace kwd

@@ -11,6 +11,7 @@
  * permissions and limitations under the License.
  */
 #include <fstream>
+#include <iostream>
 #include <cstring>
 #include <Utils/Logging/Logger.h>
 #include "KeywordDetector/SoundAiKeywordDetector.h"
@@ -76,7 +77,7 @@ std::unique_ptr<SoundAiKeywordDetector> SoundAiKeywordDetector::create(
 		AISDK_ERROR(LX("CreateFailed").d("reason", "initDetectorFailed"));
 		return nullptr;
 	}
-
+	
 	return detector;
 }
 
@@ -165,7 +166,7 @@ bool SoundAiKeywordDetector::init() {
 	    AISDK_ERROR(LX("initFailed").d("reason", "add_data_handlerVAD"));
 		return false;
 	}
-#endif
+
 	errCode = sai_denoise_cfg_add_data_handler(
 			m_denoiseConfig, 
 			DENOISE_DATA_TYPE_ASR,
@@ -175,6 +176,7 @@ bool SoundAiKeywordDetector::init() {
 	    AISDK_ERROR(LX("initFailed").d("reason", "add_data_handlerASR"));
 		return false;
 	}
+#endif
 
 	errCode = sai_denoise_init(m_denoiseConfig, &m_denoiseContext); 
 	if(SAI_ASP_ERROR_SUCCESS != errCode) {
@@ -196,6 +198,11 @@ bool SoundAiKeywordDetector::init() {
     }
 
 	establishDenoiseWriter();
+
+	m_echoCanceller = EchoCancellationImplemention::create();
+	if(!m_echoCanceller)
+		return false;
+	m_echoCanceller->setAecStreamHandlerCallback(handleAecStreamCallback, reinterpret_cast<void*>(this));	
 
 	m_isShuttingDown = false;
 	m_detectionThread = std::thread(&SoundAiKeywordDetector::detectionLoop, this);
@@ -336,7 +343,7 @@ void SoundAiKeywordDetector::handleDenoiseStreamCallback(
 	size_t size,
 	void* userData) {
 	SoundAiKeywordDetector *detector = static_cast<SoundAiKeywordDetector*>(userData);
-	(void)type;
+//	(void)type;
 	if (!detector) {
 		AISDK_ERROR(LX("handleDenoiseStreamCallback").d("reason", "nullDetector."));
 		return;
@@ -353,28 +360,64 @@ void SoundAiKeywordDetector::handleDenoiseStreamCallback(
 	}
 }
 
+void SoundAiKeywordDetector::handleAecStreamCallback(
+	const int16_t* frame,
+	size_t size,
+	void* userData) {
+	SoundAiKeywordDetector *detector = static_cast<SoundAiKeywordDetector*>(userData);
+	if (!detector) {
+		AISDK_ERROR(LX("handleAecStreamCallback").d("reason", "nullDetector."));
+		return;
+	}
+
+	std::vector<int16_t> pushToBuffer(size);
+	auto pbuf8 = static_cast<void *>(pushToBuffer.data());
+	memcpy(pbuf8, frame, size*sizeof(*pushToBuffer.data()));
+	detector->m_denoiseWriter->write(pushToBuffer.data(), pushToBuffer.size());
+}
+
+void SoundAiKeywordDetector::onEchoCancellationFrame(void *frame, size_t size) {
+			std::vector<int16_t> pushToBuffer(size/sizeof(int16_t));
+		auto pbuf8 = static_cast<void *>(pushToBuffer.data());
+		memcpy(pbuf8, frame, size);
+	m_denoiseWriter->write(pushToBuffer.data(), pushToBuffer.size());
+
+}
+
 void SoundAiKeywordDetector::detectionLoop() {
 	std::vector<int16_t> audioDataToPush(m_maxSamplesPerPush); //(16*8*10)*2 = (1280)*2 = 2560 = 20ms 
 	int errCode = SAI_ASP_ERROR_SUCCESS;
 	ssize_t wordsRead;
-	//std::ofstream output("/tmp/Backup.pcm");
+	ssize_t read;
+	std::ofstream output("/tmp/Backup.pcm");
 
 	while(!m_isShuttingDown) {
 
 		bool didErrorOccur = false;
 		// Start read data.
-		wordsRead = readFromStream(
+		read = readFromStream(
 				m_streamReader,
 				m_stream,
-				audioDataToPush.data(),
-				audioDataToPush.size(),
+				audioDataToPush.data()+wordsRead,
+				audioDataToPush.size()-wordsRead,
 				TIMEOUT_FOR_READ_CALLS,
 				&didErrorOccur);
+		if(read > 0)
+			wordsRead += read;
+		else
+			wordsRead = read;
+
 		// Error occurrence maybe reader close.
 		if(didErrorOccur) {
 			break;
 		} else if (wordsRead == Reader::Error::OVERRUN) {
-			
+			wordsRead = 0;
+		} else if(wordsRead < (ssize_t)audioDataToPush.size()) {
+			// AISDK_INFO(LX("detectionLoop").d("wordsRead", wordsRead).d("size", audioDataToPush.size()));
+			//offset = audioDataToPush.size() - wordsRead;
+			if(wordsRead < 0)
+				wordsRead = 0;
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		} else if(wordsRead > 0) {
 			void *pbuf8 = audioDataToPush.data();
 			//output.write(static_cast<char *>(pbuf8), wordsRead*sizeof(*audioDataToPush.data()));
@@ -384,7 +427,13 @@ void SoundAiKeywordDetector::detectionLoop() {
 				AISDK_ERROR(LX("detectionLoopFailed").d("reason", "sai_denoise_feed err").d("errCode", errCode));
 				// TODO: Sven we should convert the 'sai_asp_err_t' state to string.
 			}
+			//m_echoCanceller->processStream(static_cast<char *>(pbuf8), wordsRead*sizeof(*audioDataToPush.data()));
+
+			m_echoCanceller->processStream(audioDataToPush.data(), wordsRead);
 			std::this_thread::sleep_for(std::chrono::milliseconds(5));
+			wordsRead = 0;
+		}else {
+			std::cout << "else wordsRead: " << wordsRead << std::endl;
 		}
 		
 	}
