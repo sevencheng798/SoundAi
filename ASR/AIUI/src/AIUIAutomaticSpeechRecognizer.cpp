@@ -934,7 +934,8 @@ void AIUIAutomaticSpeechRecognizer::sendStreamProcessing() {
 								buffer);
 			m_aiuiAgent->sendMessage(writeMsg);
 			writeMsg->destroy();
-			//usleep(10 * 1000);
+			// The delay to control feed data rate sometimes no response for AIUI.
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		}
 	} while(!isVaildVad());
 
