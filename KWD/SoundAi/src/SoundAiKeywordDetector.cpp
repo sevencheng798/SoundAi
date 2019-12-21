@@ -387,7 +387,7 @@ void SoundAiKeywordDetector::onEchoCancellationFrame(void *frame, size_t size) {
 void SoundAiKeywordDetector::detectionLoop() {
 	std::vector<int16_t> audioDataToPush(m_maxSamplesPerPush); //(16*8*10)*2 = (1280)*2 = 2560 = 20ms 
 	int errCode = SAI_ASP_ERROR_SUCCESS;
-	ssize_t wordsRead;
+	ssize_t wordsRead = 0;
 	ssize_t read;
 	std::ofstream output("/tmp/Backup.pcm");
 
